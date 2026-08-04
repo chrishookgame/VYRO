@@ -1,0 +1,68 @@
+﻿import type { PrestigeRankDefinition } from "./types";
+
+export const VYRO_PRESTIGE_RANKS: PrestigeRankDefinition[] = [
+  {
+    id: "vyro_seed",
+    name: "VYRO Seed",
+    description: "El inicio de una nueva identidad dentro del Universo VYRO.",
+    minimumXp: 0,
+    icon: "🌱",
+    priority: 1,
+  },
+  {
+    id: "vyro_spark",
+    name: "VYRO Spark",
+    description: "La energía comienza a crecer y la comunidad empieza a notarlo.",
+    minimumXp: 500,
+    icon: "⚡",
+    priority: 2,
+  },
+  {
+    id: "vyro_nova",
+    name: "VYRO Nova",
+    description: "Una presencia creativa que empieza a brillar con fuerza.",
+    minimumXp: 2500,
+    icon: "🚀",
+    priority: 3,
+  },
+  {
+    id: "vyro_titan",
+    name: "VYRO Titan",
+    description: "Una identidad sólida con influencia dentro de la comunidad.",
+    minimumXp: 10000,
+    icon: "🏆",
+    priority: 4,
+  },
+  {
+    id: "vyro_orbit",
+    name: "VYRO Orbit",
+    description: "Una comunidad activa gira alrededor de su contenido.",
+    minimumXp: 30000,
+    icon: "💎",
+    priority: 5,
+  },
+  {
+    id: "vyro_legend",
+    name: "VYRO Legend",
+    description: "Una figura reconocida que deja huella dentro de VYRO.",
+    minimumXp: 75000,
+    icon: "👑",
+    priority: 6,
+  },
+  {
+    id: "vyro_cosmos",
+    name: "VYRO Cosmos",
+    description: "Su impacto alcanza múltiples comunidades y experiencias.",
+    minimumXp: 200000,
+    icon: "🌌",
+    priority: 7,
+  },
+  {
+    id: "vyro_infinity",
+    name: "VYRO Infinity",
+    description: "El nivel máximo de legado, impacto y prestigio VYRO.",
+    minimumXp: 500000,
+    icon: "♾️",
+    priority: 8,
+  },
+];
