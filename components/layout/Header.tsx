@@ -1,12 +1,12 @@
-﻿"use client";
+"use client";
 
 import {
-  Bell,
   Search,
   Sparkles,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { NotificationCenter } from "@/components/notifications";
 
 export default function Header() {
   const {
@@ -59,15 +59,7 @@ export default function Header() {
           <Sparkles size={22} />
         </button>
 
-        <button
-          type="button"
-          className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111827] text-white transition hover:bg-cyan-500 hover:text-black sm:h-12 sm:w-12"
-          aria-label="Abrir notificaciones"
-        >
-          <Bell size={22} />
-
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationCenter />
 
         <div
           className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 font-bold text-black sm:h-12 sm:w-12"
