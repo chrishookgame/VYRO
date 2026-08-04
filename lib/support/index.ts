@@ -1,0 +1,46 @@
+﻿import { supabase } from "@/lib/supabase";
+
+export async function createTicket(data: {
+  user_id: string;
+  subject: string;
+  category: string;
+}) {
+  return await supabase
+    .from("support_tickets")
+    .insert(data)
+    .select()
+    .single();
+}
+
+export async function getTickets() {
+  return await supabase
+    .from("support_tickets")
+    .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
+}
+
+export async function getTicketMessages(
+  ticketId: string,
+) {
+  return await supabase
+    .from("support_messages")
+    .select("*")
+    .eq("ticket_id", ticketId)
+    .order("created_at");
+}
+
+export async function sendMessage(data: {
+  ticket_id: string;
+  sender_id: string;
+  message: string;
+}) {
+  return await supabase
+    .from("support_messages")
+    .insert(data);
+}
+
+export * from "./realtime";
+
+export * from "./upload";

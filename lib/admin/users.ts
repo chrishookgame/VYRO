@@ -1,0 +1,44 @@
+﻿import { supabase } from "@/lib/supabase";
+
+export async function getAdminUsers() {
+
+  return await supabase
+    .from("profiles")
+    .select(`
+      id,
+      username,
+      full_name,
+      avatar_url,
+      created_at
+    `)
+    .order(
+      "created_at",
+      {
+        ascending: false,
+      },
+    );
+
+}
+
+export async function getAdminUser(
+  id: string,
+) {
+
+  return await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+}
+
+export async function deleteAdminUser(
+  id: string,
+) {
+
+  return await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", id);
+
+}
