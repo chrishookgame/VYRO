@@ -56,7 +56,7 @@ returns trigger
 language plpgsql
 security invoker
 set search_path = public
-as $
+as $$
 begin
     if new.birth_date is not null then
         if new.birth_date < date '1900-01-01' then
@@ -70,8 +70,7 @@ begin
 
     return new;
 end;
-$;
-
+$$;
 drop trigger if exists trg_profiles_validate_birth_date
 on public.profiles;
 
