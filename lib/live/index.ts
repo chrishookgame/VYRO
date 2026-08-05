@@ -6,3 +6,4 @@ export * from "./energy.engine";
 export * from "./realtime";
 export * from "./room.repository";
 export * from "./explorer.repository";
+export * from "./global.repository";

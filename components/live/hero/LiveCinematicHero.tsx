@@ -1,15 +1,28 @@
-﻿import Link from "next/link";
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import Link from "next/link";
 import {
   ArrowUpRight,
   Bot,
-  Eye,
   Gift,
   Globe2,
+  LoaderCircle,
   Radio,
   Sparkles,
   Users,
   Zap,
 } from "lucide-react";
+
+import {
+  getLiveGlobalPulse,
+  type LiveGlobalPulse,
+} from "@/lib/live";
+import { supabase } from "@/lib/supabase";
 
 const orbitItems = [
   {
@@ -38,7 +51,86 @@ const orbitItems = [
   },
 ];
 
+const emptyPulse: LiveGlobalPulse = {
+  activeRooms: 0,
+  scheduledRooms: 0,
+  activeViewers: 0,
+  totalReactions: 0,
+  totalGifts: 0,
+  updatedAt: "",
+};
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("es-419", {
+    notation: value >= 1000
+      ? "compact"
+      : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 export default function LiveCinematicHero() {
+  const [pulse, setPulse] =
+    useState<LiveGlobalPulse>(emptyPulse);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const loadPulse = useCallback(async () => {
+    try {
+      const globalPulse =
+        await getLiveGlobalPulse();
+
+      setPulse(globalPulse);
+      setError("");
+    } catch (pulseError) {
+      setError(
+        pulseError instanceof Error
+          ? pulseError.message
+          : "No se pudo cargar el pulso global LIVE.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPulse();
+
+    const channel = supabase
+      .channel("vyro-live-global-pulse")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_room_counters",
+        },
+        () => {
+          void loadPulse();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_rooms",
+        },
+        () => {
+          void loadPulse();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadPulse]);
+
   return (
     <header className="relative isolate min-h-[680px] overflow-hidden rounded-[2.5rem] border border-cyan-300/20 bg-[#02070D] shadow-[0_40px_140px_rgba(0,0,0,0.55)]">
       <div className="pointer-events-none absolute inset-0">
@@ -118,31 +210,73 @@ export default function LiveCinematicHero() {
           </Link>
         </div>
 
-        <div className="mt-14 grid w-full max-w-4xl grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mt-14 grid w-full max-w-5xl grid-cols-2 gap-3 md:grid-cols-5">
+          <HeroMetric
+            icon={Radio}
+            label="LIVE activos"
+            value={
+              loading
+                ? "..."
+                : formatNumber(pulse.activeRooms)
+            }
+          />
+
           <HeroMetric
             icon={Users}
-            label="Comunidades"
-            value="Global"
-          />
-
-          <HeroMetric
-            icon={Eye}
-            label="Experiencia"
-            value="Realtime"
-          />
-
-          <HeroMetric
-            icon={Gift}
-            label="Gift Galaxy"
-            value="Activa"
+            label="Audiencia"
+            value={
+              loading
+                ? "..."
+                : formatNumber(pulse.activeViewers)
+            }
           />
 
           <HeroMetric
             icon={Zap}
-            label="Energy Core"
-            value="Vivo"
+            label="Reacciones"
+            value={
+              loading
+                ? "..."
+                : formatNumber(pulse.totalReactions)
+            }
+          />
+
+          <HeroMetric
+            icon={Gift}
+            label="Regalos"
+            value={
+              loading
+                ? "..."
+                : formatNumber(pulse.totalGifts)
+            }
+          />
+
+          <HeroMetric
+            icon={Globe2}
+            label="Programados"
+            value={
+              loading
+                ? "..."
+                : formatNumber(pulse.scheduledRooms)
+            }
           />
         </div>
+
+        {loading ? (
+          <div className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-gray-500">
+            <LoaderCircle
+              size={15}
+              className="animate-spin text-cyan-400"
+            />
+            Sincronizando el pulso global...
+          </div>
+        ) : null}
+
+        {!loading && error ? (
+          <p className="mt-5 text-xs font-semibold text-red-300">
+            {error}
+          </p>
+        ) : null}
       </div>
     </header>
   );
