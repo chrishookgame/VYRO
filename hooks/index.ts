@@ -2,3 +2,4 @@
 export * from "./useLiveSession";
 export * from "./useLiveDashboard";
 export * from "./useLivePresence";
+export * from "./useLiveChat";

@@ -10,3 +10,4 @@ export * from "./global.repository";
 export * from "./session";
 export * from "./dashboard";
 export * from "./presence";
+export * from "./chat";

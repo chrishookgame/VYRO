@@ -23,7 +23,9 @@ import {
   Zap,
 } from "lucide-react";
 
+import { LiveChatPanel } from "@/components/live/chat";
 import {
+  useLiveChat,
   useLivePresence,
   useLiveRealtime,
 } from "@/hooks";
@@ -61,7 +63,15 @@ export default function LiveWatchPage() {
     error: presenceError,
     counters: presenceCounters,
   } = useLivePresence(roomId);
-  const loadRoom = useCallback(async () => {
+
+  const {
+    messages,
+    loading: chatLoading,
+    sending: chatSending,
+    connected: chatConnected,
+    error: chatError,
+    sendMessage,
+  } = useLiveChat(roomId);  const loadRoom = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -328,6 +338,17 @@ export default function LiveWatchPage() {
           />
         </section>
 
+
+        <section className="mt-8">
+          <LiveChatPanel
+            messages={messages}
+            loading={chatLoading}
+            sending={chatSending}
+            connected={chatConnected}
+            error={chatError}
+            onSendMessage={sendMessage}
+          />
+        </section>
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#0B1220] p-6">
           <h2 className="text-xl font-black">
             Actividad en tiempo real
