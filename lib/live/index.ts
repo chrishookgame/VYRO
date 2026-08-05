@@ -5,3 +5,4 @@ export * from "./energy.service";
 export * from "./energy.engine";
 export * from "./realtime";
 export * from "./room.repository";
+export * from "./explorer.repository";
