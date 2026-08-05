@@ -4,3 +4,4 @@ export * from "./energy.types";
 export * from "./energy.service";
 export * from "./energy.engine";
 export * from "./realtime";
+export * from "./room.repository";
