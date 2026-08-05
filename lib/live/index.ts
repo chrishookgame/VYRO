@@ -8,3 +8,4 @@ export * from "./room.repository";
 export * from "./explorer.repository";
 export * from "./global.repository";
 export * from "./session";
+export * from "./dashboard";

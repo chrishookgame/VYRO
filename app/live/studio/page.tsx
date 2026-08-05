@@ -16,7 +16,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { LiveCommandCenter } from "@/components/live/command-center";
-import { useLiveSession } from "@/hooks";
+import {
+  useLiveDashboard,
+  useLiveSession,
+} from "@/hooks";
 
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -41,6 +44,13 @@ export default function LiveStudioPage() {
     clearError: clearSessionError,
   } = useLiveSession();
 
+  const {
+    dashboard,
+    connected: dashboardConnected,
+    error: dashboardError,
+  } = useLiveDashboard(
+    session?.id,
+  );
   const [devicesReady, setDevicesReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
@@ -298,12 +308,12 @@ export default function LiveStudioPage() {
           </p>
         </header>
 
-        {(error || sessionError) ? (
+        {(error || sessionError || dashboardError) ? (
           <div
             role="alert"
             className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-200"
           >
-            {error || sessionError}
+            {error || sessionError || dashboardError}
           </div>
         ) : null}
 
@@ -516,16 +526,31 @@ export default function LiveStudioPage() {
         </div>
         <div className="mt-10">
           <LiveCommandCenter
-            activeViewers={0}
-            peakViewers={0}
-            totalJoins={0}
-            reactions={0}
-            gifts={0}
-            energy={0}
-            messages={0}
+            activeViewers={
+              dashboard.activeViewers
+            }
+            peakViewers={
+              dashboard.peakViewers
+            }
+            totalJoins={
+              dashboard.totalJoins
+            }
+            reactions={
+              dashboard.reactions
+            }
+            gifts={
+              dashboard.gifts
+            }
+            energy={
+              dashboard.energy
+            }
+            messages={
+              dashboard.messages
+            }
             connected={
               isLive &&
-              Boolean(session)
+              Boolean(session) &&
+              dashboardConnected
             }
           />
         </div>
