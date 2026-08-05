@@ -23,8 +23,12 @@ export interface UseLiveSessionResult {
   createSession: (
     input: CreateLiveSessionInput,
   ) => Promise<LiveSession | null>;
-  startSession: () => Promise<LiveSession | null>;
-  endSession: () => Promise<LiveSession | null>;
+  startSession: (
+    roomId?: string,
+  ) => Promise<LiveSession | null>;
+  endSession: (
+    roomId?: string,
+  ) => Promise<LiveSession | null>;
   recoverSession: () => Promise<LiveSession | null>;
   clearError: () => void;
 }
@@ -103,69 +107,85 @@ export function useLiveSession(): UseLiveSessionResult {
     [],
   );
 
-  const startSession = useCallback(async () => {
-    if (!session) {
-      setError(
-        "Primero debes crear una sesión LIVE.",
-      );
+  const startSession = useCallback(
+    async (
+      roomId?: string,
+    ) => {
+      const targetRoomId =
+        roomId ?? session?.id;
 
-      return null;
-    }
+      if (!targetRoomId) {
+        setError(
+          "Primero debes crear una sesión LIVE.",
+        );
 
-    setActionLoading(true);
-    setError("");
+        return null;
+      }
 
-    try {
-      const startedSession =
-        await startLiveSession(session.id);
+      setActionLoading(true);
+      setError("");
 
-      setSession(startedSession);
+      try {
+        const startedSession =
+          await startLiveSession(targetRoomId);
 
-      return startedSession;
-    } catch (sessionError) {
-      setError(
-        sessionError instanceof Error
-          ? sessionError.message
-          : "No se pudo iniciar la sesión LIVE.",
-      );
+        setSession(startedSession);
 
-      return null;
-    } finally {
-      setActionLoading(false);
-    }
-  }, [session]);
+        return startedSession;
+      } catch (sessionError) {
+        setError(
+          sessionError instanceof Error
+            ? sessionError.message
+            : "No se pudo iniciar la sesión LIVE.",
+        );
 
-  const endSession = useCallback(async () => {
-    if (!session) {
-      setError(
-        "No existe una sesión LIVE para finalizar.",
-      );
+        return null;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [session],
+  );
 
-      return null;
-    }
+  const endSession = useCallback(
+    async (
+      roomId?: string,
+    ) => {
+      const targetRoomId =
+        roomId ?? session?.id;
 
-    setActionLoading(true);
-    setError("");
+      if (!targetRoomId) {
+        setError(
+          "No existe una sesión LIVE para finalizar.",
+        );
 
-    try {
-      const endedSession =
-        await endLiveSession(session.id);
+        return null;
+      }
 
-      setSession(endedSession);
+      setActionLoading(true);
+      setError("");
 
-      return endedSession;
-    } catch (sessionError) {
-      setError(
-        sessionError instanceof Error
-          ? sessionError.message
-          : "No se pudo finalizar la sesión LIVE.",
-      );
+      try {
+        const endedSession =
+          await endLiveSession(targetRoomId);
 
-      return null;
-    } finally {
-      setActionLoading(false);
-    }
-  }, [session]);
+        setSession(endedSession);
+
+        return endedSession;
+      } catch (sessionError) {
+        setError(
+          sessionError instanceof Error
+            ? sessionError.message
+            : "No se pudo finalizar la sesión LIVE.",
+        );
+
+        return null;
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [session],
+  );
 
   return {
     session,

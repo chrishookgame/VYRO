@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { LiveCommandCenter } from "@/components/live/command-center";
+import { useLiveSession } from "@/hooks";
 
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -30,6 +31,15 @@ function formatDuration(totalSeconds: number) {
 export default function LiveStudioPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const {
+    session,
+    error: sessionError,
+    createSession,
+    startSession,
+    endSession,
+    clearError: clearSessionError,
+  } = useLiveSession();
 
   const [devicesReady, setDevicesReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -46,6 +56,33 @@ export default function LiveStudioPage() {
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    setTitle(session.title);
+
+    const sessionIsLive =
+      session.status === "live" ||
+      session.status === "active";
+
+    setIsLive(sessionIsLive);
+
+    if (sessionIsLive && session.startedAt) {
+      const elapsedSeconds = Math.max(
+        0,
+        Math.floor(
+          (
+            Date.now() -
+            new Date(session.startedAt).getTime()
+          ) / 1000,
+        ),
+      );
+
+      setLiveDuration(elapsedSeconds);
+    }
+  }, [session]);
 
   useEffect(() => {
     if (!isLive) {
@@ -143,27 +180,73 @@ export default function LiveStudioPage() {
     }
   }
 
-  function startLive() {
+  async function startLive() {
     setError("");
     setMessage("");
+    clearSessionError();
 
     if (!devicesReady || !cameraEnabled) {
-      setError("Activa la cámara antes de iniciar VYRO LIVE.");
+      setError(
+        "Activa la cámara antes de iniciar VYRO LIVE.",
+      );
       return;
     }
 
     if (!title.trim()) {
-      setError("Escribe un título para la transmisión.");
+      setError(
+        "Escribe un título para la transmisión.",
+      );
+      return;
+    }
+
+    let targetSession = session;
+
+    if (
+      !targetSession ||
+      targetSession.status === "ended" ||
+      targetSession.status === "cancelled"
+    ) {
+      targetSession = await createSession({
+        title,
+        description: `Categoría: ${category}`,
+      });
+    }
+
+    if (!targetSession) {
+      return;
+    }
+
+    const startedSession =
+      targetSession.status === "live" ||
+      targetSession.status === "active"
+        ? targetSession
+        : await startSession(targetSession.id);
+
+    if (!startedSession) {
       return;
     }
 
     setLiveDuration(0);
     setIsLive(true);
-    setMessage(`VYRO LIVE iniciado en la categoría ${category}.`);
+
+    setMessage(
+      `VYRO LIVE iniciado correctamente. Sala: ${startedSession.id}`,
+    );
   }
 
-  function stopLive() {
+  async function stopLive() {
+    setError("");
+    setMessage("");
+    clearSessionError();
+
+    const endedSession = await endSession();
+
+    if (!endedSession) {
+      return;
+    }
+
     setIsLive(false);
+
     setMessage(
       `Transmisión finalizada. Duración total: ${formatDuration(liveDuration)}.`,
     );
@@ -215,12 +298,12 @@ export default function LiveStudioPage() {
           </p>
         </header>
 
-        {error ? (
+        {(error || sessionError) ? (
           <div
             role="alert"
             className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-200"
           >
-            {error}
+            {error || sessionError}
           </div>
         ) : null}
 
@@ -440,7 +523,10 @@ export default function LiveStudioPage() {
             gifts={0}
             energy={0}
             messages={0}
-            connected={isLive}
+            connected={
+              isLive &&
+              Boolean(session)
+            }
           />
         </div>
       </section>
