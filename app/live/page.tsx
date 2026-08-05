@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   CalendarDays,
   Radio,
@@ -6,6 +6,8 @@ import {
   Users,
   Video,
 } from "lucide-react";
+
+import { LiveRankingPanel } from "@/components/live/ranking";
 
 const liveOptions = [
   {
@@ -22,13 +24,15 @@ const liveOptions = [
   },
   {
     title: "Programar evento",
-    description: "Prepara una clase, reunión, conferencia o lanzamiento.",
+    description:
+      "Prepara una clase, reunión, conferencia o lanzamiento.",
     href: "/live/schedule",
     icon: CalendarDays,
   },
   {
     title: "Gestionar invitados",
-    description: "Invita creadores, profesores, equipos y organizaciones.",
+    description:
+      "Invita creadores, profesores, equipos y organizaciones.",
     href: "/live/guests",
     icon: Users,
   },
@@ -44,14 +48,14 @@ export default function LivePage() {
           </p>
 
           <h1 className="mt-4 max-w-4xl text-4xl font-black md:text-6xl">
-            Transmite, enseña, conecta y convierte cada directo en una
-            oportunidad.
+            Transmite, enseña, conecta y convierte cada directo
+            en una oportunidad.
           </h1>
 
           <p className="mt-5 max-w-3xl text-lg leading-8 text-gray-400">
-            VYRO LIVE reunirá transmisiones, reuniones, clases, eventos,
-            invitados y herramientas inteligentes dentro de una sola
-            experiencia.
+            VYRO LIVE reunirá transmisiones, reuniones, clases,
+            eventos, invitados y herramientas inteligentes dentro
+            de una sola experiencia.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -93,7 +97,10 @@ export default function LivePage() {
                   className="group rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6 transition duration-300 hover:-translate-y-1 hover:border-cyan-400 hover:bg-[#111B25]"
                 >
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/10">
-                    <Icon className="text-cyan-400" size={30} />
+                    <Icon
+                      className="text-cyan-400"
+                      size={30}
+                    />
                   </div>
 
                   <h3 className="mt-5 text-xl font-bold">
@@ -112,6 +119,8 @@ export default function LivePage() {
             })}
           </div>
         </section>
+
+        <LiveRankingPanel />
       </section>
     </main>
   );
