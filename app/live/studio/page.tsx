@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { LiveCommandCenter } from "@/components/live/command-center";
+
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -428,6 +430,18 @@ export default function LiveStudioPage() {
               </button>
             )}
           </aside>
+        </div>
+        <div className="mt-10">
+          <LiveCommandCenter
+            activeViewers={0}
+            peakViewers={0}
+            totalJoins={0}
+            reactions={0}
+            gifts={0}
+            energy={0}
+            messages={0}
+            connected={isLive}
+          />
         </div>
       </section>
     </main>
