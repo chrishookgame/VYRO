@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ComponentType } from "react";
 import {
@@ -23,7 +23,10 @@ import {
   Zap,
 } from "lucide-react";
 
-import { useLiveRealtime } from "@/hooks";
+import {
+  useLivePresence,
+  useLiveRealtime,
+} from "@/hooks";
 import {
   getLiveRoomDetails,
   type LiveRoomDetails,
@@ -52,6 +55,12 @@ export default function LiveWatchPage() {
     eventVersion,
   } = useLiveRealtime(roomId);
 
+  const {
+    joined: presenceJoined,
+    loading: presenceLoading,
+    error: presenceError,
+    counters: presenceCounters,
+  } = useLivePresence(roomId);
   const loadRoom = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -99,7 +108,7 @@ export default function LiveWatchPage() {
     );
   }
 
-  if (error && !room) {
+  if ((error || presenceError) && !room) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
         <section className="max-w-xl rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-center">
@@ -108,7 +117,7 @@ export default function LiveWatchPage() {
           </h1>
 
           <p className="mt-4 text-red-200">
-            {error}
+            {error || presenceError}
           </p>
 
           <Link
@@ -179,9 +188,11 @@ export default function LiveWatchPage() {
               }`}
             />
 
-            {connected
-              ? "Realtime conectado"
-              : "Conectando Realtime"}
+            {connected && presenceJoined
+              ? "Realtime y presencia conectados"
+              : presenceLoading
+                ? "Registrando presencia"
+                : "Conectando Realtime"}
           </div>
         </div>
 
@@ -253,13 +264,19 @@ export default function LiveWatchPage() {
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <MetricCard
             title="Espectadores"
-            value={room.counters.activeViewers}
+            value={
+              presenceCounters?.activeViewers ??
+              room.counters.activeViewers
+            }
             icon={Eye}
           />
 
           <MetricCard
             title="Pico de audiencia"
-            value={room.counters.peakViewers}
+            value={
+              presenceCounters?.peakViewers ??
+              room.counters.peakViewers
+            }
             icon={Users}
           />
 
@@ -277,7 +294,10 @@ export default function LiveWatchPage() {
 
           <MetricCard
             title="Entradas"
-            value={room.counters.totalJoins}
+            value={
+              presenceCounters?.totalJoins ??
+              room.counters.totalJoins
+            }
             icon={Activity}
           />
         </section>
