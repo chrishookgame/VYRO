@@ -19,6 +19,9 @@ import {
   GoldenPalaceAnimation,
 } from "./premium";
 
+import {
+  SpaceShuttleAnimation,
+} from "./legendary";
 export const animationRegistry: Record<
   string,
   GiftAnimationComponent
@@ -29,6 +32,7 @@ export const animationRegistry: Record<
   crown: CrownAnimation,
   dragon: DragonAnimation,
   golden_palace: GoldenPalaceAnimation,
+  space_shuttle: SpaceShuttleAnimation,
 };
 
 export function renderGiftAnimation(
