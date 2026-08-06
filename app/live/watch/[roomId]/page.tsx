@@ -24,9 +24,13 @@ import {
 } from "lucide-react";
 
 import { LiveChatPanel } from "@/components/live/chat";
-import { GiftPicker } from "@/components/live/gifts";
+import {
+  GiftOverlay,
+  GiftPicker,
+} from "@/components/live/gifts";
 import {
   useLiveChat,
+  useLiveGiftOverlay,
   useLivePresence,
   useLiveRealtime,
 } from "@/hooks";
@@ -58,6 +62,10 @@ export default function LiveWatchPage() {
     eventVersion,
   } = useLiveRealtime(roomId);
 
+  const {
+    activeGift,
+    queuedGifts,
+  } = useLiveGiftOverlay(lastUpdate);
   const {
     joined: presenceJoined,
     loading: presenceLoading,
@@ -104,7 +112,7 @@ export default function LiveWatchPage() {
 
   if (loading && !room) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#05070A] text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#05070A] text-white">
         <div className="text-center">
           <LoaderCircle
             size={42}
@@ -121,7 +129,7 @@ export default function LiveWatchPage() {
 
   if ((error || presenceError) && !room) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
         <section className="max-w-xl rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-center">
           <h1 className="text-2xl font-black">
             No se pudo abrir esta sala
@@ -145,7 +153,7 @@ export default function LiveWatchPage() {
 
   if (!room) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
         <section className="max-w-xl rounded-3xl border border-white/10 bg-[#0B1220] p-8 text-center">
           <h1 className="text-2xl font-black">
             Esta sala LIVE no existe
@@ -173,7 +181,13 @@ export default function LiveWatchPage() {
     "Creador VYRO";
 
   return (
-    <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
+    <>
+      <GiftOverlay
+        gift={activeGift}
+        queuedGifts={queuedGifts}
+      />
+
+      <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
       <section className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Link
@@ -380,7 +394,8 @@ export default function LiveWatchPage() {
           )}
         </section>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
 

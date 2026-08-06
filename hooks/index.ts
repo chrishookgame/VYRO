@@ -5,3 +5,4 @@ export * from "./useLivePresence";
 export * from "./useLiveChat";
 export * from "./useGiftCatalog";
 export * from "./useLiveGifts";
+export * from "./useLiveGiftOverlay";
