@@ -10,6 +10,7 @@ import {
   advanceBattleSeriesRound,
   finishLiveBattleSeries,
   getActiveLiveBattleSeries,
+  getLiveBattleSeriesById,
   type LiveBattleSeriesDetails,
 } from "@/lib/live-battle-series";
 
@@ -183,7 +184,39 @@ export function useLiveBattleSeries(
           filter:
             `room_id=eq.${roomId}`,
         },
-        () => {
+        (payload) => {
+          const changedSeries =
+            payload.new as {
+              id?: string;
+              status?: string;
+            };
+
+          if (
+            changedSeries.id &&
+            changedSeries.status ===
+              "finished"
+          ) {
+            void getLiveBattleSeriesById(
+              changedSeries.id,
+            )
+              .then((finishedSeries) => {
+                if (finishedSeries) {
+                  setDetails(
+                    finishedSeries,
+                  );
+                }
+              })
+              .catch((seriesError) => {
+                setError(
+                  seriesError instanceof Error
+                    ? seriesError.message
+                    : "No se pudo cargar el resultado final de la Battle Series.",
+                );
+              });
+
+            return;
+          }
+
           void refresh();
         },
       )
