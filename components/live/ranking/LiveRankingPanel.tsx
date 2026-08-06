@@ -23,7 +23,7 @@ const rankingTypes: Array<{
   label: string;
 }> = [
   { id: "gifter", label: "Regalos" },
-  { id: "energy", label: "Energía" },
+  { id: "energy", label: "EnergÃƒÂ­a" },
   { id: "viewer", label: "Audiencia" },
   { id: "creator", label: "Creadores" },
 ];
@@ -65,7 +65,13 @@ function formatScore(score: number): string {
   }).format(score);
 }
 
-export default function LiveRankingPanel() {
+interface LiveRankingPanelProps {
+  roomId?: string;
+}
+
+export default function LiveRankingPanel({
+  roomId,
+}: LiveRankingPanelProps) {
   const [rankingType, setRankingType] =
     useState<LiveRankingType>("gifter");
 
@@ -84,6 +90,7 @@ export default function LiveRankingPanel() {
 
     try {
       const ranking = await getLiveRanking(
+        roomId,
         rankingType,
         rankingPeriod,
       );
@@ -98,7 +105,7 @@ export default function LiveRankingPanel() {
     } finally {
       setLoading(false);
     }
-  }, [rankingPeriod, rankingType]);
+  }, [roomId, rankingPeriod, rankingType]);
 
   useEffect(() => {
     void loadRanking();
@@ -120,11 +127,11 @@ export default function LiveRankingPanel() {
             </div>
 
             <h2 className="mt-3 text-3xl font-black text-white">
-              Líderes del Universo VYRO
+              LÃƒÂ­deres del Universo VYRO
             </h2>
 
             <p className="mt-2 text-gray-400">
-              Reconocimiento por regalos, energía, audiencia y creación.
+              Reconocimiento por regalos, energÃƒÂ­a, audiencia y creaciÃƒÂ³n.
             </p>
           </div>
 
@@ -204,7 +211,7 @@ export default function LiveRankingPanel() {
             </h3>
 
             <p className="mt-2 text-gray-400">
-              La actividad de los próximos LIVE aparecerá aquí.
+              La actividad de los prÃƒÂ³ximos LIVE aparecerÃƒÂ¡ aquÃƒÂ­.
             </p>
           </div>
         ) : null}
@@ -219,14 +226,14 @@ export default function LiveRankingPanel() {
                 >
                   <div className="text-4xl">
                     {index === 0
-                      ? "👑"
+                      ? "Ã°Å¸â€˜â€˜"
                       : index === 1
-                        ? "🥈"
-                        : "🥉"}
+                        ? "Ã°Å¸Â¥Ë†"
+                        : "Ã°Å¸Â¥â€°"}
                   </div>
 
                   <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">
-                    Posición {index + 1}
+                    PosiciÃƒÂ³n {index + 1}
                   </p>
 
                   <h3 className="mt-2 truncate text-lg font-black text-white">
@@ -259,7 +266,7 @@ export default function LiveRankingPanel() {
                         </p>
 
                         <p className="text-xs text-gray-500">
-                          {entry.reactions_sent} reacciones ·{" "}
+                          {entry.reactions_sent} reacciones Ã‚Â·{" "}
                           {entry.gifts_sent} regalos
                         </p>
                       </div>

@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type {
   LiveRankingPeriod,
   LiveRankingType,
@@ -21,15 +21,22 @@ export interface LiveRankingRow {
 }
 
 export async function getLiveRanking(
+  roomId: string | undefined,
   rankingType: LiveRankingType,
   rankingPeriod: LiveRankingPeriod,
   limit = 20,
 ): Promise<LiveRankingRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("live_ranking_scores")
     .select("*")
     .eq("ranking_type", rankingType)
-    .eq("ranking_period", rankingPeriod)
+    .eq("ranking_period", rankingPeriod);
+
+  if (roomId) {
+    query = query.eq("room_id", roomId);
+  }
+
+  const { data, error } = await query
     .order("score", { ascending: false })
     .limit(limit);
 
