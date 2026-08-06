@@ -4,9 +4,14 @@ import {
   useEffect,
 } from "react";
 
-import type {
-  LiveGiftOverlayItem,
+import {
+  useGiftComboEngine,
+  type LiveGiftOverlayItem,
 } from "@/hooks";
+
+import {
+  ComboOverlay,
+} from "./combo";
 
 import {
   AnimationOrchestrator,
@@ -115,6 +120,10 @@ function playVyroGiftSound(
 export default function GiftOverlay({
   gift,
 }: GiftOverlayProps) {
+  const {
+    activeCombo,
+  } = useGiftComboEngine(gift);
+
   useEffect(() => {
     if (!gift) {
       return;
@@ -124,8 +133,14 @@ export default function GiftOverlay({
   }, [gift]);
 
   return (
-    <AnimationOrchestrator
-      gift={gift}
-    />
+    <>
+      <AnimationOrchestrator
+        gift={gift}
+      />
+
+      <ComboOverlay
+        combo={activeCombo}
+      />
+    </>
   );
 }
