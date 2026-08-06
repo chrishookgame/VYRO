@@ -8,7 +8,9 @@ import type {
   LiveGiftOverlayItem,
 } from "@/hooks";
 
-import GiftAnimation from "./GiftAnimation";
+import {
+  AnimationEngine,
+} from "./animations";
 
 interface GiftOverlayProps {
   gift: LiveGiftOverlayItem | null;
@@ -112,7 +114,6 @@ function playVyroGiftSound(
 
 export default function GiftOverlay({
   gift,
-  queuedGifts = 0,
 }: GiftOverlayProps) {
   useEffect(() => {
     if (!gift) {
@@ -122,19 +123,7 @@ export default function GiftOverlay({
     playVyroGiftSound(gift);
   }, [gift]);
 
-  if (!gift) {
-    return null;
-  }
-
   return (
-    <GiftAnimation
-      icon={gift.icon}
-      title={gift.name}
-      rarity={gift.rarity}
-      amount={gift.amount}
-      energyAdded={gift.energyAdded}
-      animationKey={gift.animationKey}
-      queuedGifts={queuedGifts}
-    />
+    <AnimationEngine gift={gift} />
   );
 }
