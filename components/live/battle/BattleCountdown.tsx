@@ -1,78 +1,61 @@
-"use client";
+﻿"use client";
 
 import {
-  useCallback,
   useEffect,
   useMemo,
-  useState,
+  useRef,
 } from "react";
+
+import {
+  useBattleCountdown,
+} from "@/hooks";
 
 interface BattleCountdownProps {
   endsAt: Date | string;
   onFinished?: () => void;
 }
 
-function formatTime(
-  totalSeconds: number,
-): string {
-  const minutes = Math.floor(
-    totalSeconds / 60,
-  );
-
-  const seconds =
-    totalSeconds % 60;
-
-  return `${minutes}:${seconds
-    .toString()
-    .padStart(2, "0")}`;
-}
-
 export default function BattleCountdown({
   endsAt,
   onFinished,
 }: BattleCountdownProps) {
-  const endTime = useMemo(
-    () => new Date(endsAt).getTime(),
+  const finishedCalledRef =
+    useRef(false);
+
+  const targetAt = useMemo(
+    () =>
+      endsAt instanceof Date
+        ? endsAt.toISOString()
+        : endsAt,
     [endsAt],
   );
 
-  const getRemaining = useCallback(
-    () =>
-      Math.max(
-        0,
-        Math.floor(
-          (endTime - Date.now()) /
-            1000,
-        ),
-      ),
-    [endTime],
-  );
-
-  const [remaining, setRemaining] =
-    useState(getRemaining);
+  const countdown =
+    useBattleCountdown({
+      phase: "active",
+      targetAt,
+      enabled: true,
+      tickIntervalMs: 250,
+    });
 
   useEffect(() => {
-    const timer = window.setInterval(
-      () => {
-        const value =
-          getRemaining();
+    finishedCalledRef.current = false;
+  }, [targetAt]);
 
-        setRemaining(value);
+  useEffect(() => {
+    if (
+      !countdown.expired ||
+      finishedCalledRef.current
+    ) {
+      return;
+    }
 
-        if (value === 0) {
-          window.clearInterval(
-            timer,
-          );
-
-          onFinished?.();
-        }
-      },
-      1000,
-    );
-
-    return () =>
-      window.clearInterval(timer);
-  }, [getRemaining, onFinished]);
+    finishedCalledRef.current = true;
+    onFinished?.();
+  }, [
+    countdown.expired,
+    onFinished,
+  ]);
 
   return (
     <div className="rounded-3xl border border-red-500/20 bg-[#111827] p-6 text-center">
@@ -80,12 +63,15 @@ export default function BattleCountdown({
         Battle Countdown
       </p>
 
-      <div className="mt-3 text-5xl font-black text-white">
-        {formatTime(remaining)}
+      <div
+        aria-live="polite"
+        className="mt-3 text-5xl font-black tabular-nums text-white"
+      >
+        {countdown.label}
       </div>
 
       <p className="mt-3 text-sm text-gray-400">
-        {remaining === 0
+        {countdown.expired
           ? "La batalla terminó."
           : "Tiempo restante"}
       </p>

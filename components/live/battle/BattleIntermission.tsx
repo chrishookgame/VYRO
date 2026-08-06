@@ -2,15 +2,17 @@
 
 import {
   useEffect,
-  useMemo,
   useRef,
-  useState,
 } from "react";
 import {
   Clock3,
   Swords,
   Trophy,
 } from "lucide-react";
+
+import {
+  useBattleCountdown,
+} from "@/hooks";
 
 interface BattleIntermissionProps {
   currentPosition: number;
@@ -20,39 +22,6 @@ interface BattleIntermissionProps {
   onReady?: () => void;
 }
 
-function getRemainingSeconds(
-  targetTime: number,
-): number {
-  if (!Number.isFinite(targetTime)) {
-    return 0;
-  }
-
-  return Math.max(
-    0,
-    Math.ceil(
-      (targetTime - Date.now()) /
-        1000,
-    ),
-  );
-}
-
-function formatTime(
-  totalSeconds: number,
-): string {
-  const minutes = Math.floor(
-    totalSeconds / 60,
-  );
-
-  const seconds =
-    totalSeconds % 60;
-
-  return `${minutes
-    .toString()
-    .padStart(2, "0")}:${seconds
-    .toString()
-    .padStart(2, "0")}`;
-}
-
 export default function BattleIntermission({
   currentPosition,
   totalBattles,
@@ -60,66 +29,36 @@ export default function BattleIntermission({
   autoStartNext = true,
   onReady,
 }: BattleIntermissionProps) {
-  const targetTime = useMemo(
-    () =>
-      new Date(
-        nextBattleAt,
-      ).getTime(),
-    [nextBattleAt],
-  );
-
-  const [remaining, setRemaining] =
-    useState(() =>
-      getRemainingSeconds(
-        targetTime,
-      ),
-    );
-
   const readyCalledRef =
     useRef(false);
 
+  const countdown =
+    useBattleCountdown({
+      phase: "intermission",
+      targetAt: nextBattleAt,
+      enabled: true,
+      tickIntervalMs: 250,
+    });
+
   useEffect(() => {
     readyCalledRef.current = false;
+  }, [nextBattleAt]);
 
-    const updateRemaining = () => {
-      const nextRemaining =
-        getRemainingSeconds(
-          targetTime,
-        );
+  useEffect(() => {
+    if (
+      !countdown.ready ||
+      !autoStartNext ||
+      readyCalledRef.current
+    ) {
+      return;
+    }
 
-      setRemaining(
-        nextRemaining,
-      );
-
-      if (
-        nextRemaining === 0 &&
-        autoStartNext &&
-        !readyCalledRef.current
-      ) {
-        readyCalledRef.current =
-          true;
-
-        onReady?.();
-      }
-    };
-
-    updateRemaining();
-
-    const intervalId =
-      window.setInterval(
-        updateRemaining,
-        1000,
-      );
-
-    return () => {
-      window.clearInterval(
-        intervalId,
-      );
-    };
+    readyCalledRef.current = true;
+    onReady?.();
   }, [
     autoStartNext,
+    countdown.ready,
     onReady,
-    targetTime,
   ]);
 
   const nextPosition =
@@ -171,15 +110,18 @@ export default function BattleIntermission({
           Próxima batalla en
         </p>
 
-        <p className="mt-3 text-6xl font-black tabular-nums">
-          {formatTime(remaining)}
+        <p
+          aria-live="polite"
+          className="mt-3 text-6xl font-black tabular-nums"
+        >
+          {countdown.label}
         </p>
 
         <div className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-violet-200">
           <Swords size={18} />
 
           <span>
-            {remaining === 0
+            {countdown.expired
               ? autoStartNext
                 ? "Iniciando siguiente batalla..."
                 : "La siguiente batalla está lista."
