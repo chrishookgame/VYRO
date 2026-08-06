@@ -5,3 +5,4 @@ export type {
   LiveBattleStatus,
 } from "./LiveBattleEngine";
 export * from "./BattleStateManager";
+export { default as BattleEnergyBar } from "./BattleEnergyBar";
