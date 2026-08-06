@@ -15,3 +15,4 @@ export * from "./useBattleSeriesRuntime";
 export * from "./useBattleInvitations";
 export * from "./useLiveBattleSeries";
 export * from "./useBattleSeriesHostController";
+export * from "./useBattleCountdown";
