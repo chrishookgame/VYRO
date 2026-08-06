@@ -285,6 +285,60 @@ export async function updateLiveBattleSeries(
   );
 }
 
+interface StartLiveBattleRoundRpcRow {
+  series_id: string;
+  battle_id: string;
+  battle_status: "active";
+  started_at: string;
+  ends_at: string;
+}
+
+export async function startLiveBattleRound(
+  seriesId: string,
+  battleId: string,
+): Promise<LiveBattleSeriesDetails> {
+  const { data, error } = await supabase.rpc(
+    "start_live_battle_round",
+    {
+      p_series_id: seriesId,
+      p_battle_id: battleId,
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      `No se pudo iniciar la ronda de batalla: ${error.message}`,
+    );
+  }
+
+  const rpcRows =
+    data as StartLiveBattleRoundRpcRow[] | null;
+
+  const result = rpcRows?.[0];
+
+  if (
+    !result?.series_id ||
+    !result.battle_id ||
+    result.battle_status !== "active"
+  ) {
+    throw new Error(
+      "La ronda se inició, pero Supabase no devolvió el resultado esperado.",
+    );
+  }
+
+  const updatedSeries =
+    await getLiveBattleSeriesById(
+      result.series_id,
+    );
+
+  if (!updatedSeries) {
+    throw new Error(
+      "La ronda se inició, pero la Battle Series no pudo recuperarse.",
+    );
+  }
+
+  return updatedSeries;
+}
 interface AdvanceLiveBattleSeriesRpcRow {
   series_id: string;
   finished_battle_id: string;

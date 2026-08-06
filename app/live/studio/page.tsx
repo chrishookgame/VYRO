@@ -36,6 +36,7 @@ import {
 import {
   createLiveBattleSeries,
   getActiveLiveBattleSeries,
+  startLiveBattleRound,
 } from "@/lib/live-battle-series";
 
 function formatDuration(totalSeconds: number) {
@@ -136,6 +137,34 @@ export default function LiveStudioPage() {
       ],
     );
 
+  const startAndRefreshBattle =
+    useCallback(
+      async (
+        battleId: string,
+      ) => {
+        if (!activeBattleSeries) {
+          return null;
+        }
+
+        const nextSeries =
+          await startLiveBattleRound(
+            activeBattleSeries.id,
+            battleId,
+          );
+
+        await Promise.all([
+          refreshActiveBattle(),
+          refreshActiveBattleSeries(),
+        ]);
+
+        return nextSeries;
+      },
+      [
+        activeBattleSeries,
+        refreshActiveBattle,
+        refreshActiveBattleSeries,
+      ],
+    );
   const {
     processing:
       battleSeriesProcessing,
@@ -151,6 +180,8 @@ export default function LiveStudioPage() {
       activeBattleSeries,
     battle:
       activeBattle,
+    startRound:
+      startAndRefreshBattle,
     advanceRound:
       advanceAndRefreshBattle,
   });

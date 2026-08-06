@@ -20,6 +20,9 @@ export interface UseBattleSeriesHostControllerInput {
     | LiveBattleSeriesDetails["state"]
     | null;
   battle: LiveBattleState | null;
+  startRound: (
+    battleId: string,
+  ) => Promise<LiveBattleSeriesDetails | null>;
   advanceRound: (
     battleId: string,
   ) => Promise<LiveBattleSeriesDetails | null>;
@@ -28,6 +31,7 @@ export interface UseBattleSeriesHostControllerInput {
 
 export interface UseBattleSeriesHostControllerResult {
   processing: boolean;
+  lastStartedBattleId: string | null;
   lastProcessedBattleId: string | null;
   error: string;
 }
@@ -36,6 +40,7 @@ export function useBattleSeriesHostController({
   enabled,
   series,
   battle,
+  startRound,
   advanceRound,
   tickIntervalMs = 1000,
 }: UseBattleSeriesHostControllerInput):
@@ -43,19 +48,40 @@ export function useBattleSeriesHostController({
   const [processing, setProcessing] =
     useState(false);
 
-  const [lastProcessedBattleId, setLastProcessedBattleId] =
-    useState<string | null>(null);
+  const [
+    lastStartedBattleId,
+    setLastStartedBattleId,
+  ] = useState<string | null>(null);
+
+  const [
+    lastProcessedBattleId,
+    setLastProcessedBattleId,
+  ] = useState<string | null>(null);
 
   const [error, setError] =
     useState("");
 
-  const processingBattleIdRef =
+  const processingKeyRef =
+    useRef<string | null>(null);
+
+  const lastStartedBattleIdRef =
     useRef<string | null>(null);
 
   const lastProcessedBattleIdRef =
     useRef<string | null>(null);
 
   useEffect(() => {
+    if (
+      lastStartedBattleIdRef.current &&
+      battle?.id !==
+        lastStartedBattleIdRef.current
+    ) {
+      lastStartedBattleIdRef.current =
+        null;
+
+      setLastStartedBattleId(null);
+    }
+
     if (
       lastProcessedBattleIdRef.current &&
       battle?.id !==
@@ -87,14 +113,149 @@ export function useBattleSeriesHostController({
         ),
       );
 
+    const runStartRound = () => {
+      const actionKey =
+        `start:${battle.id}`;
+
+      if (
+        processingKeyRef.current ||
+        lastStartedBattleIdRef.current ===
+          battle.id
+      ) {
+        return;
+      }
+
+      processingKeyRef.current =
+        actionKey;
+
+      setProcessing(true);
+      setError("");
+
+      void startRound(
+        battle.id,
+      )
+        .then((result) => {
+          if (!result) {
+            throw new Error(
+              "No se pudo iniciar la ronda de batalla.",
+            );
+          }
+
+          lastStartedBattleIdRef.current =
+            battle.id;
+
+          setLastStartedBattleId(
+            battle.id,
+          );
+        })
+        .catch((controllerError) => {
+          setError(
+            controllerError instanceof Error
+              ? controllerError.message
+              : "No se pudo iniciar la ronda de batalla.",
+          );
+        })
+        .finally(() => {
+          if (
+            processingKeyRef.current ===
+            actionKey
+          ) {
+            processingKeyRef.current =
+              null;
+          }
+
+          setProcessing(false);
+        });
+    };
+
+    const runAdvanceRound = () => {
+      const actionKey =
+        `advance:${battle.id}`;
+
+      if (
+        processingKeyRef.current ||
+        lastProcessedBattleIdRef.current ===
+          battle.id
+      ) {
+        return;
+      }
+
+      processingKeyRef.current =
+        actionKey;
+
+      setProcessing(true);
+      setError("");
+
+      void advanceRound(
+        battle.id,
+      )
+        .then((result) => {
+          if (!result) {
+            throw new Error(
+              "No se pudo avanzar la Battle Series.",
+            );
+          }
+
+          lastProcessedBattleIdRef.current =
+            battle.id;
+
+          setLastProcessedBattleId(
+            battle.id,
+          );
+        })
+        .catch((controllerError) => {
+          setError(
+            controllerError instanceof Error
+              ? controllerError.message
+              : "No se pudo procesar el final de la batalla.",
+          );
+        })
+        .finally(() => {
+          if (
+            processingKeyRef.current ===
+            actionKey
+          ) {
+            processingKeyRef.current =
+              null;
+          }
+
+          setProcessing(false);
+        });
+    };
+
     const intervalId =
       window.setInterval(() => {
+        const now = Date.now();
+
+        const seriesCanStart =
+          series.status === "scheduled" ||
+          series.status === "waiting" ||
+          series.status === "intermission";
+
         if (
-          processingBattleIdRef.current ===
-            battle.id ||
-          lastProcessedBattleIdRef.current ===
-            battle.id
+          seriesCanStart &&
+          battle.status === "waiting"
         ) {
+          const targetTime =
+            series.nextBattleAt
+              ? new Date(
+                  series.nextBattleAt,
+                ).getTime()
+              : null;
+
+          const readyToStart =
+            targetTime === null ||
+            (
+              Number.isFinite(
+                targetTime,
+              ) &&
+              now >= targetTime
+            );
+
+          if (readyToStart) {
+            runStartRound();
+          }
+
           return;
         }
 
@@ -108,51 +269,17 @@ export function useBattleSeriesHostController({
         const expired =
           endsAt !== null &&
           Number.isFinite(endsAt) &&
-          Date.now() >= endsAt;
+          now >= endsAt;
 
         const finished =
           battle.status === "finished";
 
-        if (!expired && !finished) {
-          return;
+        if (
+          expired ||
+          finished
+        ) {
+          runAdvanceRound();
         }
-
-        processingBattleIdRef.current =
-          battle.id;
-
-        setProcessing(true);
-        setError("");
-
-        void advanceRound(
-          battle.id,
-        )
-          .then((result) => {
-            if (!result) {
-              throw new Error(
-                "No se pudo avanzar la Battle Series.",
-              );
-            }
-
-            lastProcessedBattleIdRef.current =
-              battle.id;
-
-            setLastProcessedBattleId(
-              battle.id,
-            );
-          })
-          .catch((controllerError) => {
-            setError(
-              controllerError instanceof Error
-                ? controllerError.message
-                : "No se pudo procesar el final de la batalla.",
-            );
-          })
-          .finally(() => {
-            processingBattleIdRef.current =
-              null;
-
-            setProcessing(false);
-          });
       }, safeInterval);
 
     return () => {
@@ -165,11 +292,13 @@ export function useBattleSeriesHostController({
     battle,
     enabled,
     series,
+    startRound,
     tickIntervalMs,
   ]);
 
   return {
     processing,
+    lastStartedBattleId,
     lastProcessedBattleId,
     error,
   };
