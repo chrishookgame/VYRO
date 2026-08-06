@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -19,6 +19,7 @@ export interface UseGiftCatalogResult {
   loading: boolean;
   error: string;
   refreshCatalog: () => Promise<void>;
+  updateBalance: (balance: number) => void;
   clearError: () => void;
 }
 
@@ -42,6 +43,20 @@ export function useGiftCatalog(): UseGiftCatalogResult {
     setError("");
   }, []);
 
+  const updateBalance = useCallback(
+    (nextBalance: number) => {
+      setBalance(
+        Math.max(
+          Number.isFinite(nextBalance)
+            ? nextBalance
+            : 0,
+          0,
+        ),
+      );
+    },
+    [],
+  );
+
   const refreshCatalog =
     useCallback(async () => {
       setLoading(true);
@@ -52,7 +67,7 @@ export function useGiftCatalog(): UseGiftCatalogResult {
 
         setCategories(data.categories);
         setGifts(data.gifts);
-        setBalance(data.balance);
+        updateBalance(data.balance);
         setError("");
       } catch (catalogError) {
         setError(
@@ -63,7 +78,7 @@ export function useGiftCatalog(): UseGiftCatalogResult {
       } finally {
         setLoading(false);
       }
-    }, []);
+    }, [updateBalance]);
 
   useEffect(() => {
     void refreshCatalog();
@@ -76,6 +91,7 @@ export function useGiftCatalog(): UseGiftCatalogResult {
     loading,
     error,
     refreshCatalog,
+    updateBalance,
     clearError,
   };
 }

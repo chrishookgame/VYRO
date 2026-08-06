@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useMemo,
@@ -32,7 +32,7 @@ export default function GiftPicker({
     balance,
     loading,
     error: catalogError,
-    refreshCatalog,
+    updateBalance,
   } = useGiftCatalog();
 
   const {
@@ -41,8 +41,10 @@ export default function GiftPicker({
     sendGift,
   } = useLiveGifts(
     roomId,
-    async () => {
-      await refreshCatalog();
+    (result) => {
+      updateBalance(
+        result.senderBalance,
+      );
     },
   );
 
@@ -85,6 +87,7 @@ export default function GiftPicker({
 
     if (result) {
       setConfirmOpen(false);
+      setSelectedGift(null);
     }
   }
 
@@ -101,7 +104,9 @@ export default function GiftPicker({
           </h2>
         </div>
 
-        <WalletBalance balance={balance} />
+        <WalletBalance
+          balance={balance}
+        />
       </div>
 
       <div className="mt-6">
@@ -142,7 +147,9 @@ export default function GiftPicker({
       )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto]">
-        <GiftPreview gift={selectedGift} />
+        <GiftPreview
+          gift={selectedGift}
+        />
 
         <button
           type="button"
