@@ -6,3 +6,4 @@ export * from "./common";
 export * from "./basic";
 export * from "./configs";
 export * from "./premium";
+export * from "./legendary";
