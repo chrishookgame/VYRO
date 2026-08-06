@@ -285,22 +285,60 @@ export async function updateLiveBattleSeries(
   );
 }
 
-export function advanceBattleSeriesRound(
-  seriesId: string,
-  currentPosition: number,
-  nextBattleAt: string | null,
-): Promise<LiveBattleSeriesDetails> {
-  return updateLiveBattleSeries(
-    seriesId,
-    {
-      status: "active",
-      currentPosition:
-        currentPosition + 1,
-      nextBattleAt,
-    },
-  );
+interface AdvanceLiveBattleSeriesRpcRow {
+  series_id: string;
+  finished_battle_id: string;
+  next_battle_id: string | null;
+  series_status:
+    LiveBattleSeriesDetails["row"]["status"];
+  series_winner_id: string | null;
 }
 
+export async function advanceBattleSeriesRound(
+  seriesId: string,
+  battleId: string,
+): Promise<LiveBattleSeriesDetails> {
+  const { data, error } = await supabase.rpc(
+    "advance_live_battle_series",
+    {
+      p_series_id: seriesId,
+      p_battle_id: battleId,
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      `No se pudo avanzar la Battle Series: ${error.message}`,
+    );
+  }
+
+  const rpcRows =
+    data as AdvanceLiveBattleSeriesRpcRow[] | null;
+
+  const result = rpcRows?.[0];
+
+  if (
+    !result?.series_id ||
+    !result.finished_battle_id
+  ) {
+    throw new Error(
+      "La Battle Series avanzó, pero Supabase no devolvió el resultado esperado.",
+    );
+  }
+
+  const updatedSeries =
+    await getLiveBattleSeriesById(
+      result.series_id,
+    );
+
+  if (!updatedSeries) {
+    throw new Error(
+      "La Battle Series avanzó, pero no pudo recuperarse desde Supabase.",
+    );
+  }
+
+  return updatedSeries;
+}
 export function finishLiveBattleSeries(
   seriesId: string,
   winnerId: string | null,

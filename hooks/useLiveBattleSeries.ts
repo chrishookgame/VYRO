@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -32,8 +32,7 @@ export interface UseLiveBattleSeriesResult {
   error: string;
   refresh: () => Promise<void>;
   advanceRound: (
-    currentPosition: number,
-    nextBattleAt: string | null,
+    battleId: string,
   ) => Promise<LiveBattleSeriesDetails | null>;
   finishSeries: (
     input: FinishLiveBattleSeriesInput,
@@ -93,8 +92,7 @@ export function useLiveBattleSeries(
 
   const advanceRound = useCallback(
     async (
-      currentPosition: number,
-      nextBattleAt: string | null,
+      battleId: string,
     ) => {
       if (!details) {
         return null;
@@ -106,8 +104,7 @@ export function useLiveBattleSeries(
         const nextDetails =
           await advanceBattleSeriesRound(
             details.row.id,
-            currentPosition,
-            nextBattleAt,
+            battleId,
           );
 
         setDetails(nextDetails);
