@@ -15,3 +15,4 @@ export { default as BattleIntermission } from "./BattleIntermission";
 export { default as BattleQueue } from "./BattleQueue";
 export { default as BattleSeriesScoreboard } from "./BattleSeriesScoreboard";
 export * from "./AutoBattleDirector";
+export { default as BattleStudio } from "./BattleStudio";
