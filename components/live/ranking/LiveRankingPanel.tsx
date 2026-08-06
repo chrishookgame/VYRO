@@ -67,10 +67,12 @@ function formatScore(score: number): string {
 
 interface LiveRankingPanelProps {
   roomId?: string;
+  rankingVersion?: number;
 }
 
 export default function LiveRankingPanel({
   roomId,
+  rankingVersion = 0,
 }: LiveRankingPanelProps) {
   const [rankingType, setRankingType] =
     useState<LiveRankingType>("gifter");
@@ -109,7 +111,7 @@ export default function LiveRankingPanel({
 
   useEffect(() => {
     void loadRanking();
-  }, [loadRanking]);
+  }, [loadRanking, rankingVersion]);
   const topThree = entries.slice(0, 3);
   const remainingEntries = entries.slice(3);
 
