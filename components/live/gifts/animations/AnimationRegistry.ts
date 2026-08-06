@@ -1,4 +1,4 @@
-﻿import {
+import {
   createElement,
   type ReactElement,
 } from "react";
@@ -13,6 +13,9 @@ import type {
   GiftAnimationComponent,
   GiftAnimationComponentProps,
 } from "./types";
+import {
+  CrownAnimation,
+} from "./premium";
 
 export const animationRegistry: Record<
   string,
@@ -21,6 +24,7 @@ export const animationRegistry: Record<
   rose: RoseAnimation,
   heart: HeartAnimation,
   diamond: DiamondAnimation,
+  crown: CrownAnimation,
 };
 
 export function renderGiftAnimation(
