@@ -10,3 +10,4 @@ export { default as BattleCountdown } from "./BattleCountdown";
 export { default as BattleWinnerAnimation } from "./BattleWinnerAnimation";
 export * from "./BattleGiftEngine";
 export * from "./BattleRealtimeBridge";
+export * from "./BattleScheduler";
