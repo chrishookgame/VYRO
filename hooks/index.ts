@@ -13,3 +13,4 @@ export * from "./useLiveBattleRealtime";
 export * from "./useLiveBattle";
 export * from "./useBattleSeriesRuntime";
 export * from "./useBattleInvitations";
+export * from "./useLiveBattleSeries";
