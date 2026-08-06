@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { LiveChatPanel } from "@/components/live/chat";
+import { GiftPicker } from "@/components/live/gifts";
 import {
   useLiveChat,
   useLivePresence,
@@ -339,6 +340,10 @@ export default function LiveWatchPage() {
         </section>
 
 
+
+        <section className="mt-8">
+          <GiftPicker roomId={roomId} />
+        </section>
         <section className="mt-8">
           <LiveChatPanel
             messages={messages}

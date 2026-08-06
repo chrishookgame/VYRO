@@ -11,3 +11,4 @@ export * from "./session";
 export * from "./dashboard";
 export * from "./presence";
 export * from "./chat";
+export * from "./gifts";
