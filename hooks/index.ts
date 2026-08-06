@@ -10,3 +10,4 @@ export * from "./useGiftComboEngine";
 export * from "./useLiveStageDirector";
 export * from "./useLiveLeaderboard";
 export * from "./useLiveBattleRealtime";
+export * from "./useLiveBattle";
