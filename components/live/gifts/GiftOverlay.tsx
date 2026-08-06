@@ -6,10 +6,12 @@ import {
 
 import {
   useGiftComboEngine,
+  useLiveStageDirector,
   type LiveGiftOverlayItem,
 } from "@/hooks";
 
 import {
+  ComboEffects,
   ComboOverlay,
 } from "./combo";
 
@@ -124,23 +126,39 @@ export default function GiftOverlay({
     activeCombo,
   } = useGiftComboEngine(gift);
 
+  const {
+    activeGift,
+    activeCombo: stageCombo,
+  } = useLiveStageDirector(
+    gift,
+    activeCombo,
+  );
+
   useEffect(() => {
-    if (!gift) {
+    if (!activeGift) {
       return;
     }
 
-    playVyroGiftSound(gift);
-  }, [gift]);
+    playVyroGiftSound(
+      activeGift,
+    );
+  }, [activeGift]);
 
   return (
     <>
       <AnimationOrchestrator
-        gift={gift}
+        gift={activeGift}
       />
 
       <ComboOverlay
-        combo={activeCombo}
+        combo={stageCombo}
       />
+
+      {stageCombo ? (
+        <ComboEffects
+          tier={stageCombo.tier}
+        />
+      ) : null}
     </>
   );
 }

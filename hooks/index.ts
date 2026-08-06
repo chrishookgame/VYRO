@@ -7,3 +7,4 @@ export * from "./useGiftCatalog";
 export * from "./useLiveGifts";
 export * from "./useLiveGiftOverlay";
 export * from "./useGiftComboEngine";
+export * from "./useLiveStageDirector";
