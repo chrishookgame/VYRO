@@ -25,6 +25,7 @@ import {
 
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
+import { LiveRankingPanel } from "@/components/live/ranking";
 import {
   GiftOverlay,
   GiftPicker,
@@ -397,6 +398,13 @@ export default function LiveWatchPage() {
             totalParticipants={
               leaderboardParticipants
             }
+          />
+        </section>
+
+        <section className="mt-8">
+          <LiveRankingPanel
+            roomId={roomId}
+            rankingVersion={rankingVersion}
           />
         </section>
         <section className="mt-8">
