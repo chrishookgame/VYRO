@@ -21,6 +21,7 @@ import {
 
 import {
   SpaceShuttleAnimation,
+  VyroUniverseAnimation,
 } from "./legendary";
 export const animationRegistry: Record<
   string,
@@ -33,6 +34,7 @@ export const animationRegistry: Record<
   dragon: DragonAnimation,
   golden_palace: GoldenPalaceAnimation,
   space_shuttle: SpaceShuttleAnimation,
+  vyro_universe: VyroUniverseAnimation,
 };
 
 export function renderGiftAnimation(
