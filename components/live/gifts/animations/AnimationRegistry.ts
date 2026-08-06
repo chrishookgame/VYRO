@@ -16,6 +16,7 @@ import type {
 import {
   CrownAnimation,
   DragonAnimation,
+  GoldenPalaceAnimation,
 } from "./premium";
 
 export const animationRegistry: Record<
@@ -27,6 +28,7 @@ export const animationRegistry: Record<
   diamond: DiamondAnimation,
   crown: CrownAnimation,
   dragon: DragonAnimation,
+  golden_palace: GoldenPalaceAnimation,
 };
 
 export function renderGiftAnimation(
