@@ -9,3 +9,4 @@ export { default as ConfirmGiftModal } from "./ConfirmGiftModal";
 export * from "./animations";
 export * from "./orchestrator";
 export * from "./combo";
+export * from "./stage";
