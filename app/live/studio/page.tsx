@@ -13,7 +13,7 @@ import {
   Square,
   Users,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   BattleStudio,
@@ -22,6 +22,9 @@ import {
 import { LiveCommandCenter } from "@/components/live/command-center";
 import {
   useBattleInvitations,
+  useBattleSeriesHostController,
+  useLiveBattle,
+  useLiveBattleSeries,
   useLiveDashboard,
   useLiveSession,
 } from "@/hooks";
@@ -67,6 +70,25 @@ export default function LiveStudioPage() {
     loading: battleInvitationsLoading,
     error: battleInvitationsError,
   } = useBattleInvitations();
+
+  const {
+    battle: activeBattle,
+    loading: activeBattleLoading,
+    error: activeBattleError,
+    refresh: refreshActiveBattle,
+  } = useLiveBattle(
+    session?.id,
+  );
+
+  const {
+    series: activeBattleSeries,
+    loading: activeBattleSeriesLoading,
+    error: activeBattleSeriesError,
+    advanceRound,
+    refresh: refreshActiveBattleSeries,
+  } = useLiveBattleSeries(
+    session?.id,
+  );
   const [devicesReady, setDevicesReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
@@ -80,6 +102,53 @@ export default function LiveStudioPage() {
     creatingBattleSeries,
     setCreatingBattleSeries,
   ] = useState(false);
+
+  const advanceAndRefreshBattle =
+    useCallback(
+      async (
+        battleId: string,
+      ) => {
+        const nextSeries =
+          await advanceRound(
+            battleId,
+          );
+
+        if (!nextSeries) {
+          return null;
+        }
+
+        await Promise.all([
+          refreshActiveBattle(),
+          refreshActiveBattleSeries(),
+        ]);
+
+        return nextSeries;
+      },
+      [
+        advanceRound,
+        refreshActiveBattle,
+        refreshActiveBattleSeries,
+      ],
+    );
+
+  const {
+    processing:
+      battleSeriesProcessing,
+    error:
+      battleSeriesControllerError,
+  } = useBattleSeriesHostController({
+    enabled:
+      Boolean(session) &&
+      isLive &&
+      !activeBattleLoading &&
+      !activeBattleSeriesLoading,
+    series:
+      activeBattleSeries,
+    battle:
+      activeBattle,
+    advanceRound:
+      advanceAndRefreshBattle,
+  });
 
   useEffect(() => {
     return () => {
@@ -288,6 +357,11 @@ export default function LiveStudioPage() {
           config,
         });
 
+      await Promise.all([
+        refreshActiveBattle(),
+        refreshActiveBattleSeries(),
+      ]);
+
       setMessage(
         `Battle Series creada correctamente. ID: ${createdSeries.row.id}`,
       );
@@ -420,12 +494,26 @@ export default function LiveStudioPage() {
           </p>
         </header>
 
-        {(error || sessionError || dashboardError || battleInvitationsError) ? (
+        {(
+          error ||
+          sessionError ||
+          dashboardError ||
+          battleInvitationsError ||
+          activeBattleError ||
+          activeBattleSeriesError ||
+          battleSeriesControllerError
+        ) ? (
           <div
             role="alert"
             className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-200"
           >
-            {error || sessionError || dashboardError || battleInvitationsError}
+            {error ||
+              sessionError ||
+              dashboardError ||
+              battleInvitationsError ||
+              activeBattleError ||
+              activeBattleSeriesError ||
+              battleSeriesControllerError}
           </div>
         ) : null}
 
@@ -641,7 +729,8 @@ export default function LiveStudioPage() {
             disabled={
               !session ||
               battleInvitationsLoading ||
-              creatingBattleSeries
+              creatingBattleSeries ||
+              battleSeriesProcessing
             }
             onCreateSeries={(config) => {
               void handleCreateBattleSeries(
