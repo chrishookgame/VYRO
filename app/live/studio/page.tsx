@@ -12,6 +12,10 @@ import {
   Settings,
   Square,
   Users,
+  Clock3,
+  LoaderCircle,
+  Swords,
+  Trophy,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -21,6 +25,7 @@ import {
 } from "@/components/live/battle";
 import { LiveCommandCenter } from "@/components/live/command-center";
 import {
+  useBattleCountdown,
   useBattleInvitations,
   useBattleSeriesHostController,
   useLiveBattle,
@@ -149,6 +154,46 @@ export default function LiveStudioPage() {
     advanceRound:
       advanceAndRefreshBattle,
   });
+
+  const battleCountdownPhase =
+    activeBattleSeries?.status ===
+    "intermission"
+      ? "intermission"
+      : activeBattleSeries?.status ===
+          "scheduled"
+        ? "scheduled"
+        : activeBattleSeries?.status ===
+            "finished"
+          ? "finished"
+          : activeBattle?.status ===
+              "active"
+            ? "active"
+            : "idle";
+
+  const battleCountdownTarget =
+    battleCountdownPhase ===
+      "intermission" ||
+    battleCountdownPhase ===
+      "scheduled"
+      ? activeBattleSeries
+          ?.nextBattleAt ?? null
+      : battleCountdownPhase ===
+          "active"
+        ? activeBattle?.endsAt ?? null
+        : null;
+
+  const battleSeriesCountdown =
+    useBattleCountdown({
+      phase:
+        battleCountdownPhase,
+      targetAt:
+        battleCountdownTarget,
+      enabled:
+        Boolean(
+          activeBattleSeries,
+        ),
+      tickIntervalMs: 250,
+    });
 
   useEffect(() => {
     return () => {
@@ -724,6 +769,120 @@ export default function LiveStudioPage() {
             )}
           </aside>
         </div>
+        {activeBattleSeries ? (
+          <section className="mt-10 overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-[#07111D] text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 p-6 md:p-8">
+              <div>
+                <div className="flex items-center gap-3 text-fuchsia-300">
+                  <Trophy size={22} />
+
+                  <p className="text-xs font-black uppercase tracking-[0.24em]">
+                    VYRO Battle Series
+                  </p>
+                </div>
+
+                <h2 className="mt-3 text-2xl font-black">
+                  Estado de la serie
+                </h2>
+              </div>
+
+              <div className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-4 py-2 text-sm font-black uppercase tracking-[0.14em] text-fuchsia-200">
+                {activeBattleSeries.status}
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-6 md:grid-cols-3 md:p-8">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <div className="flex items-center gap-3 text-cyan-300">
+                  <Swords size={20} />
+
+                  <p className="text-xs font-black uppercase tracking-[0.18em]">
+                    Ronda
+                  </p>
+                </div>
+
+                <p className="mt-4 text-3xl font-black">
+                  {activeBattleSeries.currentPosition}
+                  <span className="text-white/35">
+                    /{activeBattleSeries.config.totalBattles}
+                  </span>
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <div className="flex items-center gap-3 text-violet-300">
+                  <Clock3 size={20} />
+
+                  <p className="text-xs font-black uppercase tracking-[0.18em]">
+                    Countdown
+                  </p>
+                </div>
+
+                <p
+                  aria-live="polite"
+                  className="mt-4 text-3xl font-black tabular-nums"
+                >
+                  {battleCountdownPhase === "idle"
+                    ? "--:--"
+                    : battleSeriesCountdown.label}
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+                  Batalla actual
+                </p>
+
+                <p className="mt-4 text-xl font-black">
+                  {activeBattle?.status ??
+                    "Esperando"}
+                </p>
+
+                <p className="mt-2 truncate text-xs text-white/35">
+                  {activeBattle?.id ??
+                    "Sin batalla asignada"}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 px-6 py-5 md:px-8">
+              <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-white/60">
+                {battleSeriesProcessing ? (
+                  <>
+                    <LoaderCircle
+                      size={18}
+                      className="animate-spin text-fuchsia-300"
+                    />
+
+                    <span>
+                      Procesando cambio de ronda...
+                    </span>
+                  </>
+                ) : battleCountdownPhase ===
+                  "intermission" ? (
+                  <span>
+                    Intermedio activo. La siguiente ronda comenzará automáticamente.
+                  </span>
+                ) : battleCountdownPhase ===
+                  "active" ? (
+                  <span>
+                    Battle activa y sincronizada en tiempo real.
+                  </span>
+                ) : activeBattleSeries.status ===
+                  "finished" ? (
+                  <span>
+                    Battle Series finalizada.
+                  </span>
+                ) : (
+                  <span>
+                    Battle Series preparada.
+                  </span>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className="mt-10">
           <BattleStudio
             disabled={
