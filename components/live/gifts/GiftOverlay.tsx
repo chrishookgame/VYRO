@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -9,8 +9,8 @@ import type {
 } from "@/hooks";
 
 import {
-  AnimationEngine,
-} from "./animations";
+  AnimationOrchestrator,
+} from "./orchestrator";
 
 interface GiftOverlayProps {
   gift: LiveGiftOverlayItem | null;
@@ -124,6 +124,8 @@ export default function GiftOverlay({
   }, [gift]);
 
   return (
-    <AnimationEngine gift={gift} />
+    <AnimationOrchestrator
+      gift={gift}
+    />
   );
 }
