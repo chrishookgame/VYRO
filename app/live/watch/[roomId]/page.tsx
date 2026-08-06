@@ -23,7 +23,12 @@ import {
   Zap,
 } from "lucide-react";
 
-import { LiveBattleEngine } from "@/components/live/battle";
+import {
+  BattleIntermission,
+  BattleQueue,
+  BattleSeriesScoreboard,
+  LiveBattleEngine,
+} from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
 import { LiveRankingPanel } from "@/components/live/ranking";
@@ -33,6 +38,7 @@ import {
 } from "@/components/live/gifts";
 import {
   useLiveBattle,
+  useLiveBattleSeries,
   useLiveChat,
   useLiveGiftOverlay,
   useLiveLeaderboard,
@@ -75,6 +81,12 @@ export default function LiveWatchPage() {
     roomId,
     lastUpdate,
   );
+
+  const {
+    series: liveBattleSeries,
+    loading: battleSeriesLoading,
+    error: battleSeriesError,
+  } = useLiveBattleSeries(roomId);
 
   const {
     activeGift,
@@ -422,6 +434,99 @@ export default function LiveWatchPage() {
           >
             {battleError}
           </section>
+        ) : null}
+
+        {battleSeriesLoading ? (
+          <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#07111D] p-8 text-center">
+            <LoaderCircle className="mx-auto animate-spin text-amber-300" />
+
+            <p className="mt-4 text-sm text-white/50">
+              Cargando Battle Series...
+            </p>
+          </section>
+        ) : null}
+
+        {!battleSeriesLoading && battleSeriesError ? (
+          <section
+            role="alert"
+            className="mt-8 rounded-[2rem] border border-red-500/30 bg-red-500/10 p-6 text-red-200"
+          >
+            {battleSeriesError}
+          </section>
+        ) : null}
+
+        {!battleSeriesLoading &&
+        !battleSeriesError &&
+        liveBattleSeries &&
+        liveBattle ? (
+          <>
+            <section className="mt-8">
+              <BattleSeriesScoreboard
+                status={liveBattleSeries.status}
+                currentPosition={
+                  liveBattleSeries.currentPosition
+                }
+                totalBattles={
+                  liveBattleSeries.config.totalBattles
+                }
+                leftCreatorId={
+                  liveBattle.left.creatorId
+                }
+                rightCreatorId={
+                  liveBattle.right.creatorId
+                }
+                leftCreatorName={
+                  liveBattle.left.creatorName
+                }
+                rightCreatorName={
+                  liveBattle.right.creatorName
+                }
+                leftWins={liveBattleSeries.leftWins}
+                rightWins={liveBattleSeries.rightWins}
+                draws={liveBattleSeries.draws}
+                winnerId={liveBattleSeries.winnerId}
+              />
+            </section>
+
+            {liveBattleSeries.status === "intermission" &&
+            liveBattleSeries.nextBattleAt ? (
+              <section className="mt-8">
+                <BattleIntermission
+                  currentPosition={
+                    liveBattleSeries.currentPosition
+                  }
+                  totalBattles={
+                    liveBattleSeries.config.totalBattles
+                  }
+                  nextBattleAt={
+                    liveBattleSeries.nextBattleAt
+                  }
+                  autoStartNext={false}
+                />
+              </section>
+            ) : null}
+
+            <section className="mt-8">
+              <BattleQueue
+                rounds={liveBattleSeries.rounds}
+                currentPosition={
+                  liveBattleSeries.currentPosition
+                }
+                leftCreatorId={
+                  liveBattle.left.creatorId
+                }
+                rightCreatorId={
+                  liveBattle.right.creatorId
+                }
+                leftCreatorName={
+                  liveBattle.left.creatorName
+                }
+                rightCreatorName={
+                  liveBattle.right.creatorName
+                }
+              />
+            </section>
+          </>
         ) : null}
 
         {!battleLoading && !battleError && liveBattle ? (
