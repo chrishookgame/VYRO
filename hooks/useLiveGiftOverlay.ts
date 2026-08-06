@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -15,6 +15,7 @@ import type {
 export interface LiveGiftOverlayItem {
   id: string;
   code: string;
+  senderId: string | null;
   name: string;
   icon: string;
   rarity: LiveGiftRarity;
@@ -93,6 +94,11 @@ function parseGiftEvent(
       ? payload.gift_code
       : null;
 
+  const senderId =
+    typeof payload.sender_id === "string"
+      ? payload.sender_id
+      : null;
+
   const giftName =
     typeof payload.gift_name === "string"
       ? payload.gift_name
@@ -130,6 +136,7 @@ function parseGiftEvent(
   return {
     id: giftId,
     code: giftCode,
+    senderId,
     name: giftName,
     icon: giftIcon,
     rarity:

@@ -8,3 +8,4 @@ export { default as WalletBalance } from "./WalletBalance";
 export { default as ConfirmGiftModal } from "./ConfirmGiftModal";
 export * from "./animations";
 export * from "./orchestrator";
+export * from "./combo";
