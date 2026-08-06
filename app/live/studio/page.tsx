@@ -15,11 +15,20 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  BattleStudio,
+  type BattleSeriesConfig,
+} from "@/components/live/battle";
 import { LiveCommandCenter } from "@/components/live/command-center";
 import {
+  useBattleInvitations,
   useLiveDashboard,
   useLiveSession,
 } from "@/hooks";
+import {
+  createLiveBattleSeries,
+  getActiveLiveBattleSeries,
+} from "@/lib/live-battle-series";
 
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -51,6 +60,13 @@ export default function LiveStudioPage() {
   } = useLiveDashboard(
     session?.id,
   );
+
+  const {
+    received: receivedBattleInvitations,
+    sent: sentBattleInvitations,
+    loading: battleInvitationsLoading,
+    error: battleInvitationsError,
+  } = useBattleInvitations();
   const [devicesReady, setDevicesReady] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
@@ -60,6 +76,10 @@ export default function LiveStudioPage() {
   const [category, setCategory] = useState("Creator");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [
+    creatingBattleSeries,
+    setCreatingBattleSeries,
+  ] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -190,6 +210,98 @@ export default function LiveStudioPage() {
     }
   }
 
+  async function handleCreateBattleSeries(
+    config: BattleSeriesConfig,
+  ) {
+    setError("");
+    setMessage("");
+
+    if (!session) {
+      setError(
+        "Primero debes crear o iniciar una sala VYRO LIVE.",
+      );
+      return;
+    }
+
+    const acceptedInvitation = [
+      ...receivedBattleInvitations,
+      ...sentBattleInvitations,
+    ]
+      .filter(
+        (invitation) =>
+          invitation.status === "accepted" &&
+          invitation.roomId === session.id &&
+          (
+            invitation.senderId === session.hostId ||
+            invitation.receiverId === session.hostId
+          ),
+      )
+      .sort(
+        (left, right) =>
+          new Date(
+            right.acceptedAt ??
+              right.updatedAt,
+          ).getTime() -
+          new Date(
+            left.acceptedAt ??
+              left.updatedAt,
+          ).getTime(),
+      )[0];
+
+    if (!acceptedInvitation) {
+      setError(
+        "Necesitas una invitación de batalla aceptada para esta sala.",
+      );
+      return;
+    }
+
+    const rivalId =
+      acceptedInvitation.senderId ===
+      session.hostId
+        ? acceptedInvitation.receiverId
+        : acceptedInvitation.senderId;
+
+    setCreatingBattleSeries(true);
+
+    try {
+      const activeSeries =
+        await getActiveLiveBattleSeries(
+          session.id,
+        );
+
+      if (activeSeries) {
+        setError(
+          "Esta sala ya tiene una Battle Series activa.",
+        );
+        return;
+      }
+
+      const createdSeries =
+        await createLiveBattleSeries({
+          roomId: session.id,
+          leftCreatorId:
+            session.hostId,
+          rightCreatorId:
+            rivalId,
+          invitationId:
+            acceptedInvitation.id,
+          config,
+        });
+
+      setMessage(
+        `Battle Series creada correctamente. ID: ${createdSeries.row.id}`,
+      );
+    } catch (seriesError) {
+      setError(
+        seriesError instanceof Error
+          ? seriesError.message
+          : "No se pudo crear la Battle Series.",
+      );
+    } finally {
+      setCreatingBattleSeries(false);
+    }
+  }
+
   async function startLive() {
     setError("");
     setMessage("");
@@ -308,12 +420,12 @@ export default function LiveStudioPage() {
           </p>
         </header>
 
-        {(error || sessionError || dashboardError) ? (
+        {(error || sessionError || dashboardError || battleInvitationsError) ? (
           <div
             role="alert"
             className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-200"
           >
-            {error || sessionError || dashboardError}
+            {error || sessionError || dashboardError || battleInvitationsError}
           </div>
         ) : null}
 
@@ -524,6 +636,21 @@ export default function LiveStudioPage() {
             )}
           </aside>
         </div>
+        <div className="mt-10">
+          <BattleStudio
+            disabled={
+              !session ||
+              battleInvitationsLoading ||
+              creatingBattleSeries
+            }
+            onCreateSeries={(config) => {
+              void handleCreateBattleSeries(
+                config,
+              );
+            }}
+          />
+        </div>
+
         <div className="mt-10">
           <LiveCommandCenter
             activeViewers={
