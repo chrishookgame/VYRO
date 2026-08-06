@@ -23,6 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { LiveBattleEngine } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
 import { LiveRankingPanel } from "@/components/live/ranking";
@@ -31,6 +32,7 @@ import {
   GiftPicker,
 } from "@/components/live/gifts";
 import {
+  useLiveBattle,
   useLiveChat,
   useLiveGiftOverlay,
   useLiveLeaderboard,
@@ -64,6 +66,15 @@ export default function LiveWatchPage() {
     rankingVersion,
     eventVersion,
   } = useLiveRealtime(roomId);
+
+  const {
+    battle: liveBattle,
+    loading: battleLoading,
+    error: battleError,
+  } = useLiveBattle(
+    roomId,
+    giftVersion,
+  );
 
   const {
     activeGift,
@@ -117,7 +128,9 @@ export default function LiveWatchPage() {
     connected: chatConnected,
     error: chatError,
     sendMessage,
-  } = useLiveChat(roomId);  const loadRoom = useCallback(async () => {
+  } = useLiveChat(roomId);
+
+  const loadRoom = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -391,6 +404,33 @@ export default function LiveWatchPage() {
         </section>
 
 
+
+        {battleLoading ? (
+          <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#07111D] p-8 text-center">
+            <LoaderCircle className="mx-auto animate-spin text-fuchsia-400" />
+
+            <p className="mt-4 text-sm text-white/50">
+              Cargando batalla LIVE...
+            </p>
+          </section>
+        ) : null}
+
+        {!battleLoading && battleError ? (
+          <section
+            role="alert"
+            className="mt-8 rounded-[2rem] border border-red-500/30 bg-red-500/10 p-6 text-red-200"
+          >
+            {battleError}
+          </section>
+        ) : null}
+
+        {!battleLoading && !battleError && liveBattle ? (
+          <section className="mt-8">
+            <LiveBattleEngine
+              battle={liveBattle}
+            />
+          </section>
+        ) : null}
 
         <section className="mt-8">
           <LiveLeaderboardPanel
