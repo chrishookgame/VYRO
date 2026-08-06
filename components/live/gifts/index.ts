@@ -10,3 +10,4 @@ export * from "./animations";
 export * from "./orchestrator";
 export * from "./combo";
 export * from "./stage";
+export * from "./fusion";
