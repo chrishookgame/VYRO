@@ -1,7 +1,6 @@
-﻿import {
-  battleScheduler,
-  type BattleSeriesRound,
-  type BattleSeriesState,
+import type {
+  BattleSeriesRound,
+  BattleSeriesState,
 } from "@/components/live/battle";
 
 import { supabase } from "@/lib/supabase";
@@ -12,29 +11,6 @@ import type {
   LiveBattleSeriesRow,
   UpdateLiveBattleSeriesInput,
 } from "./types";
-
-async function requireCurrentUserId(): Promise<string> {
-  const {
-    data: {
-      user,
-    },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw new Error(
-      `No se pudo identificar al usuario: ${error.message}`,
-    );
-  }
-
-  if (!user) {
-    throw new Error(
-      "Debes iniciar sesión para gestionar Battle Series.",
-    );
-  }
-
-  return user.id;
-}
 
 function createRounds(
   row: LiveBattleSeriesRow,
@@ -104,60 +80,38 @@ function mapDetails(
   };
 }
 
+interface CreateLiveBattleSeriesRpcRow {
+  series_id: string;
+  battle_id: string;
+}
+
 export async function createLiveBattleSeries(
   input: CreateLiveBattleSeriesInput,
 ): Promise<LiveBattleSeriesDetails> {
-  const createdBy =
-    await requireCurrentUserId();
-
-  const initialState =
-    battleScheduler.createSeries(
-      crypto.randomUUID(),
-      input.roomId,
-      input.config,
-    );
-
-  const { data, error } = await supabase
-    .from("live_battle_series")
-    .insert({
-      room_id: input.roomId,
-      left_creator_id:
+  const { data, error } = await supabase.rpc(
+    "create_live_battle_series",
+    {
+      p_room_id: input.roomId,
+      p_left_creator_id:
         input.leftCreatorId,
-      right_creator_id:
+      p_right_creator_id:
         input.rightCreatorId,
-      created_by: createdBy,
-      invitation_id:
+      p_invitation_id:
         input.invitationId ?? null,
-      status: initialState.status,
-      total_battles:
-        initialState.config
-          .totalBattles,
-      battle_duration_seconds:
-        initialState.config
+      p_total_battles:
+        input.config.totalBattles,
+      p_battle_duration_seconds:
+        input.config
           .battleDurationSeconds,
-      break_duration_seconds:
-        initialState.config
+      p_break_duration_seconds:
+        input.config
           .breakDurationSeconds,
-      auto_start_next:
-        initialState.config
-          .autoStartNext,
-      current_position:
-        initialState.currentPosition,
-      left_wins:
-        initialState.leftWins,
-      right_wins:
-        initialState.rightWins,
-      draws:
-        initialState.draws,
-      winner_id:
-        initialState.winnerId,
-      scheduled_at:
+      p_auto_start_next:
+        input.config.autoStartNext,
+      p_scheduled_at:
         input.scheduledAt ?? null,
-      next_battle_at:
-        initialState.nextBattleAt,
-    })
-    .select("*")
-    .single();
+    },
+  );
 
   if (error) {
     throw new Error(
@@ -165,11 +119,33 @@ export async function createLiveBattleSeries(
     );
   }
 
-  return mapDetails(
-    data as LiveBattleSeriesRow,
-  );
-}
+  const rpcRows =
+    data as CreateLiveBattleSeriesRpcRow[] | null;
 
+  const createdIds = rpcRows?.[0];
+
+  if (
+    !createdIds?.series_id ||
+    !createdIds.battle_id
+  ) {
+    throw new Error(
+      "La Battle Series se creó, pero Supabase no devolvió sus identificadores.",
+    );
+  }
+
+  const createdSeries =
+    await getLiveBattleSeriesById(
+      createdIds.series_id,
+    );
+
+  if (!createdSeries) {
+    throw new Error(
+      "La Battle Series se creó, pero no pudo recuperarse desde Supabase.",
+    );
+  }
+
+  return createdSeries;
+}
 export async function getLiveBattleSeriesById(
   seriesId: string,
 ): Promise<LiveBattleSeriesDetails | null> {
