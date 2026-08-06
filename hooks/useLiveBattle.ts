@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -20,6 +20,8 @@ import {
   getLiveBattleByRoom,
   type LiveBattleDetails,
 } from "@/lib/live-battle";
+
+import { supabase } from "@/lib/supabase";
 
 export interface UseLiveBattleResult {
   battle: LiveBattleState | null;
@@ -211,6 +213,40 @@ export function useLiveBattle(
         : currentBattle;
     });
   }, [realtimeUpdate]);
+
+  useEffect(() => {
+    if (!roomId) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(
+        `vyro-live-battle-room:${roomId}`,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_battles",
+          filter:
+            `room_id=eq.${roomId}`,
+        },
+        () => {
+          void refresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(
+        channel,
+      );
+    };
+  }, [
+    refresh,
+    roomId,
+  ]);
 
   return {
     battle,
