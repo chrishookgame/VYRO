@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { LiveChatPanel } from "@/components/live/chat";
+import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
 import {
   GiftOverlay,
   GiftPicker,
@@ -31,6 +32,7 @@ import {
 import {
   useLiveChat,
   useLiveGiftOverlay,
+  useLiveLeaderboard,
   useLivePresence,
   useLiveRealtime,
 } from "@/hooks";
@@ -66,6 +68,40 @@ export default function LiveWatchPage() {
     activeGift,
     queuedGifts,
   } = useLiveGiftOverlay(lastUpdate);
+
+  const {
+    entries: leaderboardEntries,
+    totalParticipants: leaderboardParticipants,
+    registerGiftEvent,
+  } = useLiveLeaderboard(
+    roomId,
+    10,
+  );
+
+  useEffect(() => {
+    if (!activeGift) {
+      return;
+    }
+
+    registerGiftEvent({
+      id: activeGift.id,
+      roomId,
+      senderId:
+        activeGift.senderId ??
+        "anonymous",
+      senderName: null,
+      senderAvatarUrl: null,
+      giftCode: activeGift.code,
+      giftName: activeGift.name,
+      amount: activeGift.amount,
+      energy: activeGift.energyAdded,
+      createdAt: Date.now(),
+    });
+  }, [
+    activeGift,
+    registerGiftEvent,
+    roomId,
+  ]);
   const {
     joined: presenceJoined,
     loading: presenceLoading,
@@ -355,6 +391,14 @@ export default function LiveWatchPage() {
 
 
 
+        <section className="mt-8">
+          <LiveLeaderboardPanel
+            entries={leaderboardEntries}
+            totalParticipants={
+              leaderboardParticipants
+            }
+          />
+        </section>
         <section className="mt-8">
           <GiftPicker roomId={roomId} />
         </section>
