@@ -73,7 +73,7 @@ export default function LiveWatchPage() {
     error: battleError,
   } = useLiveBattle(
     roomId,
-    giftVersion,
+    lastUpdate,
   );
 
   const {

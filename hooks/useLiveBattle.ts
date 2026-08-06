@@ -3,12 +3,18 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
-import type {
-  LiveBattleState,
+import {
+  applyBattleRealtimeUpdate,
+  type LiveBattleState,
 } from "@/components/live/battle";
+
+import type {
+  LiveRealtimeUpdate,
+} from "@/lib/live";
 
 import {
   getLiveBattleByRoom,
@@ -106,7 +112,7 @@ function mapBattleDetails(
 
 export function useLiveBattle(
   roomId: string | null | undefined,
-  realtimeVersion = 0,
+  realtimeUpdate: LiveRealtimeUpdate | null = null,
 ): UseLiveBattleResult {
   const [details, setDetails] =
     useState<LiveBattleDetails | null>(
@@ -123,6 +129,11 @@ export function useLiveBattle(
 
   const [error, setError] =
     useState("");
+
+  const processedUpdateRef =
+    useRef<LiveRealtimeUpdate | null>(
+      null,
+    );
 
   const refresh = useCallback(
     async () => {
@@ -169,9 +180,37 @@ export function useLiveBattle(
   );
 
   useEffect(() => {
-    void realtimeVersion;
     void refresh();
-  }, [realtimeVersion, refresh]);
+  }, [refresh]);
+
+  useEffect(() => {
+    if (
+      !realtimeUpdate ||
+      processedUpdateRef.current ===
+        realtimeUpdate
+    ) {
+      return;
+    }
+
+    processedUpdateRef.current =
+      realtimeUpdate;
+
+    setBattle((currentBattle) => {
+      if (!currentBattle) {
+        return currentBattle;
+      }
+
+      const result =
+        applyBattleRealtimeUpdate(
+          currentBattle,
+          realtimeUpdate,
+        );
+
+      return result.applied
+        ? result.battle
+        : currentBattle;
+    });
+  }, [realtimeUpdate]);
 
   return {
     battle,
