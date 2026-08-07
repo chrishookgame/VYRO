@@ -41,6 +41,7 @@ import {
 } from "@/components/live/gifts";
 import {
   useBattleCountdown,
+  useBattleSeriesPresentation,
   useLiveBattle,
   useLiveBattleSeries,
   useLiveChat,
@@ -291,17 +292,26 @@ export default function LiveWatchPage() {
       tickIntervalMs: 100,
     });
 
+  const presentation =
+    useBattleSeriesPresentation({
+      series:
+        liveBattleSeries,
+      battle:
+        liveBattle,
+      remainingSeconds:
+        battleTransitionCountdown
+          .remainingSeconds,
+      winnerCelebrationVisible:
+        Boolean(
+          battleWinnerCelebration,
+        ),
+    });
+
   const showBattleVSOverlay =
-    !battleWinnerCelebration &&
-    battleTransitionActive &&
-    battleTransitionCountdown
-      .remainingSeconds > 3;
+    presentation.showVSOverlay;
 
   const showBattleRoundTransition =
-    !battleWinnerCelebration &&
-    battleTransitionActive &&
-    battleTransitionCountdown
-      .remainingSeconds <= 3;
+    presentation.showRoundTransition;
 
   const {
     activeGift,
@@ -466,9 +476,7 @@ export default function LiveWatchPage() {
 
       <BattleWinnerOverlay
         visible={
-          Boolean(
-            battleWinnerCelebration,
-          )
+          presentation.showWinnerOverlay
         }
         winnerName={
           battleWinnerCelebration
@@ -486,16 +494,16 @@ export default function LiveWatchPage() {
 
       {liveBattleSeries &&
       liveBattle &&
-      battleTransitionStartsAt ? (
+      presentation.startsAt ? (
         <BattleVSOverlay
           visible={
             showBattleVSOverlay
           }
           round={
-            liveBattleSeries.currentPosition
+            presentation.round
           }
           totalRounds={
-            liveBattleSeries.config.totalBattles
+            presentation.totalRounds
           }
           leftCreatorName={
             liveBattle.left.creatorName
@@ -504,7 +512,7 @@ export default function LiveWatchPage() {
             liveBattle.right.creatorName
           }
           startsAt={
-            battleTransitionStartsAt
+            presentation.startsAt
           }
         />
       ) : null}
@@ -749,7 +757,7 @@ export default function LiveWatchPage() {
             </section>
 
             {showBattleRoundTransition &&
-            battleTransitionStartsAt ? (
+            presentation.startsAt ? (
               <section className="mt-8">
                 <BattleRoundTransition
                   round={
@@ -765,7 +773,7 @@ export default function LiveWatchPage() {
                     liveBattle.right.creatorName
                   }
                   startsAt={
-                    battleTransitionStartsAt
+                    presentation.startsAt
                   }
                 />
               </section>
@@ -796,17 +804,8 @@ export default function LiveWatchPage() {
 
         {!battleLoading &&
         !battleError &&
-        !battleWinnerCelebration &&
         liveBattle &&
-        (
-          !liveBattleSeries ||
-          (
-            liveBattleSeries.status !==
-              "scheduled" &&
-            liveBattleSeries.status !==
-              "intermission"
-          )
-        ) ? (
+        presentation.showBattleEngine ? (
           <section className="mt-8">
             <LiveBattleEngine
               battle={liveBattle}
