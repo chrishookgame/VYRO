@@ -12,6 +12,9 @@ import { CompetitiveOverlay } from "@/components/live/competitivevisuals/overlay
 import { MVPCelebration } from "@/components/live/competitivevisuals/mvp/MVPCelebration";
 import { WinStreakOverlay } from "@/components/live/competitivevisuals/streak/WinStreakOverlay";
 import { TopRankCelebration } from "@/components/live/competitivevisuals/toprank/TopRankCelebration";
+import { ChampionCelebration } from "@/components/live/competitivevisuals/champion/ChampionCelebration";
+import { CompetitiveSpotlightOverlay } from "@/components/live/competitivevisuals/spotlight/CompetitiveSpotlightOverlay";
+import { CompetitiveBanner } from "@/components/live/competitivevisuals/banner/CompetitiveBanner";
 
 import type { ComponentType } from "react";
 import {
@@ -857,6 +860,57 @@ export default function LiveWatchPage() {
         }
       />
 
+      <ChampionCelebration
+        creatorName={
+          competitiveTopRankPlayer?.creatorName ??
+          ""
+        }
+        championships={
+          competitiveTopRankPlayer?.championships ??
+          0
+        }
+        visible={
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
+          "CHAMPION"
+        }
+      />
+
+      <CompetitiveSpotlightOverlay
+        creatorName={
+          presentationTransition.event?.creatorName ??
+          ""
+        }
+        rank={
+          competitiveTopRankPlayer?.rank ??
+          0
+        }
+        competitivePower={
+          competitiveTopRankPlayer?.competitivePower ??
+          0
+        }
+        visible={
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
+          "SPOTLIGHT"
+        }
+      />
+
+      <CompetitiveBanner
+        title={
+          presentationTransition.event?.title ??
+          ""
+        }
+        subtitle={
+          presentationTransition.event?.message
+        }
+        visible={
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
+          "BANNER"
+        }
+      />
+
       </div>
       <BattleCelebrationFX
         state={
@@ -1001,7 +1055,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "TransmisiÃ³n aÃºn no iniciada"}
+                  : "TransmisiÃƒÆ’Ã‚Â³n aÃƒÆ’Ã‚Âºn no iniciada"}
               </span>
             </div>
           </div>
