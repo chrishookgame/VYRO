@@ -8,10 +8,13 @@ import VyroWorldCup from "@/components/live/worldcup/VyroWorldCup";
 
 import VyroLiveCelebration from "@/components/live/celebrations/VyroLiveCelebration";
 
+import { CompetitiveOverlay } from "@/components/live/competitivevisuals/overlay/CompetitiveOverlay";
+
 import type { ComponentType } from "react";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import Link from "next/link";
@@ -93,6 +96,13 @@ import {
   getLiveRoomDetails,
   type LiveRoomDetails,
 } from "@/lib/live";
+
+import { useCompetitiveOrchestrator } from "@/hooks/useCompetitiveOrchestrator";
+import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
+
+import type {
+  CompetitiveOrchestratorPlayer,
+} from "@/components/live/competitiveorchestrator/types/CompetitiveOrchestratorTypes";
 
 export default function LiveWatchPage() {
   const params = useParams<{ roomId: string }>();
@@ -319,6 +329,79 @@ export default function LiveWatchPage() {
       liveBattle?.right.creatorName ??
       null,
   });
+
+  const competitivePlayers =
+    useMemo<
+      CompetitiveOrchestratorPlayer[]
+    >(() => {
+      const creators = [
+        battleRankingEvolution.left,
+        battleRankingEvolution.right,
+      ];
+
+      return creators.flatMap(
+        (creator) => {
+          if (!creator) {
+            return [];
+          }
+
+          return [
+            {
+              creatorId:
+                creator.creatorId,
+
+              creatorName:
+                creator.creatorName,
+
+              rank:
+                creator.rank,
+
+              previousRank:
+                creator.previousRank,
+
+              wins:
+                creator.wins,
+
+              streak:
+                creator.streak,
+
+              championships:
+                0,
+
+              qualified:
+                false,
+
+              competitivePower:
+                creator.score,
+            },
+          ];
+        },
+      );
+    }, [
+      battleRankingEvolution.left,
+      battleRankingEvolution.right,
+    ]);
+
+  const competitiveEventClock =
+    rankingVersion +
+    eventVersion +
+    battleTimelineEvents.length;
+
+  const competitiveOrchestrator =
+    useCompetitiveOrchestrator(
+      competitivePlayers,
+      competitiveEventClock,
+    );
+
+  const competitiveVisuals =
+    useCompetitiveVisuals({
+      events:
+        competitiveOrchestrator
+          .orchestratorEvents,
+
+      hype:
+        battleAIDirector.intensity,
+    });
 
   const {
     state:
@@ -553,6 +636,12 @@ export default function LiveWatchPage() {
       <GiftOverlay
         gift={activeGift}
         queuedGifts={queuedGifts}
+      />
+
+      <CompetitiveOverlay
+        event={
+          competitiveVisuals.primaryEvent
+        }
       />
 
       <BattleCelebrationFX
