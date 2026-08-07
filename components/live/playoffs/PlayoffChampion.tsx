@@ -1,19 +1,27 @@
-﻿export function createPlayoffBracket(players:any[]){
+﻿import type { LeaguePlayer } from "./LeaguePlayoffsEngine";
 
-    return players
-        .sort((a,b)=>b.score-a.score)
-        .map((player,index)=>({
+export function createPlayoffBracket(
+    players: LeaguePlayer[],
+){
 
-            seed:index+1,
+    return [...players]
+        .sort(
+            (a,b)=>b.score-a.score,
+        )
+        .map(
+            (player,index)=>({
 
-            creatorId:player.creatorId,
+                seed:index+1,
 
-            creatorName:player.creatorName,
+                creatorId:player.id,
 
-            score:player.score,
+                creatorName:player.name,
 
-            qualified:index<16
+                score:player.score,
 
-        }));
+                qualified:index<16,
+
+            }),
+        );
 
 }
