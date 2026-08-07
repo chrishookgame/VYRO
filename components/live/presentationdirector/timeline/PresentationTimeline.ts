@@ -107,3 +107,45 @@ export function advancePresentationTimeline(
     ],
   };
 }
+
+export function preemptPresentationTimeline(
+  state:PresentationTimelineState,
+  incomingEvent:ScheduledPresentationEvent,
+  now:number,
+):PresentationTimelineState{
+  const current=
+    state.activeEvent;
+
+  if(
+    current &&
+    current.id === incomingEvent.id
+  ){
+    return state;
+  }
+
+  const pendingWithoutIncoming=
+    state.pendingEvents.filter(
+      event =>
+        event.id !==
+        incomingEvent.id,
+    );
+
+  return {
+    activeEvent:
+      incomingEvent,
+
+    pendingEvents:
+      current
+        ? [
+            current,
+            ...pendingWithoutIncoming,
+          ]
+        : pendingWithoutIncoming,
+
+    activeSince:
+      now,
+
+    completedEventIds:
+      state.completedEventIds,
+  };
+}

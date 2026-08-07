@@ -1,6 +1,7 @@
 ﻿import {
   advancePresentationTimeline,
   createPresentationTimelineState,
+  preemptPresentationTimeline,
   type PresentationTimelineState,
 } from "../timeline/PresentationTimeline";
 
@@ -46,5 +47,24 @@ export function tickPresentationRuntime(
 
     running:
       timeline.activeEvent !== null,
+  };
+}
+
+export function preemptPresentationRuntime(
+  state:PresentationRuntimeState,
+  incomingEvent:ScheduledPresentationEvent,
+  now:number,
+):PresentationRuntimeState{
+  const timeline=
+    preemptPresentationTimeline(
+      state,
+      incomingEvent,
+      now,
+    );
+
+  return {
+    ...timeline,
+
+    running:true,
   };
 }
