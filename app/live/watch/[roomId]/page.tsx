@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 
 import {
-  BattleIntermission,
   BattleQueue,
+  BattleRoundTransition,
   BattleSeriesScoreboard,
   LiveBattleEngine,
 } from "@/components/live/battle";
@@ -488,20 +488,30 @@ export default function LiveWatchPage() {
               />
             </section>
 
-            {liveBattleSeries.status === "intermission" &&
+            {(
+              liveBattleSeries.status ===
+                "scheduled" ||
+              liveBattleSeries.status ===
+                "intermission"
+            ) &&
             liveBattleSeries.nextBattleAt ? (
               <section className="mt-8">
-                <BattleIntermission
-                  currentPosition={
+                <BattleRoundTransition
+                  round={
                     liveBattleSeries.currentPosition
                   }
-                  totalBattles={
+                  totalRounds={
                     liveBattleSeries.config.totalBattles
                   }
-                  nextBattleAt={
+                  leftCreatorName={
+                    liveBattle.left.creatorName
+                  }
+                  rightCreatorName={
+                    liveBattle.right.creatorName
+                  }
+                  startsAt={
                     liveBattleSeries.nextBattleAt
                   }
-                  autoStartNext={false}
                 />
               </section>
             ) : null}
@@ -529,7 +539,18 @@ export default function LiveWatchPage() {
           </>
         ) : null}
 
-        {!battleLoading && !battleError && liveBattle ? (
+        {!battleLoading &&
+        !battleError &&
+        liveBattle &&
+        (
+          !liveBattleSeries ||
+          (
+            liveBattleSeries.status !==
+              "scheduled" &&
+            liveBattleSeries.status !==
+              "intermission"
+          )
+        ) ? (
           <section className="mt-8">
             <LiveBattleEngine
               battle={liveBattle}
