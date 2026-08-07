@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import {
+  BattleAIDirector,
   BattleAnalytics,
   BattleCelebrationFX,
   BattleHighlights,
@@ -44,6 +45,7 @@ import {
   GiftPicker,
 } from "@/components/live/gifts";
 import {
+  useBattleAIDirector,
   useBattleAnalytics,
   useBattleCelebrationFX,
   useBattleHighlights,
@@ -165,6 +167,20 @@ export default function LiveWatchPage() {
       liveBattleSeries,
     events:
       battleTimelineEvents,
+  });
+
+  const {
+    director:
+      battleAIDirector,
+  } = useBattleAIDirector({
+    analytics:
+      battleAnalytics,
+    phase:
+      presentation.phase,
+    winnerName:
+      presentation.winnerName,
+    isSeriesWinner:
+      presentation.isSeriesWinner,
   });
 
   const {
@@ -680,6 +696,14 @@ export default function LiveWatchPage() {
               <BattleAnalytics
                 analytics={
                   battleAnalytics
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleAIDirector
+                director={
+                  battleAIDirector
                 }
               />
             </section>
