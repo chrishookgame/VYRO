@@ -21,3 +21,4 @@ export * from "./useBattleTimeline";
 export * from "./useBattleHighlights";
 export * from "./useBattleReplay";
 export * from "./useBattleAnalytics";
+export * from "./useBattleCelebrationFX";

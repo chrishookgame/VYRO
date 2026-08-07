@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useMemo,
@@ -56,12 +56,6 @@ export function useBattleAnalytics({
             "round_started",
         ).length;
 
-      const victories =
-        events.filter(
-          (event) =>
-            event.type ===
-            "score_changed",
-        ).length;
 
       const timelineDraws =
         events.filter(

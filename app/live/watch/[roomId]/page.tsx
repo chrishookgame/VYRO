@@ -25,6 +25,7 @@ import {
 
 import {
   BattleAnalytics,
+  BattleCelebrationFX,
   BattleHighlights,
   BattleQueue,
   BattleReplay,
@@ -44,6 +45,7 @@ import {
 } from "@/components/live/gifts";
 import {
   useBattleAnalytics,
+  useBattleCelebrationFX,
   useBattleHighlights,
   useBattleReplay,
   useBattleSeriesPresentation,
@@ -106,6 +108,18 @@ export default function LiveWatchPage() {
       battle:
         liveBattle,
     });
+
+  const {
+    celebrationFX:
+      battleCelebrationFX,
+  } = useBattleCelebrationFX({
+    visible:
+      presentation.showWinnerOverlay,
+    winnerName:
+      presentation.winnerName,
+    isSeriesWinner:
+      presentation.isSeriesWinner,
+  });
 
   const {
     events:
@@ -312,6 +326,12 @@ export default function LiveWatchPage() {
       <GiftOverlay
         gift={activeGift}
         queuedGifts={queuedGifts}
+      />
+
+      <BattleCelebrationFX
+        state={
+          battleCelebrationFX
+        }
       />
 
       <BattleWinnerOverlay
