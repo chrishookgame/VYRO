@@ -4,7 +4,6 @@ import type { ComponentType } from "react";
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import Link from "next/link";
@@ -40,7 +39,6 @@ import {
   GiftPicker,
 } from "@/components/live/gifts";
 import {
-  useBattleCountdown,
   useBattleSeriesPresentation,
   useLiveBattle,
   useLiveBattleSeries,
@@ -93,225 +91,13 @@ export default function LiveWatchPage() {
     error: battleSeriesError,
   } = useLiveBattleSeries(roomId);
 
-  const [
-    battleWinnerCelebration,
-    setBattleWinnerCelebration,
-  ] = useState<{
-    key: string;
-    winnerName: string | null;
-    isSeriesWinner: boolean;
-  } | null>(null);
-
-  const previousSeriesScoreRef =
-    useRef<{
-      seriesId: string;
-      leftWins: number;
-      rightWins: number;
-      draws: number;
-      status: string;
-    } | null>(null);
-
-  const shownCelebrationsRef =
-    useRef<Set<string>>(
-      new Set(),
-    );
-
-  useEffect(() => {
-    if (
-      !liveBattleSeries ||
-      !liveBattle
-    ) {
-      return;
-    }
-
-    const previous =
-      previousSeriesScoreRef.current;
-
-    previousSeriesScoreRef.current = {
-      seriesId:
-        liveBattleSeries.id,
-      leftWins:
-        liveBattleSeries.leftWins,
-      rightWins:
-        liveBattleSeries.rightWins,
-      draws:
-        liveBattleSeries.draws,
-      status:
-        liveBattleSeries.status,
-    };
-
-    const resolveWinnerName = (
-      winnerId: string | null,
-    ): string | null => {
-      if (
-        winnerId ===
-        liveBattle.left.creatorId
-      ) {
-        return liveBattle.left
-          .creatorName;
-      }
-
-      if (
-        winnerId ===
-        liveBattle.right.creatorId
-      ) {
-        return liveBattle.right
-          .creatorName;
-      }
-
-      return null;
-    };
-
-    if (
-      liveBattleSeries.status ===
-        "finished"
-    ) {
-      const celebrationKey =
-        `${liveBattleSeries.id}:champion`;
-
-      if (
-        shownCelebrationsRef.current
-          .has(celebrationKey)
-      ) {
-        return;
-      }
-
-      shownCelebrationsRef.current.add(
-        celebrationKey,
-      );
-
-      setBattleWinnerCelebration({
-        key: celebrationKey,
-        winnerName:
-          resolveWinnerName(
-            liveBattleSeries.winnerId,
-          ),
-        isSeriesWinner: true,
-      });
-
-      return;
-    }
-
-    if (
-      !previous ||
-      previous.seriesId !==
-        liveBattleSeries.id
-    ) {
-      return;
-    }
-
-    const leftWinAdded =
-      liveBattleSeries.leftWins >
-      previous.leftWins;
-
-    const rightWinAdded =
-      liveBattleSeries.rightWins >
-      previous.rightWins;
-
-    const drawAdded =
-      liveBattleSeries.draws >
-      previous.draws;
-
-    if (
-      !leftWinAdded &&
-      !rightWinAdded &&
-      !drawAdded
-    ) {
-      return;
-    }
-
-    const celebrationKey =
-      [
-        liveBattleSeries.id,
-        liveBattleSeries.leftWins,
-        liveBattleSeries.rightWins,
-        liveBattleSeries.draws,
-      ].join(":");
-
-    if (
-      shownCelebrationsRef.current
-        .has(celebrationKey)
-    ) {
-      return;
-    }
-
-    shownCelebrationsRef.current.add(
-      celebrationKey,
-    );
-
-    setBattleWinnerCelebration({
-      key: celebrationKey,
-      winnerName:
-        leftWinAdded
-          ? liveBattle.left.creatorName
-          : rightWinAdded
-            ? liveBattle.right.creatorName
-            : null,
-      isSeriesWinner: false,
-    });
-  }, [
-    liveBattle,
-    liveBattleSeries,
-  ]);
-
-  const handleWinnerCelebrationFinished =
-    useCallback(() => {
-      setBattleWinnerCelebration(
-        null,
-      );
-    }, []);
-
-  const battleTransitionActive =
-    Boolean(
-      liveBattleSeries &&
-      (
-        liveBattleSeries.status ===
-          "scheduled" ||
-        liveBattleSeries.status ===
-          "intermission"
-      ) &&
-      liveBattleSeries.nextBattleAt,
-    );
-
-  const battleTransitionStartsAt =
-    battleTransitionActive
-      ? liveBattleSeries
-          ?.nextBattleAt ?? null
-      : null;
-
-  const battleTransitionCountdown =
-    useBattleCountdown({
-      phase:
-        battleTransitionActive
-          ? "scheduled"
-          : "idle",
-      targetAt:
-        battleTransitionStartsAt,
-      enabled:
-        battleTransitionActive,
-      tickIntervalMs: 100,
-    });
-
   const presentation =
     useBattleSeriesPresentation({
       series:
         liveBattleSeries,
       battle:
         liveBattle,
-      remainingSeconds:
-        battleTransitionCountdown
-          .remainingSeconds,
-      winnerCelebrationVisible:
-        Boolean(
-          battleWinnerCelebration,
-        ),
     });
-
-  const showBattleVSOverlay =
-    presentation.showVSOverlay;
-
-  const showBattleRoundTransition =
-    presentation.showRoundTransition;
 
   const {
     activeGift,
@@ -479,16 +265,14 @@ export default function LiveWatchPage() {
           presentation.showWinnerOverlay
         }
         winnerName={
-          battleWinnerCelebration
-            ?.winnerName ?? null
+          presentation.winnerName
         }
         isSeriesWinner={
-          battleWinnerCelebration
-            ?.isSeriesWinner ?? false
+          presentation.isSeriesWinner
         }
         durationMs={4000}
         onFinished={
-          handleWinnerCelebrationFinished
+          presentation.onWinnerFinished
         }
       />
 
@@ -497,7 +281,7 @@ export default function LiveWatchPage() {
       presentation.startsAt ? (
         <BattleVSOverlay
           visible={
-            showBattleVSOverlay
+            presentation.showVSOverlay
           }
           round={
             presentation.round
@@ -756,15 +540,15 @@ export default function LiveWatchPage() {
               />
             </section>
 
-            {showBattleRoundTransition &&
+            {presentation.showRoundTransition &&
             presentation.startsAt ? (
               <section className="mt-8">
                 <BattleRoundTransition
                   round={
-                    liveBattleSeries.currentPosition
+                    presentation.round
                   }
                   totalRounds={
-                    liveBattleSeries.config.totalBattles
+                    presentation.totalRounds
                   }
                   leftCreatorName={
                     liveBattle.left.creatorName
