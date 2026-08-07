@@ -1,5 +1,9 @@
 "use client";
 
+import WorldVyroKing from "@/components/live/worldtitles/WorldVyroKing";
+import WorldTitleDefense from "@/components/live/worldtitles/WorldTitleDefense";
+import WorldTitleHistory from "@/components/live/worldtitles/WorldTitleHistory";
+
 import VyroWorldCup from "@/components/live/worldcup/VyroWorldCup";
 
 import VyroLiveCelebration from "@/components/live/celebrations/VyroLiveCelebration";
@@ -71,6 +75,7 @@ import {
   useVyroTitles,
   useVyroHallOfFame,
   useVyroWorldCup,
+  useWorldVyroKing,
   useVyroLiveCelebrations,
   useBattleStory,
   useBattleShareCards,
@@ -375,6 +380,18 @@ export default function LiveWatchPage() {
       "CL",
     countryName:
       "Chile",
+  });
+
+  const {
+    state:
+      worldVyroKing,
+    history:
+      worldTitleHistory,
+  } = useWorldVyroKing({
+    worldCup:
+      vyroWorldCup,
+    nextChallenger:
+      nextChallenger,
   });
 
   const {
@@ -978,6 +995,30 @@ export default function LiveWatchPage() {
               <VyroWorldCup
                 data={
                   vyroWorldCup
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <WorldVyroKing
+                state={
+                  worldVyroKing
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <WorldTitleDefense
+                defense={
+                  worldVyroKing.latestDefense
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <WorldTitleHistory
+                defenses={
+                  worldTitleHistory
                 }
               />
             </section>
