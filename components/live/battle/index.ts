@@ -27,3 +27,4 @@ export { default as BattleReplay } from "./replay/BattleReplay";
 export { default as BattleAnalytics } from "./analytics/BattleAnalytics";
 export { default as BattleCelebrationFX } from "./celebration/BattleCelebrationFX";
 export { default as BattleAIDirector } from "./director/BattleAIDirector";
+export { default as BattleRecap } from "./recap/BattleRecap";
