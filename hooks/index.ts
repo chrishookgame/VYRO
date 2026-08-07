@@ -32,3 +32,4 @@ export * from "./useBattleRankingEvolution";
 export * from "./useVyroTitles";
 export * from "./useVyroLiveCelebrations";
 export * from "./useNextChallenger";
+export * from "./useVyroHallOfFame";

@@ -38,6 +38,7 @@ import {
   BattleRankingEvolution,
   NextChallenger,
   VyroTitlePanel,
+  VyroHallOfFame,
   BattleStory,
   BattleShareCard,
   BattleRoundTransition,
@@ -66,6 +67,7 @@ import {
   useBattleRankingEvolution,
   useNextChallenger,
   useVyroTitles,
+  useVyroHallOfFame,
   useVyroLiveCelebrations,
   useBattleStory,
   useBattleShareCards,
@@ -342,6 +344,20 @@ export default function LiveWatchPage() {
       vyroTitles,
     countryCode:
       "CL",
+  });
+
+  const {
+    data:
+      vyroHallOfFame,
+  } = useVyroHallOfFame({
+    ranking:
+      battleRankingEvolution,
+    titles:
+      vyroTitles,
+    countryCode:
+      "CL",
+    countryName:
+      "Chile",
   });
 
   const {
@@ -929,6 +945,14 @@ export default function LiveWatchPage() {
               <NextChallenger
                 data={
                   nextChallenger
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <VyroHallOfFame
+                data={
+                  vyroHallOfFame
                 }
               />
             </section>
