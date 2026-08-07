@@ -49,6 +49,8 @@ export interface BattleSeriesPresentation {
   totalRounds: number;
 
   startsAt: string | null;
+  remainingSeconds: number;
+  countdownLabel: string;
 
   showWinnerOverlay: boolean;
   showVSOverlay: boolean;
@@ -345,6 +347,12 @@ export function useBattleSeriesPresentation({
       round,
       totalRounds,
       startsAt,
+
+      remainingSeconds:
+        countdown.remainingSeconds,
+
+      countdownLabel:
+        countdown.label,
 
       showWinnerOverlay,
       showVSOverlay,

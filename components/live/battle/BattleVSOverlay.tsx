@@ -1,8 +1,7 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
-  useRef,
   useState,
 } from "react";
 import {
@@ -13,9 +12,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import {
-  useBattleCountdown,
-} from "@/hooks";
 
 interface BattleVSOverlayProps {
   visible: boolean;
@@ -23,8 +19,8 @@ interface BattleVSOverlayProps {
   totalRounds: number;
   leftCreatorName: string;
   rightCreatorName: string;
-  startsAt: string;
-  onFinished?: () => void;
+  remainingSeconds: number;
+  countdownLabel: string;
 }
 
 export default function BattleVSOverlay({
@@ -33,22 +29,12 @@ export default function BattleVSOverlay({
   totalRounds,
   leftCreatorName,
   rightCreatorName,
-  startsAt,
-  onFinished,
+  remainingSeconds,
+  countdownLabel,
 }: BattleVSOverlayProps) {
   const [mounted, setMounted] =
     useState(false);
 
-  const finishedCalledRef =
-    useRef(false);
-
-  const countdown =
-    useBattleCountdown({
-      phase: "scheduled",
-      targetAt: startsAt,
-      enabled: visible,
-      tickIntervalMs: 100,
-    });
 
   useEffect(() => {
     if (!visible) {
@@ -70,48 +56,26 @@ export default function BattleVSOverlay({
     };
   }, [visible]);
 
-  useEffect(() => {
-    finishedCalledRef.current =
-      false;
-  }, [startsAt]);
 
-  useEffect(() => {
-    if (
-      !visible ||
-      !countdown.ready ||
-      finishedCalledRef.current
-    ) {
-      return;
-    }
-
-    finishedCalledRef.current =
-      true;
-
-    onFinished?.();
-  }, [
-    countdown.ready,
-    onFinished,
-    visible,
-  ]);
 
   if (!visible) {
     return null;
   }
 
   const showFight =
-    countdown.remainingSeconds <= 0;
+    remainingSeconds <= 0;
 
   const showFinalCountdown =
-    countdown.remainingSeconds > 0 &&
-    countdown.remainingSeconds <= 3;
+    remainingSeconds > 0 &&
+    remainingSeconds <= 3;
 
   const displayValue =
     showFight
       ? "FIGHT!"
       : showFinalCountdown
-        ? countdown.remainingSeconds
+        ? remainingSeconds
             .toString()
-        : countdown.label;
+        : countdownLabel;
 
   return (
     <div

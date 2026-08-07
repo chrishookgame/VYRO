@@ -1,9 +1,8 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
@@ -14,17 +13,14 @@ import {
   Zap,
 } from "lucide-react";
 
-import {
-  useBattleCountdown,
-} from "@/hooks";
 
 interface BattleRoundTransitionProps {
   round: number;
   totalRounds: number;
   leftCreatorName: string;
   rightCreatorName: string;
-  startsAt: string;
-  onFinished?: () => void;
+  remainingSeconds: number;
+  countdownLabel: string;
 }
 
 type TransitionStage =
@@ -38,22 +34,12 @@ export default function BattleRoundTransition({
   totalRounds,
   leftCreatorName,
   rightCreatorName,
-  startsAt,
-  onFinished,
+  remainingSeconds,
+  countdownLabel,
 }: BattleRoundTransitionProps) {
-  const finishedCalledRef =
-    useRef(false);
 
   const [mounted, setMounted] =
     useState(false);
-
-  const countdown =
-    useBattleCountdown({
-      phase: "scheduled",
-      targetAt: startsAt,
-      enabled: true,
-      tickIntervalMs: 100,
-    });
 
   useEffect(() => {
     setMounted(true);
@@ -63,57 +49,40 @@ export default function BattleRoundTransition({
     };
   }, []);
 
-  useEffect(() => {
-    finishedCalledRef.current = false;
-  }, [startsAt]);
 
-  useEffect(() => {
-    if (
-      !countdown.ready ||
-      finishedCalledRef.current
-    ) {
-      return;
-    }
-
-    finishedCalledRef.current = true;
-    onFinished?.();
-  }, [
-    countdown.ready,
-    onFinished,
-  ]);
 
   const stage = useMemo<
     TransitionStage
   >(() => {
     if (
-      countdown.remainingSeconds <= 0
+      remainingSeconds <= 0
     ) {
       return "fight";
     }
 
     if (
-      countdown.remainingSeconds <= 3
+      remainingSeconds <= 3
     ) {
       return "countdown";
     }
 
     if (
-      countdown.remainingSeconds <= 6
+      remainingSeconds <= 6
     ) {
       return "versus";
     }
 
     return "intro";
   }, [
-    countdown.remainingSeconds,
+    remainingSeconds,
   ]);
 
   const fightLabel =
     stage === "fight"
       ? "FIGHT!"
       : stage === "countdown"
-        ? countdown.remainingSeconds.toString()
-        : countdown.label;
+        ? remainingSeconds.toString()
+        : countdownLabel;
 
   const stageMessage =
     stage === "intro"

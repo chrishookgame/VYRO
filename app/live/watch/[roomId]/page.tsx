@@ -295,8 +295,11 @@ export default function LiveWatchPage() {
           rightCreatorName={
             liveBattle.right.creatorName
           }
-          startsAt={
-            presentation.startsAt
+          remainingSeconds={
+            presentation.remainingSeconds
+          }
+          countdownLabel={
+            presentation.countdownLabel
           }
         />
       ) : null}
@@ -556,8 +559,11 @@ export default function LiveWatchPage() {
                   rightCreatorName={
                     liveBattle.right.creatorName
                   }
-                  startsAt={
-                    presentation.startsAt
+                  remainingSeconds={
+                    presentation.remainingSeconds
+                  }
+                  countdownLabel={
+                    presentation.countdownLabel
                   }
                 />
               </section>
