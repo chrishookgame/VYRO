@@ -9,6 +9,9 @@ import VyroWorldCup from "@/components/live/worldcup/VyroWorldCup";
 import VyroLiveCelebration from "@/components/live/celebrations/VyroLiveCelebration";
 
 import { CompetitiveOverlay } from "@/components/live/competitivevisuals/overlay/CompetitiveOverlay";
+import { MVPCelebration } from "@/components/live/competitivevisuals/mvp/MVPCelebration";
+import { WinStreakOverlay } from "@/components/live/competitivevisuals/streak/WinStreakOverlay";
+import { TopRankCelebration } from "@/components/live/competitivevisuals/toprank/TopRankCelebration";
 
 import type { ComponentType } from "react";
 import {
@@ -387,6 +390,22 @@ export default function LiveWatchPage() {
     eventVersion +
     battleTimelineEvents.length;
 
+  const competitiveStreakLeader =
+    [...competitivePlayers]
+      .sort(
+        (a,b) =>
+          b.streak -
+          a.streak,
+      )[0] ?? null;
+
+  const competitiveTopRankPlayer =
+    [...competitivePlayers]
+      .sort(
+        (a,b) =>
+          a.rank -
+          b.rank,
+      )[0] ?? null;
+
   const competitiveOrchestrator =
     useCompetitiveOrchestrator(
       competitivePlayers,
@@ -641,6 +660,50 @@ export default function LiveWatchPage() {
       <CompetitiveOverlay
         event={
           competitiveVisuals.primaryEvent
+        }
+      />
+
+      <TopRankCelebration
+        creatorName={
+          competitiveTopRankPlayer?.creatorName ??
+          ""
+        }
+        rank={
+          competitiveTopRankPlayer?.rank ??
+          0
+        }
+        visible={
+          Boolean(competitiveTopRankPlayer) &&
+          (competitiveTopRankPlayer?.rank ?? 999) <= 10
+        }
+      />
+
+      <WinStreakOverlay
+        creatorName={
+          competitiveStreakLeader?.creatorName ??
+          ""
+        }
+        streak={
+          competitiveStreakLeader?.streak ??
+          0
+        }
+        visible={
+          Boolean(competitiveStreakLeader) &&
+          (competitiveStreakLeader?.streak ?? 0) >= 3
+        }
+      />
+
+      <MVPCelebration
+        creatorName={
+          battleMVP.winner?.creatorName ??
+          ""
+        }
+        score={
+          battleMVP.winner?.score
+        }
+        visible={
+          Boolean(battleMVP.winner) &&
+          presentation.showWinnerOverlay
         }
       />
 
