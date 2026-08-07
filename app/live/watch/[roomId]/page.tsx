@@ -1,5 +1,7 @@
 "use client";
 
+import VyroLiveCelebration from "@/components/live/celebrations/VyroLiveCelebration";
+
 import type { ComponentType } from "react";
 import {
   useCallback,
@@ -62,6 +64,7 @@ import {
   useBattleRecap,
   useBattleRankingEvolution,
   useVyroTitles,
+  useVyroLiveCelebrations,
   useBattleStory,
   useBattleShareCards,
   useBattleSeriesPresentation,
@@ -315,6 +318,16 @@ export default function LiveWatchPage() {
       "CL",
     countryName:
       "Chile",
+  });
+
+  const {
+    state:
+      vyroLiveCelebrations,
+  } = useVyroLiveCelebrations({
+    ranking:
+      battleRankingEvolution,
+    titles:
+      vyroTitles,
   });
 
   const {
@@ -886,6 +899,14 @@ export default function LiveWatchPage() {
               <BattleRankingEvolution
                 data={
                   battleRankingEvolution
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <VyroLiveCelebration
+                event={
+                  vyroLiveCelebrations.active
                 }
               />
             </section>
