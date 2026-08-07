@@ -33,3 +33,4 @@ export * from "./useVyroTitles";
 export * from "./useVyroLiveCelebrations";
 export * from "./useNextChallenger";
 export * from "./useVyroHallOfFame";
+export * from "./useVyroWorldCup";

@@ -1,5 +1,7 @@
 "use client";
 
+import VyroWorldCup from "@/components/live/worldcup/VyroWorldCup";
+
 import VyroLiveCelebration from "@/components/live/celebrations/VyroLiveCelebration";
 
 import type { ComponentType } from "react";
@@ -68,6 +70,7 @@ import {
   useNextChallenger,
   useVyroTitles,
   useVyroHallOfFame,
+  useVyroWorldCup,
   useVyroLiveCelebrations,
   useBattleStory,
   useBattleShareCards,
@@ -350,6 +353,20 @@ export default function LiveWatchPage() {
     data:
       vyroHallOfFame,
   } = useVyroHallOfFame({
+    ranking:
+      battleRankingEvolution,
+    titles:
+      vyroTitles,
+    countryCode:
+      "CL",
+    countryName:
+      "Chile",
+  });
+
+  const {
+    data:
+      vyroWorldCup,
+  } = useVyroWorldCup({
     ranking:
       battleRankingEvolution,
     titles:
@@ -953,6 +970,14 @@ export default function LiveWatchPage() {
               <VyroHallOfFame
                 data={
                   vyroHallOfFame
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <VyroWorldCup
+                data={
+                  vyroWorldCup
                 }
               />
             </section>
