@@ -34,6 +34,7 @@ import {
   BattleReplay,
   BattleRecap,
   BattleRankingEvolution,
+  VyroTitlePanel,
   BattleStory,
   BattleShareCard,
   BattleRoundTransition,
@@ -60,6 +61,7 @@ import {
   useBattleReplay,
   useBattleRecap,
   useBattleRankingEvolution,
+  useVyroTitles,
   useBattleStory,
   useBattleShareCards,
   useBattleSeriesPresentation,
@@ -301,6 +303,18 @@ export default function LiveWatchPage() {
     rightCreatorName:
       liveBattle?.right.creatorName ??
       null,
+  });
+
+  const {
+    state:
+      vyroTitles,
+  } = useVyroTitles({
+    ranking:
+      battleRankingEvolution,
+    countryCode:
+      "CL",
+    countryName:
+      "Chile",
   });
 
   const {
@@ -872,6 +886,14 @@ export default function LiveWatchPage() {
               <BattleRankingEvolution
                 data={
                   battleRankingEvolution
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <VyroTitlePanel
+                state={
+                  vyroTitles
                 }
               />
             </section>
