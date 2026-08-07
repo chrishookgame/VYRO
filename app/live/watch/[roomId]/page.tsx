@@ -103,6 +103,7 @@ import {
 import { useCompetitiveOrchestrator } from "@/hooks/useCompetitiveOrchestrator";
 import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
 import { usePresentationDirector } from "@/hooks/usePresentationDirector";
+import { usePresentationTimeline } from "@/hooks/usePresentationTimeline";
 
 import type {
   CompetitiveOrchestratorPlayer,
@@ -541,6 +542,11 @@ export default function LiveWatchPage() {
       presentationEvents,
     );
 
+  const presentationTimeline =
+    usePresentationTimeline(
+      presentationDirector.queue,
+    );
+
   const {
     state:
       vyroTitles,
@@ -792,7 +798,7 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          presentationDirector
+          presentationTimeline
             .activeEvent?.type ===
           "TOP_RANK"
         }
@@ -808,7 +814,7 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          presentationDirector
+          presentationTimeline
             .activeEvent?.type ===
           "WIN_STREAK"
         }
@@ -823,7 +829,7 @@ export default function LiveWatchPage() {
           battleMVP.winner?.score
         }
         visible={
-          presentationDirector
+          presentationTimeline
             .activeEvent?.type ===
           "MVP"
         }
