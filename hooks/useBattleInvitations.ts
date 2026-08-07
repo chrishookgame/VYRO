@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -158,30 +158,38 @@ export function useBattleInvitations():
   }, [refresh]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel(
-        "vyro-battle-invitations",
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table:
-            "live_battle_invitations",
-        },
-        () => {
-          void refresh();
-        },
-      )
-      .subscribe((status) => {
+    const channelName =
+      `vyro-battle-invitations-${crypto.randomUUID()}`;
+
+    const channel =
+      supabase.channel(
+        channelName,
+      );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table:
+          "live_battle_invitations",
+      },
+      () => {
+        void refresh();
+      },
+    );
+
+    channel.subscribe(
+      (status) => {
         setConnected(
           status === "SUBSCRIBED",
         );
-      });
+      },
+    );
 
     return () => {
       setConnected(false);
+
       void supabase.removeChannel(
         channel,
       );
