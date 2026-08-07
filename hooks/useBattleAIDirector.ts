@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useMemo,
@@ -108,7 +108,8 @@ export function useBattleAIDirector({
       }
 
       const now =
-        Date.now();
+        analytics.totalEvents * 1000 +
+        analytics.completedRounds;
 
       if (closeBattle) {
         insights.push({
