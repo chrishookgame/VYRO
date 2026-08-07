@@ -31,3 +31,4 @@ export { default as BattleRecap } from "./recap/BattleRecap";
 export { default as BattleMVP } from "./mvp/BattleMVP";
 export { default as BattleStory } from "./story/BattleStory";
 export { default as BattleShareCard } from "./cards/BattleShareCard";
+export { default as BattleHistory } from "./history/BattleHistory";
