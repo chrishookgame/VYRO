@@ -34,3 +34,4 @@ export { default as BattleShareCard } from "./cards/BattleShareCard";
 export { default as BattleHistory } from "./history/BattleHistory";
 export { default as BattleRankingEvolution } from "./ranking/BattleRankingEvolution";
 export { default as VyroTitlePanel } from "./titles/VyroTitlePanel";
+export { default as NextChallenger } from "./challenger/NextChallenger";

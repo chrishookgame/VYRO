@@ -31,3 +31,4 @@ export * from "./useBattleHistory";
 export * from "./useBattleRankingEvolution";
 export * from "./useVyroTitles";
 export * from "./useVyroLiveCelebrations";
+export * from "./useNextChallenger";

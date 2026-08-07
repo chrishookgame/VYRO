@@ -36,6 +36,7 @@ import {
   BattleReplay,
   BattleRecap,
   BattleRankingEvolution,
+  NextChallenger,
   VyroTitlePanel,
   BattleStory,
   BattleShareCard,
@@ -63,6 +64,7 @@ import {
   useBattleReplay,
   useBattleRecap,
   useBattleRankingEvolution,
+  useNextChallenger,
   useVyroTitles,
   useVyroLiveCelebrations,
   useBattleStory,
@@ -328,6 +330,18 @@ export default function LiveWatchPage() {
       battleRankingEvolution,
     titles:
       vyroTitles,
+  });
+
+  const {
+    data:
+      nextChallenger,
+  } = useNextChallenger({
+    ranking:
+      battleRankingEvolution,
+    titles:
+      vyroTitles,
+    countryCode:
+      "CL",
   });
 
   const {
@@ -907,6 +921,14 @@ export default function LiveWatchPage() {
               <VyroLiveCelebration
                 event={
                   vyroLiveCelebrations.active
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <NextChallenger
+                data={
+                  nextChallenger
                 }
               />
             </section>
