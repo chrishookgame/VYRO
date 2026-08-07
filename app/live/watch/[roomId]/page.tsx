@@ -27,6 +27,7 @@ import {
   BattleQueue,
   BattleRoundTransition,
   BattleSeriesScoreboard,
+  BattleTimeline,
   BattleVSOverlay,
   BattleWinnerOverlay,
   LiveBattleEngine,
@@ -40,6 +41,7 @@ import {
 } from "@/components/live/gifts";
 import {
   useBattleSeriesPresentation,
+  useBattleTimeline,
   useLiveBattle,
   useLiveBattleSeries,
   useLiveChat,
@@ -98,6 +100,16 @@ export default function LiveWatchPage() {
       battle:
         liveBattle,
     });
+
+  const {
+    events:
+      battleTimelineEvents,
+  } = useBattleTimeline({
+    series:
+      liveBattleSeries,
+    battle:
+      liveBattle,
+  });
 
   const {
     activeGift,
@@ -568,6 +580,14 @@ export default function LiveWatchPage() {
                 />
               </section>
             ) : null}
+
+            <section className="mt-8">
+              <BattleTimeline
+                events={
+                  battleTimelineEvents
+                }
+              />
+            </section>
 
             <section className="mt-8">
               <BattleQueue

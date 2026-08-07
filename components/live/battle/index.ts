@@ -21,3 +21,4 @@ export * from "./BattleCountdownManager";
 export { default as BattleRoundTransition } from "./BattleRoundTransition";
 export { default as BattleVSOverlay } from "./BattleVSOverlay";
 export { default as BattleWinnerOverlay } from "./BattleWinnerOverlay";
+export { default as BattleTimeline } from "./timeline/BattleTimeline";

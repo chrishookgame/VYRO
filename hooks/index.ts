@@ -17,3 +17,4 @@ export * from "./useLiveBattleSeries";
 export * from "./useBattleSeriesHostController";
 export * from "./useBattleCountdown";
 export * from "./useBattleSeriesPresentation";
+export * from "./useBattleTimeline";
