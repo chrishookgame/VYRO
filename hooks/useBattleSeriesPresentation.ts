@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -290,57 +290,44 @@ export function useBattleSeriesPresentation({
       series?.config.totalBattles ??
       0;
 
-    const showWinnerOverlay =
-      Boolean(
-        winnerCelebration,
-      );
-
-    const showVSOverlay =
-      !showWinnerOverlay &&
-      transitionActive &&
-      countdown.remainingSeconds >
-        3;
-
-    const showRoundTransition =
-      !showWinnerOverlay &&
-      transitionActive &&
-      countdown.remainingSeconds <=
-        3;
-
-    const showBattleEngine =
-      Boolean(battle) &&
-      !showWinnerOverlay &&
-      !transitionActive;
-
-    const isSeriesFinished =
-      series?.status ===
-      "finished";
-
     let phase:
       BattleSeriesPresentationPhase =
         "idle";
 
-    if (
-      showWinnerOverlay
-    ) {
+    if (winnerCelebration) {
       phase = "winner";
     } else if (
-      showVSOverlay
+      transitionActive &&
+      countdown.remainingSeconds > 3
     ) {
       phase = "versus";
     } else if (
-      showRoundTransition
+      transitionActive &&
+      countdown.remainingSeconds <= 3
     ) {
       phase = "countdown";
     } else if (
-      isSeriesFinished
+      series?.status === "finished"
     ) {
       phase = "finished";
     } else if (
-      showBattleEngine
+      battle &&
+      !transitionActive
     ) {
       phase = "battle";
     }
+
+    const showWinnerOverlay =
+      phase === "winner";
+
+    const showVSOverlay =
+      phase === "versus";
+
+    const showRoundTransition =
+      phase === "countdown";
+
+    const showBattleEngine =
+      phase === "battle";
 
     return {
       phase,
