@@ -26,6 +26,7 @@ import {
 import {
   BattleHighlights,
   BattleQueue,
+  BattleReplay,
   BattleRoundTransition,
   BattleSeriesScoreboard,
   BattleTimeline,
@@ -42,6 +43,7 @@ import {
 } from "@/components/live/gifts";
 import {
   useBattleHighlights,
+  useBattleReplay,
   useBattleSeriesPresentation,
   useBattleTimeline,
   useLiveBattle,
@@ -121,6 +123,22 @@ export default function LiveWatchPage() {
       battleTimelineEvents,
     limit:
       8,
+  });
+
+  const {
+    moments:
+      battleReplayMoments,
+    activeMomentId:
+      activeBattleReplayMomentId,
+    playReplay:
+      playBattleReplay,
+    stopReplay:
+      stopBattleReplay,
+  } = useBattleReplay({
+    events:
+      battleTimelineEvents,
+    limit:
+      10,
   });
 
   const {
@@ -605,6 +623,23 @@ export default function LiveWatchPage() {
               <BattleHighlights
                 highlights={
                   battleHighlights
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleReplay
+                moments={
+                  battleReplayMoments
+                }
+                activeMomentId={
+                  activeBattleReplayMomentId
+                }
+                onPlay={
+                  playBattleReplay
+                }
+                onStop={
+                  stopBattleReplay
                 }
               />
             </section>

@@ -23,3 +23,4 @@ export { default as BattleVSOverlay } from "./BattleVSOverlay";
 export { default as BattleWinnerOverlay } from "./BattleWinnerOverlay";
 export { default as BattleTimeline } from "./timeline/BattleTimeline";
 export { default as BattleHighlights } from "./highlights/BattleHighlights";
+export { default as BattleReplay } from "./replay/BattleReplay";
