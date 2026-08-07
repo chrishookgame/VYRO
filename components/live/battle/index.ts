@@ -29,3 +29,4 @@ export { default as BattleCelebrationFX } from "./celebration/BattleCelebrationF
 export { default as BattleAIDirector } from "./director/BattleAIDirector";
 export { default as BattleRecap } from "./recap/BattleRecap";
 export { default as BattleMVP } from "./mvp/BattleMVP";
+export { default as BattleStory } from "./story/BattleStory";

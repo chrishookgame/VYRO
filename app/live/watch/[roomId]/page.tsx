@@ -32,6 +32,7 @@ import {
   BattleQueue,
   BattleReplay,
   BattleRecap,
+  BattleStory,
   BattleRoundTransition,
   BattleSeriesScoreboard,
   BattleTimeline,
@@ -54,6 +55,7 @@ import {
   useBattleMVP,
   useBattleReplay,
   useBattleRecap,
+  useBattleStory,
   useBattleSeriesPresentation,
   useBattleTimeline,
   useLiveBattle,
@@ -229,6 +231,20 @@ export default function LiveWatchPage() {
       null,
     winnerName:
       presentation.winnerName,
+  });
+
+  const {
+    story:
+      battleStory,
+  } = useBattleStory({
+    analytics:
+      battleAnalytics,
+    director:
+      battleAIDirector,
+    recap:
+      battleRecap,
+    mvp:
+      battleMVP,
   });
 
   const {
@@ -768,6 +784,14 @@ export default function LiveWatchPage() {
               <BattleRecap
                 recap={
                   battleRecap
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleStory
+                story={
+                  battleStory
                 }
               />
             </section>
