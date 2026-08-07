@@ -26,3 +26,4 @@ export * from "./useBattleAIDirector";
 export * from "./useBattleRecap";
 export * from "./useBattleMVP";
 export * from "./useBattleStory";
+export * from "./useBattleShareCards";
