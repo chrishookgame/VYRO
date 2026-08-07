@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import {
+  BattleAnalytics,
   BattleHighlights,
   BattleQueue,
   BattleReplay,
@@ -42,6 +43,7 @@ import {
   GiftPicker,
 } from "@/components/live/gifts";
 import {
+  useBattleAnalytics,
   useBattleHighlights,
   useBattleReplay,
   useBattleSeriesPresentation,
@@ -139,6 +141,16 @@ export default function LiveWatchPage() {
       battleTimelineEvents,
     limit:
       10,
+  });
+
+  const {
+    analytics:
+      battleAnalytics,
+  } = useBattleAnalytics({
+    series:
+      liveBattleSeries,
+    events:
+      battleTimelineEvents,
   });
 
   const {
@@ -640,6 +652,14 @@ export default function LiveWatchPage() {
                 }
                 onStop={
                   stopBattleReplay
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleAnalytics
+                analytics={
+                  battleAnalytics
                 }
               />
             </section>

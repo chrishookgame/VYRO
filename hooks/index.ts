@@ -20,3 +20,4 @@ export * from "./useBattleSeriesPresentation";
 export * from "./useBattleTimeline";
 export * from "./useBattleHighlights";
 export * from "./useBattleReplay";
+export * from "./useBattleAnalytics";

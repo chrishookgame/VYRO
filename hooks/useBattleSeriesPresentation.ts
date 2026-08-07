@@ -363,6 +363,7 @@ export function useBattleSeriesPresentation({
     };
   }, [
     battle,
+    countdown.label,
     countdown.remainingSeconds,
     onWinnerFinished,
     series,
