@@ -33,6 +33,7 @@ import {
   BattleQueue,
   BattleReplay,
   BattleRecap,
+  BattleRankingEvolution,
   BattleStory,
   BattleShareCard,
   BattleRoundTransition,
@@ -58,6 +59,7 @@ import {
   useBattleMVP,
   useBattleReplay,
   useBattleRecap,
+  useBattleRankingEvolution,
   useBattleStory,
   useBattleShareCards,
   useBattleSeriesPresentation,
@@ -277,6 +279,28 @@ export default function LiveWatchPage() {
       battleStory,
     mvp:
       battleMVP,
+  });
+
+  const {
+    data:
+      battleRankingEvolution,
+  } = useBattleRankingEvolution({
+    analytics:
+      battleAnalytics,
+    director:
+      battleAIDirector,
+    leftCreatorId:
+      liveBattle?.left.creatorId ??
+      null,
+    leftCreatorName:
+      liveBattle?.left.creatorName ??
+      null,
+    rightCreatorId:
+      liveBattle?.right.creatorId ??
+      null,
+    rightCreatorName:
+      liveBattle?.right.creatorName ??
+      null,
   });
 
   const {
@@ -840,6 +864,14 @@ export default function LiveWatchPage() {
               <BattleHistory
                 entries={
                   battleHistoryEntries
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleRankingEvolution
+                data={
+                  battleRankingEvolution
                 }
               />
             </section>

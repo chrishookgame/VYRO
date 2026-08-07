@@ -28,3 +28,4 @@ export * from "./useBattleMVP";
 export * from "./useBattleStory";
 export * from "./useBattleShareCards";
 export * from "./useBattleHistory";
+export * from "./useBattleRankingEvolution";
