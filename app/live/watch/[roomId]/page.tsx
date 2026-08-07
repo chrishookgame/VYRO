@@ -27,6 +27,7 @@ import {
   BattleQueue,
   BattleRoundTransition,
   BattleSeriesScoreboard,
+  BattleVSOverlay,
   LiveBattleEngine,
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
@@ -37,6 +38,7 @@ import {
   GiftPicker,
 } from "@/components/live/gifts";
 import {
+  useBattleCountdown,
   useLiveBattle,
   useLiveBattleSeries,
   useLiveChat,
@@ -87,6 +89,47 @@ export default function LiveWatchPage() {
     loading: battleSeriesLoading,
     error: battleSeriesError,
   } = useLiveBattleSeries(roomId);
+
+  const battleTransitionActive =
+    Boolean(
+      liveBattleSeries &&
+      (
+        liveBattleSeries.status ===
+          "scheduled" ||
+        liveBattleSeries.status ===
+          "intermission"
+      ) &&
+      liveBattleSeries.nextBattleAt,
+    );
+
+  const battleTransitionStartsAt =
+    battleTransitionActive
+      ? liveBattleSeries
+          ?.nextBattleAt ?? null
+      : null;
+
+  const battleTransitionCountdown =
+    useBattleCountdown({
+      phase:
+        battleTransitionActive
+          ? "scheduled"
+          : "idle",
+      targetAt:
+        battleTransitionStartsAt,
+      enabled:
+        battleTransitionActive,
+      tickIntervalMs: 100,
+    });
+
+  const showBattleVSOverlay =
+    battleTransitionActive &&
+    battleTransitionCountdown
+      .remainingSeconds > 3;
+
+  const showBattleRoundTransition =
+    battleTransitionActive &&
+    battleTransitionCountdown
+      .remainingSeconds <= 3;
 
   const {
     activeGift,
@@ -248,6 +291,31 @@ export default function LiveWatchPage() {
         gift={activeGift}
         queuedGifts={queuedGifts}
       />
+
+      {liveBattleSeries &&
+      liveBattle &&
+      battleTransitionStartsAt ? (
+        <BattleVSOverlay
+          visible={
+            showBattleVSOverlay
+          }
+          round={
+            liveBattleSeries.currentPosition
+          }
+          totalRounds={
+            liveBattleSeries.config.totalBattles
+          }
+          leftCreatorName={
+            liveBattle.left.creatorName
+          }
+          rightCreatorName={
+            liveBattle.right.creatorName
+          }
+          startsAt={
+            battleTransitionStartsAt
+          }
+        />
+      ) : null}
 
       <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
       <section className="mx-auto max-w-7xl">
@@ -488,13 +556,8 @@ export default function LiveWatchPage() {
               />
             </section>
 
-            {(
-              liveBattleSeries.status ===
-                "scheduled" ||
-              liveBattleSeries.status ===
-                "intermission"
-            ) &&
-            liveBattleSeries.nextBattleAt ? (
+            {showBattleRoundTransition &&
+            battleTransitionStartsAt ? (
               <section className="mt-8">
                 <BattleRoundTransition
                   round={
@@ -510,7 +573,7 @@ export default function LiveWatchPage() {
                     liveBattle.right.creatorName
                   }
                   startsAt={
-                    liveBattleSeries.nextBattleAt
+                    battleTransitionStartsAt
                   }
                 />
               </section>
