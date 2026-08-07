@@ -102,10 +102,13 @@ import {
 
 import { useCompetitiveOrchestrator } from "@/hooks/useCompetitiveOrchestrator";
 import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
+import { usePresentationDirector } from "@/hooks/usePresentationDirector";
 
 import type {
   CompetitiveOrchestratorPlayer,
 } from "@/components/live/competitiveorchestrator/types/CompetitiveOrchestratorTypes";
+
+import type { PresentationEvent } from "@/components/live/presentationdirector/types/PresentationEvent";
 
 export default function LiveWatchPage() {
   const params = useParams<{ roomId: string }>();
@@ -422,6 +425,122 @@ export default function LiveWatchPage() {
         battleAIDirector.intensity,
     });
 
+  const presentationEvents =
+    useMemo<
+      PresentationEvent[]
+    >(() => {
+      const events:
+        PresentationEvent[] =
+          [];
+
+      if(
+        battleMVP.winner &&
+        presentation.showWinnerOverlay
+      ){
+        events.push({
+          id:
+            `mvp-${battleMVP.winner.creatorId}-${competitiveEventClock}`,
+
+          type:
+            "MVP",
+
+          creatorId:
+            battleMVP.winner.creatorId,
+
+          creatorName:
+            battleMVP.winner.creatorName,
+
+          title:
+            "VYRO LIVE MVP",
+
+          message:
+            `${battleMVP.winner.creatorName} domina el MVP Score.`,
+
+          createdAt:
+            competitiveEventClock,
+
+          durationMs:
+            4000,
+        });
+      }
+
+      if(
+        competitiveTopRankPlayer &&
+        competitiveTopRankPlayer.rank === 1 &&
+        competitiveTopRankPlayer.previousRank !== 1
+      ){
+        events.push({
+          id:
+            `top-rank-${competitiveTopRankPlayer.creatorId}-${competitiveEventClock}`,
+
+          type:
+            "TOP_RANK",
+
+          creatorId:
+            competitiveTopRankPlayer.creatorId,
+
+          creatorName:
+            competitiveTopRankPlayer.creatorName,
+
+          title:
+            "Nuevo #1",
+
+          message:
+            `${competitiveTopRankPlayer.creatorName} toma el liderazgo.`,
+
+          createdAt:
+            competitiveEventClock,
+
+          durationMs:
+            4000,
+        });
+      }
+
+      if(
+        competitiveStreakLeader &&
+        competitiveStreakLeader.streak >= 3
+      ){
+        events.push({
+          id:
+            `streak-${competitiveStreakLeader.creatorId}-${competitiveStreakLeader.streak}`,
+
+          type:
+            "WIN_STREAK",
+
+          creatorId:
+            competitiveStreakLeader.creatorId,
+
+          creatorName:
+            competitiveStreakLeader.creatorName,
+
+          title:
+            "Win Streak",
+
+          message:
+            `${competitiveStreakLeader.creatorName} suma ${competitiveStreakLeader.streak} victorias de ventaja.`,
+
+          createdAt:
+            competitiveEventClock,
+
+          durationMs:
+            3500,
+        });
+      }
+
+      return events;
+    }, [
+      battleMVP.winner,
+      competitiveEventClock,
+      competitiveStreakLeader,
+      competitiveTopRankPlayer,
+      presentation.showWinnerOverlay,
+    ]);
+
+  const presentationDirector =
+    usePresentationDirector(
+      presentationEvents,
+    );
+
   const {
     state:
       vyroTitles,
@@ -673,8 +792,9 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          Boolean(competitiveTopRankPlayer) &&
-          (competitiveTopRankPlayer?.rank ?? 999) <= 10
+          presentationDirector
+            .activeEvent?.type ===
+          "TOP_RANK"
         }
       />
 
@@ -688,8 +808,9 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          Boolean(competitiveStreakLeader) &&
-          (competitiveStreakLeader?.streak ?? 0) >= 3
+          presentationDirector
+            .activeEvent?.type ===
+          "WIN_STREAK"
         }
       />
 
@@ -702,8 +823,9 @@ export default function LiveWatchPage() {
           battleMVP.winner?.score
         }
         visible={
-          Boolean(battleMVP.winner) &&
-          presentation.showWinnerOverlay
+          presentationDirector
+            .activeEvent?.type ===
+          "MVP"
         }
       />
 
