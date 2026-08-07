@@ -19,3 +19,4 @@ export { default as BattleStudio } from "./BattleStudio";
 export { default as BattleInvitationPanel } from "./BattleInvitationPanel";
 export * from "./BattleCountdownManager";
 export { default as BattleRoundTransition } from "./BattleRoundTransition";
+export { default as BattleVSOverlay } from "./BattleVSOverlay";
