@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ import {
   BattleRoundTransition,
   BattleSeriesScoreboard,
   BattleVSOverlay,
+  BattleWinnerOverlay,
   LiveBattleEngine,
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
@@ -90,6 +92,174 @@ export default function LiveWatchPage() {
     error: battleSeriesError,
   } = useLiveBattleSeries(roomId);
 
+  const [
+    battleWinnerCelebration,
+    setBattleWinnerCelebration,
+  ] = useState<{
+    key: string;
+    winnerName: string | null;
+    isSeriesWinner: boolean;
+  } | null>(null);
+
+  const previousSeriesScoreRef =
+    useRef<{
+      seriesId: string;
+      leftWins: number;
+      rightWins: number;
+      draws: number;
+      status: string;
+    } | null>(null);
+
+  const shownCelebrationsRef =
+    useRef<Set<string>>(
+      new Set(),
+    );
+
+  useEffect(() => {
+    if (
+      !liveBattleSeries ||
+      !liveBattle
+    ) {
+      return;
+    }
+
+    const previous =
+      previousSeriesScoreRef.current;
+
+    previousSeriesScoreRef.current = {
+      seriesId:
+        liveBattleSeries.id,
+      leftWins:
+        liveBattleSeries.leftWins,
+      rightWins:
+        liveBattleSeries.rightWins,
+      draws:
+        liveBattleSeries.draws,
+      status:
+        liveBattleSeries.status,
+    };
+
+    const resolveWinnerName = (
+      winnerId: string | null,
+    ): string | null => {
+      if (
+        winnerId ===
+        liveBattle.left.creatorId
+      ) {
+        return liveBattle.left
+          .creatorName;
+      }
+
+      if (
+        winnerId ===
+        liveBattle.right.creatorId
+      ) {
+        return liveBattle.right
+          .creatorName;
+      }
+
+      return null;
+    };
+
+    if (
+      liveBattleSeries.status ===
+        "finished"
+    ) {
+      const celebrationKey =
+        `${liveBattleSeries.id}:champion`;
+
+      if (
+        shownCelebrationsRef.current
+          .has(celebrationKey)
+      ) {
+        return;
+      }
+
+      shownCelebrationsRef.current.add(
+        celebrationKey,
+      );
+
+      setBattleWinnerCelebration({
+        key: celebrationKey,
+        winnerName:
+          resolveWinnerName(
+            liveBattleSeries.winnerId,
+          ),
+        isSeriesWinner: true,
+      });
+
+      return;
+    }
+
+    if (
+      !previous ||
+      previous.seriesId !==
+        liveBattleSeries.id
+    ) {
+      return;
+    }
+
+    const leftWinAdded =
+      liveBattleSeries.leftWins >
+      previous.leftWins;
+
+    const rightWinAdded =
+      liveBattleSeries.rightWins >
+      previous.rightWins;
+
+    const drawAdded =
+      liveBattleSeries.draws >
+      previous.draws;
+
+    if (
+      !leftWinAdded &&
+      !rightWinAdded &&
+      !drawAdded
+    ) {
+      return;
+    }
+
+    const celebrationKey =
+      [
+        liveBattleSeries.id,
+        liveBattleSeries.leftWins,
+        liveBattleSeries.rightWins,
+        liveBattleSeries.draws,
+      ].join(":");
+
+    if (
+      shownCelebrationsRef.current
+        .has(celebrationKey)
+    ) {
+      return;
+    }
+
+    shownCelebrationsRef.current.add(
+      celebrationKey,
+    );
+
+    setBattleWinnerCelebration({
+      key: celebrationKey,
+      winnerName:
+        leftWinAdded
+          ? liveBattle.left.creatorName
+          : rightWinAdded
+            ? liveBattle.right.creatorName
+            : null,
+      isSeriesWinner: false,
+    });
+  }, [
+    liveBattle,
+    liveBattleSeries,
+  ]);
+
+  const handleWinnerCelebrationFinished =
+    useCallback(() => {
+      setBattleWinnerCelebration(
+        null,
+      );
+    }, []);
+
   const battleTransitionActive =
     Boolean(
       liveBattleSeries &&
@@ -122,11 +292,13 @@ export default function LiveWatchPage() {
     });
 
   const showBattleVSOverlay =
+    !battleWinnerCelebration &&
     battleTransitionActive &&
     battleTransitionCountdown
       .remainingSeconds > 3;
 
   const showBattleRoundTransition =
+    !battleWinnerCelebration &&
     battleTransitionActive &&
     battleTransitionCountdown
       .remainingSeconds <= 3;
@@ -290,6 +462,26 @@ export default function LiveWatchPage() {
       <GiftOverlay
         gift={activeGift}
         queuedGifts={queuedGifts}
+      />
+
+      <BattleWinnerOverlay
+        visible={
+          Boolean(
+            battleWinnerCelebration,
+          )
+        }
+        winnerName={
+          battleWinnerCelebration
+            ?.winnerName ?? null
+        }
+        isSeriesWinner={
+          battleWinnerCelebration
+            ?.isSeriesWinner ?? false
+        }
+        durationMs={4000}
+        onFinished={
+          handleWinnerCelebrationFinished
+        }
       />
 
       {liveBattleSeries &&
@@ -604,6 +796,7 @@ export default function LiveWatchPage() {
 
         {!battleLoading &&
         !battleError &&
+        !battleWinnerCelebration &&
         liveBattle &&
         (
           !liveBattleSeries ||
