@@ -104,6 +104,7 @@ import { useCompetitiveOrchestrator } from "@/hooks/useCompetitiveOrchestrator";
 import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
 import { usePresentationDirector } from "@/hooks/usePresentationDirector";
 import { usePresentationTimeline } from "@/hooks/usePresentationTimeline";
+import { usePresentationTransition } from "@/hooks/usePresentationTransition";
 
 import type {
   CompetitiveOrchestratorPlayer,
@@ -547,6 +548,11 @@ export default function LiveWatchPage() {
       presentationDirector.queue,
     );
 
+  const presentationTransition =
+    usePresentationTransition(
+      presentationTimeline.activeEvent,
+    );
+
   const {
     state:
       vyroTitles,
@@ -788,7 +794,23 @@ export default function LiveWatchPage() {
         }
       />
 
-      <TopRankCelebration
+      <div
+        data-vyro-presentation-transition="true"
+        style={{
+          position:"absolute",
+          inset:0,
+          pointerEvents:"none",
+          opacity:
+            presentationTransition
+              .animationStyle.opacity,
+          transform:
+            `translateY(${presentationTransition.animationStyle.translateY}px) scale(${presentationTransition.animationStyle.scale})`,
+          transition:
+            presentationTransition.transition,
+          zIndex:55,
+        }}
+      >
+        <TopRankCelebration
         creatorName={
           competitiveTopRankPlayer?.creatorName ??
           ""
@@ -798,8 +820,8 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          presentationTimeline
-            .activeEvent?.type ===
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
           "TOP_RANK"
         }
       />
@@ -814,8 +836,8 @@ export default function LiveWatchPage() {
           0
         }
         visible={
-          presentationTimeline
-            .activeEvent?.type ===
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
           "WIN_STREAK"
         }
       />
@@ -829,12 +851,13 @@ export default function LiveWatchPage() {
           battleMVP.winner?.score
         }
         visible={
-          presentationTimeline
-            .activeEvent?.type ===
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
           "MVP"
         }
       />
 
+      </div>
       <BattleCelebrationFX
         state={
           battleCelebrationFX
@@ -978,7 +1001,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "Transmisión aún no iniciada"}
+                  : "TransmisiÃ³n aÃºn no iniciada"}
               </span>
             </div>
           </div>
