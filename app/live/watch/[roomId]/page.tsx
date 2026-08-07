@@ -28,6 +28,7 @@ import {
   BattleAnalytics,
   BattleCelebrationFX,
   BattleHighlights,
+  BattleMVP,
   BattleQueue,
   BattleReplay,
   BattleRecap,
@@ -50,6 +51,7 @@ import {
   useBattleAnalytics,
   useBattleCelebrationFX,
   useBattleHighlights,
+  useBattleMVP,
   useBattleReplay,
   useBattleRecap,
   useBattleSeriesPresentation,
@@ -183,6 +185,28 @@ export default function LiveWatchPage() {
       presentation.winnerName,
     isSeriesWinner:
       presentation.isSeriesWinner,
+  });
+
+  const {
+    result:
+      battleMVP,
+  } = useBattleMVP({
+    analytics:
+      battleAnalytics,
+    highlights:
+      battleHighlights,
+    leftCreatorId:
+      liveBattle?.left.creatorId ??
+      null,
+    leftCreatorName:
+      liveBattle?.left.creatorName ??
+      null,
+    rightCreatorId:
+      liveBattle?.right.creatorId ??
+      null,
+    rightCreatorName:
+      liveBattle?.right.creatorName ??
+      null,
   });
 
   const {
@@ -728,6 +752,14 @@ export default function LiveWatchPage() {
               <BattleAIDirector
                 director={
                   battleAIDirector
+                }
+              />
+            </section>
+
+            <section className="mt-8">
+              <BattleMVP
+                result={
+                  battleMVP
                 }
               />
             </section>
