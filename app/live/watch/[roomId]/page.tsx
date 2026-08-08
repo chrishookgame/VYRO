@@ -1,4 +1,7 @@
 "use client";
+import {
+  resolveVisualCoordination,
+} from "@/components/live/visualcoordination/VisualCoordinationPolicy";
 
 import {
   bridgeCompetitivePresentationEvents,
@@ -749,6 +752,20 @@ export default function LiveWatchPage() {
     usePresentationCinematics(
       presentationTimeline.activeEvent,
     );
+
+  const visualCoordination =
+    resolveVisualCoordination({
+      presentationEvent:
+        presentationTimeline.activeEvent,
+
+      celebrationEvent:
+        vyroLiveCelebrations.active,
+    });
+
+  const coordinatedCelebrationEvent =
+    visualCoordination.showCelebration
+      ? vyroLiveCelebrations.active
+      : null;
 
   const aiPresentationIsActive =
     Boolean(
@@ -1513,7 +1530,7 @@ export default function LiveWatchPage() {
             <section className="mt-8">
               <VyroLiveCelebration
                 event={
-                  vyroLiveCelebrations.active
+                  coordinatedCelebrationEvent
                 }
                 onComplete={
                   dismissVyroLiveCelebration
