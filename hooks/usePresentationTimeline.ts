@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -17,6 +16,10 @@ import {
   usePresentationPreemption,
 } from "@/hooks/usePresentationPreemption";
 
+import {
+  usePresentationSequence,
+} from "@/hooks/usePresentationSequence";
+
 import type {
   ScheduledPresentationEvent,
 } from "@/components/live/presentationdirector/types/PresentationEvent";
@@ -24,19 +27,13 @@ import type {
 export function usePresentationTimeline(
   queue:ScheduledPresentationEvent[],
 ){
-  const queueKey=
-    useMemo(
-      () =>
-        queue
-          .map(
-            event =>
-              `${event.id}:${event.priority}:${event.durationMs}`,
-          )
-          .join("|"),
-      [
-        queue,
-      ],
+  const presentationSequence=
+    usePresentationSequence(
+      queue,
     );
+
+  const sequenceQueue=
+    presentationSequence.events;
 
   const [
     runtime,
@@ -47,7 +44,7 @@ export function usePresentationTimeline(
     >(
       () =>
         createPresentationRuntime(
-          queue,
+          sequenceQueue,
           Date.now(),
         ),
     );
@@ -59,13 +56,8 @@ export function usePresentationTimeline(
     usePresentationPreemption();
 
   /*
-   * Reconcile incoming Director queue with the
+   * Reconcile the Director sequence with the
    * currently running Timeline.
-   *
-   * Important:
-   * We DO NOT recreate the runtime here.
-   * That would destroy the current active duration
-   * and any interrupted event waiting in the queue.
    */
   useEffect(() => {
     const now=
@@ -75,7 +67,7 @@ export function usePresentationTimeline(
       runtime.activeEvent;
 
     const eligibleQueue=
-      queue.filter(
+      sequenceQueue.filter(
         event => {
           if(
             event.id ===
@@ -135,8 +127,7 @@ export function usePresentationTimeline(
       current => {
         const completed=
           new Set(
-            current
-              .completedEventIds,
+            current.completedEventIds,
           );
 
         const pendingEvents=
@@ -182,14 +173,13 @@ export function usePresentationTimeline(
     );
   }, [
     evaluateEvent,
-    queue,
-    queueKey,
+    presentationSequence.key,
     runtime.activeEvent,
+    sequenceQueue,
   ]);
 
   /*
-   * Only an event that truly becomes active is
-   * recorded in cooldown memory.
+   * Record only presentations that truly become active.
    */
   useEffect(() => {
     if(!runtime.activeEvent){
@@ -206,22 +196,25 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Normal Timeline auto-advance.
+   * Timeline automatic progression.
    */
   useEffect(() => {
     if(!runtime.activeEvent){
       return;
     }
 
+    const now=
+      Date.now();
+
     const remaining=
       Math.max(
         0,
         runtime.activeEvent.durationMs -
         (
-          Date.now() -
+          now -
           (
             runtime.activeSince ??
-            Date.now()
+            now
           )
         ),
       );
@@ -250,5 +243,10 @@ export function usePresentationTimeline(
     runtime.activeSince,
   ]);
 
-  return runtime;
+  return {
+    ...runtime,
+
+    sequence:
+      presentationSequence,
+  };
 }
