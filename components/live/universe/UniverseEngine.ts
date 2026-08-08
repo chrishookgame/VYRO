@@ -1,7 +1,11 @@
-﻿import {
+import {
   createGlobalSpectacleState,
   type GlobalSpectacleInput,
 } from "@/components/live/spectacle/GlobalSpectacleEngine";
+
+import {
+  createGlobalLiveDirectorAIState,
+} from "@/components/live/directorai/GlobalLiveDirectorAI";
 
 import {
   createGlobalUniverseDirectorState,
@@ -72,9 +76,23 @@ export function createUniverseEngineState(
         input.creatorScore,
     });
 
+  const directorAI=
+    createGlobalLiveDirectorAIState({
+      spectacle,
+      universe,
+      intelligence,
+
+      creatorName:
+        input.creatorName,
+
+      legendaryMoment:
+        input.legendaryMoment,
+    });
+
   return {
     spectacle,
     universe,
     intelligence,
+    directorAI,
   };
 }
