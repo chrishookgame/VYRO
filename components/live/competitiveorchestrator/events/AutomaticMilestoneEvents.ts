@@ -1,18 +1,10 @@
-﻿import {
-  detectRankChange,
-} from "../detectors/RankChangeDetector";
+﻿import { detectRankChange } from "../detectors/RankChangeDetector";
 
-import {
-  detectWinStreak,
-} from "../detectors/WinStreakDetector";
+import { detectWinStreak } from "../detectors/WinStreakDetector";
 
-import {
-  detectChampionStatus,
-} from "../detectors/ChampionDetector";
+import { detectChampionStatus } from "../detectors/ChampionDetector";
 
-import {
-  detectQualificationStatus,
-} from "../detectors/QualificationDetector";
+import { detectQualificationStatus } from "../detectors/QualificationDetector";
 
 import type {
   CompetitiveOrchestratorEvent,
@@ -23,186 +15,264 @@ export function createAutomaticMilestoneEvents(
   player: CompetitiveOrchestratorPlayer,
   now: number,
 ): CompetitiveOrchestratorEvent[] {
-  const events:CompetitiveOrchestratorEvent[]=[];
+  const events: CompetitiveOrchestratorEvent[] = [];
 
-  const rank =
-    detectRankChange(
-      player,
-    );
+  const rank = detectRankChange(player);
 
-  const streak =
-    detectWinStreak(
-      player,
-    );
+  const streak = detectWinStreak(player);
 
-  const champion =
-    detectChampionStatus(
-      player,
-    );
+  const champion = detectChampionStatus(player);
 
-  const qualification =
-    detectQualificationStatus(
-      player,
-    );
+  const qualification = detectQualificationStatus(player);
 
-  if(rank.becameNumberOne){
+  if (rank.becameNumberOne) {
     events.push({
-      id:
-        `${player.creatorId}-rank-1-${now}`,
+      id: `${player.creatorId}-rank-1-${now}`,
 
-      type:"RANK_UP",
+      type: "RANK_UP",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} reached #1 in VYRO!`,
+      message: `${player.creatorName} reached #1 in VYRO!`,
 
-      priority:100,
+      priority: 100,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
-  }else if(rank.enteredTop3){
+  } else if (rank.enteredTop3) {
     events.push({
-      id:
-        `${player.creatorId}-top-3-${now}`,
+      id: `${player.creatorId}-top-3-${now}`,
 
-      type:"RANK_UP",
+      type: "RANK_UP",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} entered the Global Top 3!`,
+      message: `${player.creatorName} entered the Global Top 3!`,
 
-      priority:95,
+      priority: 95,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
-  }else if(rank.enteredTop10){
+  } else if (rank.enteredTop10) {
     events.push({
-      id:
-        `${player.creatorId}-top-10-${now}`,
+      id: `${player.creatorId}-top-10-${now}`,
 
-      type:"RANK_UP",
+      type: "RANK_UP",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} entered the Global Top 10!`,
+      message: `${player.creatorName} entered the Global Top 10!`,
 
-      priority:90,
+      priority: 90,
 
-      createdAt:now,
-    });
-  }
+      createdAt: now,
 
-  if(streak.legendary){
-    events.push({
-      id:
-        `${player.creatorId}-streak-${now}`,
+      rank: player.rank,
+      previousRank: player.previousRank,
 
-      type:"WIN_STREAK",
+      wins: player.wins,
+      streak: player.streak,
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      championships: player.championships,
 
-      message:
-        `${player.creatorName} reached a legendary ${player.streak}-win streak!`,
+      qualified: player.qualified,
 
-      priority:95,
-
-      createdAt:now,
-    });
-  }else if(streak.elite){
-    events.push({
-      id:
-        `${player.creatorId}-streak-${now}`,
-
-      type:"WIN_STREAK",
-
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
-
-      message:
-        `${player.creatorName} reached a ${player.streak}-win streak!`,
-
-      priority:85,
-
-      createdAt:now,
+      competitivePower: player.competitivePower,
     });
   }
 
-  if(champion.legendaryChampion){
+  if (streak.legendary) {
     events.push({
-      id:
-        `${player.creatorId}-champion-${now}`,
+      id: `${player.creatorId}-streak-${now}`,
 
-      type:"CHAMPION",
+      type: "WIN_STREAK",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} became a legendary VYRO champion!`,
+      message: `${player.creatorName} reached a legendary ${player.streak}-win streak!`,
 
-      priority:100,
+      priority: 95,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
-  }else if(champion.champion){
+  } else if (streak.elite) {
     events.push({
-      id:
-        `${player.creatorId}-champion-${now}`,
+      id: `${player.creatorId}-streak-${now}`,
 
-      type:"CHAMPION",
+      type: "WIN_STREAK",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} is a VYRO champion!`,
+      message: `${player.creatorName} reached a ${player.streak}-win streak!`,
 
-      priority:100,
+      priority: 85,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
   }
 
-  if(qualification.worldQualified){
+  if (champion.legendaryChampion) {
     events.push({
-      id:
-        `${player.creatorId}-qualified-${now}`,
+      id: `${player.creatorId}-champion-${now}`,
 
-      type:"QUALIFIED",
+      type: "CHAMPION",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} qualified for VYRO World competition!`,
+      message: `${player.creatorName} became a legendary VYRO champion!`,
 
-      priority:95,
+      priority: 100,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
-  }else if(qualification.qualified){
+  } else if (champion.champion) {
     events.push({
-      id:
-        `${player.creatorId}-qualified-${now}`,
+      id: `${player.creatorId}-champion-${now}`,
 
-      type:"QUALIFIED",
+      type: "CHAMPION",
 
-      creatorId:player.creatorId,
-      creatorName:player.creatorName,
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
 
-      message:
-        `${player.creatorName} qualified for elite competition!`,
+      message: `${player.creatorName} is a VYRO champion!`,
 
-      priority:85,
+      priority: 100,
 
-      createdAt:now,
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
+    });
+  }
+
+  if (qualification.worldQualified) {
+    events.push({
+      id: `${player.creatorId}-qualified-${now}`,
+
+      type: "QUALIFIED",
+
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
+
+      message: `${player.creatorName} qualified for VYRO World competition!`,
+
+      priority: 95,
+
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
+    });
+  } else if (qualification.qualified) {
+    events.push({
+      id: `${player.creatorId}-qualified-${now}`,
+
+      type: "QUALIFIED",
+
+      creatorId: player.creatorId,
+      creatorName: player.creatorName,
+
+      message: `${player.creatorName} qualified for elite competition!`,
+
+      priority: 85,
+
+      createdAt: now,
+
+      rank: player.rank,
+      previousRank: player.previousRank,
+
+      wins: player.wins,
+      streak: player.streak,
+
+      championships: player.championships,
+
+      qualified: player.qualified,
+
+      competitivePower: player.competitivePower,
     });
   }
 

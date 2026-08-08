@@ -37,4 +37,16 @@ export interface CompetitiveOrchestratorEvent {
   priority: number;
 
   createdAt: number;
+
+  rank?: number;
+  previousRank?: number;
+
+  wins?: number;
+  streak?: number;
+
+  championships?: number;
+
+  qualified?: boolean;
+
+  competitivePower?: number;
 }
