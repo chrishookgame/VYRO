@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useMemo,
@@ -13,8 +13,8 @@ import type {
 } from "@/components/live/presentationdirector/types/PresentationEvent";
 
 export function usePresentationDirector(
-  events:PresentationEvent[],
-){
+  events: PresentationEvent[],
+) {
   return useMemo(
     () =>
       createPresentationDirectorState(

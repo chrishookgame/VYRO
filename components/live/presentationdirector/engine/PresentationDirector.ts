@@ -1,10 +1,11 @@
-﻿import {
+import {
   createPresentationQueue,
   deduplicatePresentationQueue,
 } from "../queue/PresentationQueue";
 
 import {
   getPendingPresentationEvents,
+  getSchedulablePresentationEvents,
   selectActivePresentationEvent,
 } from "../events/PresentationScheduler";
 
@@ -13,30 +14,53 @@ import type {
   PresentationEvent,
 } from "../types/PresentationEvent";
 
+function normalizeDirectorNow(
+  now: number,
+): number {
+  return Number.isFinite(now)
+    ? Math.max(0, now)
+    : 0;
+}
+
 export function createPresentationDirectorState(
-  events:PresentationEvent[],
-):PresentationDirectorState{
-  const queue=
+  events: PresentationEvent[],
+  now?: number,
+): PresentationDirectorState {
+  const queue =
     deduplicatePresentationQueue(
       createPresentationQueue(
         events,
       ),
     );
 
-  const activeEvent=
-    selectActivePresentationEvent(
+  const normalizedNow =
+    now === undefined
+      ? undefined
+      : normalizeDirectorNow(
+          now,
+        );
+
+  const schedulableQueue =
+    getSchedulablePresentationEvents(
       queue,
+      normalizedNow,
     );
 
-  const pending=
+  const activeEvent =
+    selectActivePresentationEvent(
+      schedulableQueue,
+    );
+
+  const pending =
     getPendingPresentationEvents(
-      queue,
+      schedulableQueue,
     );
 
   return {
     activeEvent,
 
-    queue,
+    queue:
+      schedulableQueue,
 
     hasPendingEvents:
       pending.length > 0,
