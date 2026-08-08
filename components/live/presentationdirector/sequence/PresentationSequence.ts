@@ -1,11 +1,12 @@
-﻿import type {
+import type {
   PresentationEventType,
   ScheduledPresentationEvent,
 } from "../types/PresentationEvent";
 
 export interface PresentationSequenceItem {
-  event:ScheduledPresentationEvent;
-  index:number;
+  event: ScheduledPresentationEvent;
+
+  index: number;
 
   previousType:
     PresentationEventType | null;
@@ -13,46 +14,59 @@ export interface PresentationSequenceItem {
   nextType:
     PresentationEventType | null;
 
-  gapAfterMs:number;
+  nextEventId:
+    string | null;
 
-  cinematicChain:boolean;
+  gapAfterMs: number;
+
+  cinematicChain: boolean;
 }
 
 export interface PresentationSequence {
-  items:PresentationSequenceItem[];
-  events:ScheduledPresentationEvent[];
+  items: PresentationSequenceItem[];
 
-  totalEventDurationMs:number;
-  totalGapMs:number;
-  totalDurationMs:number;
+  events:
+    ScheduledPresentationEvent[];
+
+  totalEventDurationMs: number;
+
+  totalGapMs: number;
+
+  totalDurationMs: number;
 }
 
 function getSequenceGapMs(
-  current:ScheduledPresentationEvent,
-  next:ScheduledPresentationEvent | null,
-):number{
-  if(!next){
+  current: ScheduledPresentationEvent,
+  next: ScheduledPresentationEvent | null,
+): number {
+  if (!next) {
     return 0;
   }
 
-  if(
-    current.type === "WORLD_CHAMPION" ||
-    next.type === "WORLD_CHAMPION"
-  ){
+  if (
+    current.type ===
+      "WORLD_CHAMPION" ||
+    next.type ===
+      "WORLD_CHAMPION"
+  ) {
     return 500;
   }
 
-  if(
-    current.type === "CHAMPION" ||
-    next.type === "CHAMPION"
-  ){
+  if (
+    current.type ===
+      "CHAMPION" ||
+    next.type ===
+      "CHAMPION"
+  ) {
     return 400;
   }
 
-  if(
-    current.type === "MVP" ||
-    next.type === "MVP"
-  ){
+  if (
+    current.type ===
+      "MVP" ||
+    next.type ===
+      "MVP"
+  ) {
     return 300;
   }
 
@@ -60,10 +74,10 @@ function getSequenceGapMs(
 }
 
 function isCinematicChain(
-  current:ScheduledPresentationEvent,
-  next:ScheduledPresentationEvent | null,
-):boolean{
-  if(!next){
+  current: ScheduledPresentationEvent,
+  next: ScheduledPresentationEvent | null,
+): boolean {
+  if (!next) {
     return false;
   }
 
@@ -74,40 +88,47 @@ function isCinematicChain(
 }
 
 export function buildPresentationSequence(
-  queue:ScheduledPresentationEvent[],
-):PresentationSequence{
-  const ids=
+  queue: ScheduledPresentationEvent[],
+): PresentationSequence {
+  const ids =
     new Set<string>();
 
-  const events=
+  const events =
     queue.filter(
       event => {
-        if(ids.has(event.id)){
+        if (
+          ids.has(
+            event.id,
+          )
+        ) {
           return false;
         }
 
-        ids.add(event.id);
+        ids.add(
+          event.id,
+        );
 
         return true;
       },
     );
 
-  const items=
+  const items =
     events.map(
       (
         event,
         index,
-      ):PresentationSequenceItem => {
-        const previous=
+      ): PresentationSequenceItem => {
+        const previous =
           events[index - 1] ??
           null;
 
-        const next=
+        const next =
           events[index + 1] ??
           null;
 
         return {
           event,
+
           index,
 
           previousType:
@@ -116,6 +137,10 @@ export function buildPresentationSequence(
 
           nextType:
             next?.type ??
+            null,
+
+          nextEventId:
+            next?.id ??
             null,
 
           gapAfterMs:
@@ -133,7 +158,7 @@ export function buildPresentationSequence(
       },
     );
 
-  const totalEventDurationMs=
+  const totalEventDurationMs =
     events.reduce(
       (
         total,
@@ -144,7 +169,7 @@ export function buildPresentationSequence(
       0,
     );
 
-  const totalGapMs=
+  const totalGapMs =
     items.reduce(
       (
         total,
@@ -157,9 +182,11 @@ export function buildPresentationSequence(
 
   return {
     items,
+
     events,
 
     totalEventDurationMs,
+
     totalGapMs,
 
     totalDurationMs:

@@ -58,12 +58,8 @@ export function usePresentationTimeline(
     usePresentationPreemption();
 
   /*
-   * Freeze the cinematic execution contract
-   * when an event becomes active.
-   *
-   * Queue changes after this point do not
-   * mutate the transition already selected
-   * for the active presentation.
+   * Lock the transition contract at the
+   * exact moment an event becomes active.
    */
   useEffect(() => {
     const activeEvent =
@@ -90,14 +86,7 @@ export function usePresentationTimeline(
           activeEvent.id,
           item?.gapAfterMs ?? 0,
           item?.cinematicChain ?? false,
-          item?.nextType
-            ? (
-                presentationSequence.items[
-                  (item?.index ?? -1) + 1
-                ]?.event.id ??
-                null
-              )
-            : null,
+          item?.nextEventId ?? null,
         ),
     );
   }, [
@@ -108,7 +97,7 @@ export function usePresentationTimeline(
 
   /*
    * Reconcile Director events with the
-   * currently running presentation runtime.
+   * running execution state.
    */
   useEffect(() => {
     const now =
@@ -155,13 +144,12 @@ export function usePresentationTimeline(
       );
 
     /*
-     * While the cinematic gap is active,
-     * pending events may be reconciled but
-     * cannot activate early.
+     * During GAP, queue updates are accepted,
+     * but activation remains controlled by
+     * tickPresentationRuntime.
      */
     if (
-      runtime.gapUntil !== null &&
-      now < runtime.gapUntil
+      runtime.phase === "GAP"
     ) {
       setRuntime(
         current =>
@@ -228,13 +216,13 @@ export function usePresentationTimeline(
     presentationSequence.key,
     runtime.activeEvent,
     runtime.completedEventIds,
-    runtime.gapUntil,
+    runtime.phase,
     sequenceQueue,
   ]);
 
   /*
-   * Cooldown memory starts only when the
-   * event truly becomes active.
+   * Cooldown begins when the presentation
+   * actually becomes active.
    */
   useEffect(() => {
     if (
@@ -253,17 +241,21 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Automatic execution:
+   * Automatic state machine:
    *
-   * active event
-   * -> locked cinematic gap
-   * -> next event
+   * PLAYING -> GAP -> PLAYING
+   *
+   * or
+   *
+   * PLAYING -> IDLE
    */
   useEffect(() => {
     const now =
       Date.now();
 
     if (
+      runtime.phase ===
+        "PLAYING" &&
       runtime.activeEvent
     ) {
       const remaining =
@@ -301,6 +293,7 @@ export function usePresentationTimeline(
     }
 
     if (
+      runtime.phase === "GAP" &&
       runtime.gapUntil !== null
     ) {
       const remainingGap =
@@ -336,6 +329,7 @@ export function usePresentationTimeline(
     runtime.activeEvent,
     runtime.activeSince,
     runtime.gapUntil,
+    runtime.phase,
   ]);
 
   return {
@@ -345,7 +339,7 @@ export function usePresentationTimeline(
       presentationSequence,
 
     cinematicGapActive:
-      runtime.gapUntil !== null,
+      runtime.phase === "GAP",
 
     cinematicChainActive:
       runtime.activeCinematicChain,

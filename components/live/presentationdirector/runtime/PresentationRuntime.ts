@@ -9,9 +9,17 @@ import type {
   ScheduledPresentationEvent,
 } from "../types/PresentationEvent";
 
+export type PresentationRuntimePhase =
+  | "IDLE"
+  | "PLAYING"
+  | "GAP";
+
 export interface PresentationRuntimeState
   extends PresentationTimelineState {
   running: boolean;
+
+  phase:
+    PresentationRuntimePhase;
 
   activeGapAfterMs: number;
 
@@ -28,7 +36,10 @@ function normalizeRuntimeNow(
   now: number,
 ): number {
   return Number.isFinite(now)
-    ? Math.max(0, now)
+    ? Math.max(
+        0,
+        now,
+      )
     : 0;
 }
 
@@ -55,6 +66,24 @@ function deriveRuntimeRunning(
     state.pendingEvents.length > 0 ||
     state.gapUntil !== null
   );
+}
+
+function deriveRuntimePhase(
+  state: PresentationTimelineState,
+): PresentationRuntimePhase {
+  if (
+    state.activeEvent
+  ) {
+    return "PLAYING";
+  }
+
+  if (
+    state.gapUntil !== null
+  ) {
+    return "GAP";
+  }
+
+  return "IDLE";
 }
 
 function hasSamePendingEvents(
@@ -89,6 +118,77 @@ function createEmptyExecutionContract() {
   };
 }
 
+function preserveExecutionContract(
+  state: PresentationRuntimeState,
+) {
+  return {
+    activeGapAfterMs:
+      state.activeGapAfterMs,
+
+    activeCinematicChain:
+      state.activeCinematicChain,
+
+    activeNextEventId:
+      state.activeNextEventId,
+
+    executionContractLocked:
+      state.executionContractLocked,
+  };
+}
+
+function prioritizeLockedNextEvent(
+  state: PresentationRuntimeState,
+  now: number,
+): PresentationRuntimeState {
+  if (
+    state.activeEvent ||
+    state.gapUntil === null ||
+    now < state.gapUntil ||
+    !state.activeNextEventId
+  ) {
+    return state;
+  }
+
+  const targetIndex =
+    state.pendingEvents.findIndex(
+      event =>
+        event.id ===
+        state.activeNextEventId,
+    );
+
+  if (
+    targetIndex <= 0
+  ) {
+    return state;
+  }
+
+  const target =
+    state.pendingEvents[
+      targetIndex
+    ];
+
+  if (!target) {
+    return state;
+  }
+
+  return {
+    ...state,
+
+    pendingEvents: [
+      target,
+
+      ...state.pendingEvents.filter(
+        (
+          _event,
+          index,
+        ) =>
+          index !==
+          targetIndex,
+      ),
+    ],
+  };
+}
+
 export function createPresentationRuntime(
   queue: ScheduledPresentationEvent[],
   now: number,
@@ -96,7 +196,9 @@ export function createPresentationRuntime(
   const timeline =
     createPresentationTimelineState(
       queue,
-      normalizeRuntimeNow(now),
+      normalizeRuntimeNow(
+        now,
+      ),
     );
 
   return {
@@ -104,6 +206,11 @@ export function createPresentationRuntime(
 
     running:
       deriveRuntimeRunning(
+        timeline,
+      ),
+
+    phase:
+      deriveRuntimePhase(
         timeline,
       ),
 
@@ -154,24 +261,61 @@ export function tickPresentationRuntime(
   state: PresentationRuntimeState,
   now: number,
 ): PresentationRuntimeState {
+  const normalizedNow =
+    normalizeRuntimeNow(
+      now,
+    );
+
   const previousActiveId =
     state.activeEvent?.id ??
     null;
 
+  const preparedState =
+    prioritizeLockedNextEvent(
+      state,
+      normalizedNow,
+    );
+
   const timeline =
     advancePresentationTimeline(
-      state,
-      normalizeRuntimeNow(now),
-      state.activeGapAfterMs,
+      preparedState,
+      normalizedNow,
+      preparedState.activeGapAfterMs,
     );
 
   const nextActiveId =
     timeline.activeEvent?.id ??
     null;
 
-  const activeChanged =
-    previousActiveId !==
-    nextActiveId;
+  const phase =
+    deriveRuntimePhase(
+      timeline,
+    );
+
+  /*
+   * Contract lifecycle:
+   *
+   * PLAYING -> GAP
+   * Preserve the contract.
+   *
+   * GAP -> PLAYING
+   * The old transition is complete,
+   * so the new event gets a fresh contract.
+   *
+   * PLAYING -> IDLE
+   * Clear the contract.
+   */
+  const executionContract =
+    phase === "GAP"
+      ? preserveExecutionContract(
+          preparedState,
+        )
+      : previousActiveId !==
+          nextActiveId
+        ? createEmptyExecutionContract()
+        : preserveExecutionContract(
+            preparedState,
+          );
 
   return {
     ...timeline,
@@ -181,21 +325,9 @@ export function tickPresentationRuntime(
         timeline,
       ),
 
-    ...(activeChanged
-      ? createEmptyExecutionContract()
-      : {
-          activeGapAfterMs:
-            state.activeGapAfterMs,
+    phase,
 
-          activeCinematicChain:
-            state.activeCinematicChain,
-
-          activeNextEventId:
-            state.activeNextEventId,
-
-          executionContractLocked:
-            state.executionContractLocked,
-        }),
+    ...executionContract,
   };
 }
 
@@ -212,12 +344,19 @@ export function preemptPresentationRuntime(
     preemptPresentationTimeline(
       state,
       incomingEvent,
-      normalizeRuntimeNow(now),
+      normalizeRuntimeNow(
+        now,
+      ),
     );
 
   const nextActiveId =
     timeline.activeEvent?.id ??
     null;
+
+  const phase =
+    deriveRuntimePhase(
+      timeline,
+    );
 
   const activeChanged =
     previousActiveId !==
@@ -231,21 +370,13 @@ export function preemptPresentationRuntime(
         timeline,
       ),
 
+    phase,
+
     ...(activeChanged
       ? createEmptyExecutionContract()
-      : {
-          activeGapAfterMs:
-            state.activeGapAfterMs,
-
-          activeCinematicChain:
-            state.activeCinematicChain,
-
-          activeNextEventId:
-            state.activeNextEventId,
-
-          executionContractLocked:
-            state.executionContractLocked,
-        }),
+      : preserveExecutionContract(
+          state,
+        )),
   };
 }
 
@@ -304,8 +435,15 @@ export function reconcilePresentationRuntime(
     pendingEvents.length > 0 ||
     state.gapUntil !== null;
 
+  const phase =
+    deriveRuntimePhase({
+      ...state,
+      pendingEvents,
+    });
+
   if (
     running === state.running &&
+    phase === state.phase &&
     hasSamePendingEvents(
       state.pendingEvents,
       pendingEvents,
@@ -320,5 +458,7 @@ export function reconcilePresentationRuntime(
     pendingEvents,
 
     running,
+
+    phase,
   };
 }
