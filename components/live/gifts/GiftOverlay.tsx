@@ -1,3 +1,4 @@
+import { useAIGiftIntelligence } from "@/hooks/useAIGiftIntelligence";
 "use client";
 
 import {
@@ -115,7 +116,7 @@ function playVyroGiftSound(
     );
   } catch {
     // Algunos navegadores bloquean audio
-    // antes de la primera interacción.
+    // antes de la primera interacciÃ³n.
   }
 }
 
@@ -125,6 +126,12 @@ export default function GiftOverlay({
   const {
     activeCombo,
   } = useGiftComboEngine(gift);
+
+  const giftIntelligence =
+    useAIGiftIntelligence(
+      gift,
+      queuedGifts ?? 0,
+    );
 
   const {
     activeGift,
@@ -146,6 +153,59 @@ export default function GiftOverlay({
 
   return (
     <>
+      {giftIntelligence ? (
+        <div
+          data-vyro-gift-intelligence="true"
+          data-tier={
+            giftIntelligence
+              .multiplier.tier
+          }
+          data-prediction={
+            giftIntelligence
+              .prediction.prediction
+          }
+          style={{
+            position:"absolute",
+            top:"18px",
+            left:"50%",
+            transform:
+              "translateX(-50%)",
+            zIndex:75,
+            pointerEvents:"none",
+            opacity:
+              giftIntelligence
+                .excitement.score >= 55
+                ? 1
+                : 0,
+            transition:
+              "opacity 220ms ease",
+          }}
+        >
+          <div
+            style={{
+              borderRadius:"999px",
+              padding:"8px 14px",
+              background:
+                "rgba(8,10,18,0.88)",
+              border:
+                "1px solid rgba(255,255,255,0.16)",
+              fontSize:"12px",
+              fontWeight:900,
+              letterSpacing:"0.08em",
+              boxShadow:
+                "0 12px 40px rgba(0,0,0,0.4)",
+            }}
+          >
+            VYRO {
+              giftIntelligence
+                .multiplier.tier
+            } ×{
+              giftIntelligence
+                .multiplier.multiplier
+            }
+          </div>
+        </div>
+      ) : null}
       <AnimationOrchestrator
         gift={activeGift}
       />
