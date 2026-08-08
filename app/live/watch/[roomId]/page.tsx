@@ -116,6 +116,7 @@ import {
 import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
 import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
 import { useUniverseEngine } from "@/hooks/useUniverseEngine";
+import { useAIPresentationRuntime } from "@/hooks/useAIPresentationRuntime";
 
 import type {
   CompetitiveOrchestratorPlayer,
@@ -549,25 +550,6 @@ export default function LiveWatchPage() {
       presentation.showWinnerOverlay,
     ]);
 
-  const presentationDirector =
-    usePresentationDirector(
-      presentationEvents,
-    );
-
-  const presentationTimeline =
-    usePresentationTimeline(
-      presentationDirector.queue,
-    );
-
-  const presentationTransition =
-    usePresentationTransition(
-      presentationTimeline.activeEvent,
-    );
-
-  const presentationCinematics =
-    usePresentationCinematics(
-      presentationTimeline.activeEvent,
-    );
 
   const {
     state:
@@ -684,6 +666,72 @@ export default function LiveWatchPage() {
         giftComboDirector
           .legendaryMoment,
     });
+  const aiPresentationEvent =
+    useAIPresentationRuntime({
+      director:
+        universeEngine
+          .directorAI
+          .eventDirector,
+
+      storyline:
+        universeEngine
+          .directorAI
+          .storyline,
+
+      creatorId:
+        competitiveTopRankPlayer
+          ?.creatorId,
+
+      creatorName:
+        competitiveTopRankPlayer
+          ?.creatorName,
+
+      cooldownMs:
+        Math.max(
+          5000,
+          universeEngine
+            .orchestrator
+            .scheduler
+            .cooldownMs * 3,
+        ),
+    });
+
+  const orchestratedPresentationEvents =
+    useMemo<
+      PresentationEvent[]
+    >(
+      () =>
+        aiPresentationEvent
+          ? [
+              ...presentationEvents,
+              aiPresentationEvent,
+            ]
+          : presentationEvents,
+      [
+        aiPresentationEvent,
+        presentationEvents,
+      ],
+    );
+
+  const presentationDirector =
+    usePresentationDirector(
+      orchestratedPresentationEvents,
+    );
+
+  const presentationTimeline =
+    usePresentationTimeline(
+      presentationDirector.queue,
+    );
+
+  const presentationTransition =
+    usePresentationTransition(
+      presentationTimeline.activeEvent,
+    );
+
+  const presentationCinematics =
+    usePresentationCinematics(
+      presentationTimeline.activeEvent,
+    );
 
   const {
     entries: leaderboardEntries,
@@ -1123,7 +1171,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºn no iniciada"}
+                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºn no iniciada"}
               </span>
             </div>
           </div>
