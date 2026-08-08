@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  bridgeCompetitivePresentationEvents,
+} from "@/components/live/competitiveorchestrator/bridge/CompetitivePresentationBridge";
+
+
 import WorldVyroKing from "@/components/live/worldtitles/WorldVyroKing";
 import WorldTitleDefense from "@/components/live/worldtitles/WorldTitleDefense";
 import WorldTitleHistory from "@/components/live/worldtitles/WorldTitleHistory";
@@ -440,13 +445,28 @@ export default function LiveWatchPage() {
         battleAIDirector.intensity,
     });
 
+  const competitivePresentationEvents =
+    useMemo(
+      () =>
+        bridgeCompetitivePresentationEvents(
+          competitiveOrchestrator
+            .orchestratorEvents,
+        ),
+      [
+        competitiveOrchestrator
+          .orchestratorEvents,
+      ],
+    );
+
   const presentationEvents =
     useMemo<
       PresentationEvent[]
     >(() => {
       const events:
         PresentationEvent[] =
-          [];
+          [
+            ...competitivePresentationEvents,
+          ];
 
       if(
         battleMVP.winner &&
@@ -554,6 +574,7 @@ export default function LiveWatchPage() {
       return events;
     }, [
       battleMVP.winner,
+      competitivePresentationEvents,
       competitiveEventClock,
       competitiveStreakLeader,
       competitiveTopRankPlayer,
