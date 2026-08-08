@@ -4,8 +4,8 @@
 } from "../types/PresentationEvent";
 
 export interface PresentationCooldownConfig {
-  typeCooldownMs:number;
-  creatorCooldownMs:number;
+  typeCooldownMs: number;
+  creatorCooldownMs: number;
 }
 
 export interface PresentationCooldownMemory {
@@ -25,51 +25,103 @@ export interface PresentationCooldownMemory {
 }
 
 export const DEFAULT_PRESENTATION_COOLDOWN:
-PresentationCooldownConfig={
-  typeCooldownMs:8000,
-  creatorCooldownMs:6000,
+PresentationCooldownConfig = {
+  typeCooldownMs: 8000,
+  creatorCooldownMs: 6000,
 };
 
+function normalizeTimestamp(
+  value: number,
+): number {
+  return Number.isFinite(value)
+    ? Math.max(0, value)
+    : 0;
+}
+
+function normalizeCooldownMs(
+  value: number,
+): number {
+  return Number.isFinite(value)
+    ? Math.max(
+        0,
+        Math.round(value),
+      )
+    : 0;
+}
+
+function hasCooldownElapsed(
+  lastShown: number | undefined,
+  now: number,
+  cooldownMs: number,
+): boolean {
+  if (
+    typeof lastShown !== "number" ||
+    !Number.isFinite(lastShown)
+  ) {
+    return true;
+  }
+
+  const safeNow =
+    normalizeTimestamp(now);
+
+  const safeLastShown =
+    normalizeTimestamp(lastShown);
+
+  const safeCooldown =
+    normalizeCooldownMs(
+      cooldownMs,
+    );
+
+  return (
+    safeNow - safeLastShown >=
+    safeCooldown
+  );
+}
+
 export function createPresentationCooldownMemory():
-PresentationCooldownMemory{
+PresentationCooldownMemory {
   return {
-    typeLastShown:{},
-    creatorLastShown:{},
+    typeLastShown: {},
+    creatorLastShown: {},
   };
 }
 
 export function isPresentationEventOnCooldown(
-  event:PresentationEvent,
-  memory:PresentationCooldownMemory,
-  now:number,
+  event: PresentationEvent,
+  memory: PresentationCooldownMemory,
+  now: number,
   config:
     PresentationCooldownConfig =
       DEFAULT_PRESENTATION_COOLDOWN,
-):boolean{
-  const typeLastShown=
+): boolean {
+  const typeLastShown =
     memory.typeLastShown[
       event.type
     ];
 
-  if(
-    typeof typeLastShown === "number" &&
-    now - typeLastShown <
-      config.typeCooldownMs
-  ){
+  if (
+    !hasCooldownElapsed(
+      typeLastShown,
+      now,
+      config.typeCooldownMs,
+    )
+  ) {
     return true;
   }
 
-  if(event.creatorId){
-    const creatorLastShown=
+  if (event.creatorId) {
+    const creatorLastShown =
       memory.creatorLastShown[
         event.creatorId
       ];
 
-    if(
-      typeof creatorLastShown === "number" &&
-      now - creatorLastShown <
-        config.creatorCooldownMs
-    ){
+    if (
+      !hasCooldownElapsed(
+        creatorLastShown,
+        now,
+        config.creatorCooldownMs,
+      )
+    ) {
       return true;
     }
   }
@@ -78,16 +130,19 @@ export function isPresentationEventOnCooldown(
 }
 
 export function rememberPresentationEvent(
-  event:PresentationEvent,
-  memory:PresentationCooldownMemory,
-  now:number,
-):PresentationCooldownMemory{
+  event: PresentationEvent,
+  memory: PresentationCooldownMemory,
+  now: number,
+): PresentationCooldownMemory {
+  const safeNow =
+    normalizeTimestamp(now);
+
   return {
-    typeLastShown:{
+    typeLastShown: {
       ...memory.typeLastShown,
 
       [event.type]:
-        now,
+        safeNow,
     },
 
     creatorLastShown:
@@ -96,7 +151,7 @@ export function rememberPresentationEvent(
             ...memory.creatorLastShown,
 
             [event.creatorId]:
-              now,
+              safeNow,
           }
         : memory.creatorLastShown,
   };

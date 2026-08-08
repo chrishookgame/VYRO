@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -69,7 +69,7 @@ export function usePresentationPreemption(
             incomingEvent,
 
             reason:
-              "SAME_OR_LOWER_PRIORITY" as const,
+              "COOLDOWN_ACTIVE" as const,
           },
 
           incomingOnCooldown:true,

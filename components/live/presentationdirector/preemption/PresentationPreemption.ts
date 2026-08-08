@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   ScheduledPresentationEvent,
 } from "../types/PresentationEvent";
 
@@ -16,6 +16,7 @@ export interface PresentationPreemptionDecision {
     | "NO_INCOMING_EVENT"
     | "SAME_EVENT"
     | "PREEMPTION_DISABLED"
+    | "COOLDOWN_ACTIVE"
     | "HIGHER_PRIORITY"
     | "SAME_OR_LOWER_PRIORITY";
 }
