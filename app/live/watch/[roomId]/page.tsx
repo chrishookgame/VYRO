@@ -697,7 +697,34 @@ export default function LiveWatchPage() {
     });
 
   const aiPresentationEvent =
-    aiPresentationRuntime.event;
+    useMemo<
+      PresentationEvent | null
+    >(
+      () =>
+        aiPresentationRuntime.event
+          ? {
+              ...aiPresentationRuntime.event,
+
+              priorityBoost:
+                aiPresentationRuntime
+                  .priorityBoost,
+
+              allowPreemption:
+                aiPresentationRuntime
+                  .allowPreemption,
+            }
+          : null,
+      [
+        aiPresentationRuntime
+          .allowPreemption,
+
+        aiPresentationRuntime
+          .event,
+
+        aiPresentationRuntime
+          .priorityBoost,
+      ],
+    );
 
   const orchestratedPresentationEvents =
     useMemo<

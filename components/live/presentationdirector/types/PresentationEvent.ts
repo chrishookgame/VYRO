@@ -1,4 +1,4 @@
-﻿export type PresentationEventType =
+export type PresentationEventType =
   | "WORLD_CHAMPION"
   | "CHAMPION"
   | "MVP"
@@ -21,6 +21,10 @@ export interface PresentationEvent {
   createdAt: number;
 
   durationMs?: number;
+
+  priorityBoost?: number;
+
+  allowPreemption?: boolean;
 }
 
 export interface ScheduledPresentationEvent

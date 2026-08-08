@@ -1,8 +1,4 @@
-﻿import {
-  getPresentationPriority,
-} from "../priority/PresentationPriority";
-
-import type {
+﻿import type {
   ScheduledPresentationEvent,
 } from "../types/PresentationEvent";
 
@@ -18,6 +14,7 @@ export interface PresentationPreemptionDecision {
   reason:
     | "NO_ACTIVE_EVENT"
     | "NO_INCOMING_EVENT"
+    | "PREEMPTION_DISABLED"
     | "HIGHER_PRIORITY"
     | "SAME_OR_LOWER_PRIORITY";
 }
@@ -37,13 +34,16 @@ export function shouldPreemptPresentation(
     return true;
   }
 
+  if(
+    incomingEvent.allowPreemption ===
+      false
+  ){
+    return false;
+  }
+
   return (
-    getPresentationPriority(
-      incomingEvent.type,
-    ) >
-    getPresentationPriority(
-      activeEvent.type,
-    )
+    incomingEvent.priority >
+    activeEvent.priority
   );
 }
 
@@ -59,7 +59,8 @@ export function resolvePresentationPreemption(
       shouldPreempt:false,
       activeEvent,
       incomingEvent:null,
-      reason:"NO_INCOMING_EVENT",
+      reason:
+        "NO_INCOMING_EVENT",
     };
   }
 
@@ -68,11 +69,25 @@ export function resolvePresentationPreemption(
       shouldPreempt:true,
       activeEvent:null,
       incomingEvent,
-      reason:"NO_ACTIVE_EVENT",
+      reason:
+        "NO_ACTIVE_EVENT",
     };
   }
 
-  const shouldPreempt=
+  if(
+    incomingEvent.allowPreemption ===
+      false
+  ){
+    return {
+      shouldPreempt:false,
+      activeEvent,
+      incomingEvent,
+      reason:
+        "PREEMPTION_DISABLED",
+    };
+  }
+
+  const shouldPreempt =
     shouldPreemptPresentation(
       activeEvent,
       incomingEvent,

@@ -1,4 +1,4 @@
-﻿import {
+import {
   getPresentationPriority,
 } from "../priority/PresentationPriority";
 
@@ -12,13 +12,28 @@ const DEFAULT_DURATION_MS=4000;
 export function normalizePresentationEvent(
   event:PresentationEvent,
 ):ScheduledPresentationEvent{
+  const basePriority =
+    getPresentationPriority(
+      event.type,
+    );
+
+  const priorityBoost =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          event.priorityBoost ?? 0,
+        ),
+      ),
+    );
+
   return {
     ...event,
 
     priority:
-      getPresentationPriority(
-        event.type,
-      ),
+      basePriority +
+      priorityBoost,
 
     durationMs:
       Math.max(
