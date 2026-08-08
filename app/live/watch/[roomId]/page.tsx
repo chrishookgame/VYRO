@@ -109,6 +109,10 @@ import { usePresentationDirector } from "@/hooks/usePresentationDirector";
 import { usePresentationTimeline } from "@/hooks/usePresentationTimeline";
 import { usePresentationTransition } from "@/hooks/usePresentationTransition";
 import { usePresentationCinematics } from "@/hooks/usePresentationCinematics";
+import UniverseLiveOverlay from "@/components/live/universe/visual/UniverseLiveOverlay";
+import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
+import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
+import { useUniverseEngine } from "@/hooks/useUniverseEngine";
 
 import type {
   CompetitiveOrchestratorPlayer,
@@ -642,6 +646,43 @@ export default function LiveWatchPage() {
   } = useLiveGiftOverlay(lastUpdate);
 
   const {
+    engineState:
+      universeComboEngineState,
+  } = useGiftComboEngine(
+    activeGift,
+  );
+
+  const giftComboDirector =
+    useGiftComboDirector(
+      universeComboEngineState,
+    );
+
+  const universeEngine =
+    useUniverseEngine({
+      globalEvents:
+        giftComboDirector.globalEvents,
+
+      hypeScore:
+        giftComboDirector.hype.score,
+
+      creatorName:
+        competitiveTopRankPlayer
+          ?.creatorName,
+
+      creatorRank:
+        competitiveTopRankPlayer
+          ?.rank,
+
+      creatorScore:
+        competitiveTopRankPlayer
+          ?.competitivePower,
+
+      legendaryMoment:
+        giftComboDirector
+          .legendaryMoment,
+    });
+
+  const {
     entries: leaderboardEntries,
     totalParticipants: leaderboardParticipants,
     registerGiftEvent,
@@ -795,6 +836,12 @@ export default function LiveWatchPage() {
       <GiftOverlay
         gift={activeGift}
         queuedGifts={queuedGifts}
+      />
+
+      <UniverseLiveOverlay
+        state={
+          universeEngine
+        }
       />
 
       <CompetitiveOverlay
@@ -1067,7 +1114,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn no iniciada"}
+                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºn no iniciada"}
               </span>
             </div>
           </div>
