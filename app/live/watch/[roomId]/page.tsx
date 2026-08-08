@@ -948,6 +948,20 @@ export default function LiveWatchPage() {
     room.host?.username ||
     "Creador VYRO";
 
+  const presentationDirectorOwnsChampionMoment =
+    presentation.isSeriesWinner &&
+    presentationTransition.visible &&
+    (
+      presentationTransition.event?.type ===
+        "CHAMPION" ||
+      presentationTransition.event?.type ===
+        "WORLD_CHAMPION"
+    );
+
+  const showBattleWinnerPresentation =
+    presentation.showWinnerOverlay &&
+    !presentationDirectorOwnsChampionMoment;
+
   return (
     <>
       <GiftOverlay
@@ -1116,14 +1130,17 @@ export default function LiveWatchPage() {
 
       </div>
       <BattleCelebrationFX
-        state={
-          battleCelebrationFX
-        }
+        state={{
+          ...battleCelebrationFX,
+          visible:
+            battleCelebrationFX.visible &&
+            showBattleWinnerPresentation,
+        }}
       />
 
       <BattleWinnerOverlay
         visible={
-          presentation.showWinnerOverlay
+          showBattleWinnerPresentation
         }
         winnerName={
           presentation.winnerName
