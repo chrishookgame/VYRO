@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -9,6 +10,12 @@ import {
 import {
   createAIPresentationEvent,
 } from "@/components/live/directorai/presentation/PresentationAIBridge";
+
+import {
+  createAdaptivePresentationPolicy,
+  createAdaptivePresentationSignature,
+  type AdaptivePresentationPolicy,
+} from "@/components/live/directorai/presentation/adaptive";
 
 import type {
   AIEventDirectorState,
@@ -22,6 +29,12 @@ import type {
   PresentationEvent,
 } from "@/components/live/presentationdirector/types/PresentationEvent";
 
+export type AIPresentationUniverseLevel =
+  | "NORMAL"
+  | "GLOBAL"
+  | "WORLD"
+  | "LEGENDARY";
+
 export interface UseAIPresentationRuntimeInput {
   director:AIEventDirectorState;
 
@@ -30,12 +43,45 @@ export interface UseAIPresentationRuntimeInput {
   creatorId?:string;
   creatorName?:string;
 
+  excitementScore?:number;
+
+  universeLevel?:
+    AIPresentationUniverseLevel;
+
   cooldownMs?:number;
+}
+
+export interface AIPresentationRuntimeState {
+  event:
+    PresentationEvent | null;
+
+  policy:
+    AdaptivePresentationPolicy;
+
+  signature:
+    string;
+
+  intensity:
+    AdaptivePresentationPolicy[
+      "intensity"
+    ];
+
+  allowPreemption:
+    boolean;
+
+  cinematicScale:
+    number;
+
+  overlayStrength:
+    number;
+
+  priorityBoost:
+    number;
 }
 
 export function useAIPresentationRuntime(
   input:UseAIPresentationRuntimeInput,
-):PresentationEvent | null{
+):AIPresentationRuntimeState{
   const [
     event,
     setEvent,
@@ -51,6 +97,62 @@ export function useAIPresentationRuntime(
   const lastTriggeredAt=
     useRef(0);
 
+  const signatureTriggeredAt=
+    useRef<
+      Record<string,number>
+    >({});
+
+  const policy=
+    useMemo(
+      () =>
+        createAdaptivePresentationPolicy({
+          director:
+            input.director,
+
+          storyline:
+            input.storyline,
+
+          excitementScore:
+            input.excitementScore ??
+            0,
+
+          universeLevel:
+            input.universeLevel ??
+            "NORMAL",
+        }),
+      [
+        input.director,
+        input.excitementScore,
+        input.storyline,
+        input.universeLevel,
+      ],
+    );
+
+  const signature=
+    useMemo(
+      () =>
+        createAdaptivePresentationSignature({
+          director:
+            input.director,
+
+          storyline:
+            input.storyline,
+
+          creatorId:
+            input.creatorId,
+
+          universeLevel:
+            input.universeLevel ??
+            "NORMAL",
+        }),
+      [
+        input.creatorId,
+        input.director,
+        input.storyline,
+        input.universeLevel,
+      ],
+    );
+
   useEffect(() => {
     if(
       !input.director.shouldPresent ||
@@ -60,35 +162,44 @@ export function useAIPresentationRuntime(
       return;
     }
 
-    const signature=[
-      input.director.event,
-      input.director.priority,
-      input.storyline.chapter,
-      input.creatorId ?? "",
-      input.storyline.title,
-    ].join(":");
+    const now=
+      Date.now();
+
+    const previousSignatureTime=
+      signatureTriggeredAt
+        .current[
+          signature
+        ] ?? 0;
 
     if(
-      lastSignature.current ===
-      signature
+      now -
+      previousSignatureTime <
+      policy.repeatProtectionMs
     ){
       return;
     }
 
-    const now=
-      Date.now();
-
     const cooldownMs=
       Math.max(
-        3500,
+        policy.cooldownMs,
         input.cooldownMs ??
-        5000,
+        0,
       );
 
     if(
       now -
       lastTriggeredAt.current <
       cooldownMs
+    ){
+      return;
+    }
+
+    if(
+      lastSignature.current ===
+        signature &&
+      now -
+        previousSignatureTime <
+        policy.repeatProtectionMs
     ){
       return;
     }
@@ -115,14 +226,26 @@ export function useAIPresentationRuntime(
       return;
     }
 
+    const adaptiveEvent:
+      PresentationEvent={
+        ...nextEvent,
+
+        durationMs:
+          policy.durationMs,
+      };
+
     lastSignature.current=
       signature;
 
     lastTriggeredAt.current=
       now;
 
+    signatureTriggeredAt.current[
+      signature
+    ]=now;
+
     setEvent(
-      nextEvent,
+      adaptiveEvent,
     );
 
     const timeout=
@@ -131,13 +254,12 @@ export function useAIPresentationRuntime(
           setEvent(
             current =>
               current?.id ===
-              nextEvent.id
+              adaptiveEvent.id
                 ? null
                 : current,
           );
         },
-        nextEvent.durationMs ??
-        4500,
+        policy.durationMs,
       );
 
     return () => {
@@ -151,7 +273,32 @@ export function useAIPresentationRuntime(
     input.creatorName,
     input.director,
     input.storyline,
+    policy.cooldownMs,
+    policy.durationMs,
+    policy.repeatProtectionMs,
+    signature,
   ]);
 
-  return event;
+  return {
+    event,
+
+    policy,
+
+    signature,
+
+    intensity:
+      policy.intensity,
+
+    allowPreemption:
+      policy.allowPreemption,
+
+    cinematicScale:
+      policy.cinematicScale,
+
+    overlayStrength:
+      policy.overlayStrength,
+
+    priorityBoost:
+      policy.priorityBoost,
+  };
 }

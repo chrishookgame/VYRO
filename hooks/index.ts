@@ -35,3 +35,4 @@ export * from "./useNextChallenger";
 export * from "./useVyroHallOfFame";
 export * from "./useVyroWorldCup";
 export * from "./useWorldVyroKing";
+export * from "./useAIPresentationRuntime";
