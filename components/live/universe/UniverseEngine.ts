@@ -1,4 +1,4 @@
-﻿import {
+import {
   createGlobalSpectacleState,
   type GlobalSpectacleInput,
 } from "@/components/live/spectacle/GlobalSpectacleEngine";
@@ -12,8 +12,8 @@ export type ReturnTypeGlobalSpectacle =
     typeof createGlobalSpectacleState
   >;
 
-export interface UniverseEngineInput
-  extends GlobalSpectacleInput {}
+export type UniverseEngineInput =
+  GlobalSpectacleInput;
 
 export function createUniverseEngineState(
   input:UniverseEngineInput,
