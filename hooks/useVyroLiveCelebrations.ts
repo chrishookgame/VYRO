@@ -9,6 +9,12 @@ import {
 } from "react";
 
 import {
+  createCelebrationCooldownMemory,
+  isCelebrationOnCooldown,
+  markCelebrationShown,
+} from "@/components/live/celebrations/cooldown/CelebrationCooldownPolicy";
+
+import {
   mergeCelebrationQueue,
 } from "@/components/live/celebrations/queue/CelebrationQueuePolicy";
 
@@ -318,7 +324,15 @@ export function useVyroLiveCelebrations({
       new Set(),
     );
 
+  const celebrationCooldownMemoryRef =
+    useRef(
+      createCelebrationCooldownMemory(),
+    );
+
   useEffect(() => {
+    const now =
+      Date.now();
+
     const freshEvents =
       candidateEvents.filter(
         (event) =>
@@ -326,7 +340,12 @@ export function useVyroLiveCelebrations({
             .current
             .has(
               event.id,
-            ),
+            ) &&
+          !isCelebrationOnCooldown(
+            event,
+            celebrationCooldownMemoryRef.current,
+            now,
+          ),
       );
 
     if (
@@ -378,10 +397,22 @@ export function useVyroLiveCelebrations({
     useCallback(
       () => {
         setCelebrationQueue(
-          (currentQueue) =>
-            currentQueue.slice(
+          (currentQueue) => {
+            const activeEvent =
+              currentQueue[0];
+
+            if (activeEvent) {
+              markCelebrationShown(
+                activeEvent,
+                celebrationCooldownMemoryRef.current,
+                Date.now(),
+              );
+            }
+
+            return currentQueue.slice(
               1,
-            ),
+            );
+          },
         );
       },
       [],
