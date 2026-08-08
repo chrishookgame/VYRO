@@ -8,6 +8,10 @@ import {
   useState,
 } from "react";
 
+import {
+  mergeCelebrationQueue,
+} from "@/components/live/celebrations/queue/CelebrationQueuePolicy";
+
 import type {
   BattleRankingEvolutionData,
 } from "@/components/live/battle/ranking/types";
@@ -342,10 +346,11 @@ export function useVyroLiveCelebrations({
     );
 
     setCelebrationQueue(
-      (currentQueue) => [
-        ...currentQueue,
-        ...freshEvents,
-      ],
+      (currentQueue) =>
+        mergeCelebrationQueue(
+          currentQueue,
+          freshEvents,
+        ),
     );
   }, [
     candidateEvents,
