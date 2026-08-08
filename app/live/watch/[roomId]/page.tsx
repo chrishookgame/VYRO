@@ -13,6 +13,7 @@ import { MVPCelebration } from "@/components/live/competitivevisuals/mvp/MVPCele
 import { WinStreakOverlay } from "@/components/live/competitivevisuals/streak/WinStreakOverlay";
 import { TopRankCelebration } from "@/components/live/competitivevisuals/toprank/TopRankCelebration";
 import { ChampionCelebration } from "@/components/live/competitivevisuals/champion/ChampionCelebration";
+import { WorldChampionCelebration } from "@/components/live/competitivevisuals/worldchampion/WorldChampionCelebration";
 import { CompetitiveSpotlightOverlay } from "@/components/live/competitivevisuals/spotlight/CompetitiveSpotlightOverlay";
 import { CompetitiveBanner } from "@/components/live/competitivevisuals/banner/CompetitiveBanner";
 
@@ -1040,7 +1041,7 @@ export default function LiveWatchPage() {
 
       <ChampionCelebration
         creatorName={
-          competitiveTopRankPlayer?.creatorName ??
+          presentationTransition.event?.creatorName ??
           ""
         }
         championships={
@@ -1051,6 +1052,24 @@ export default function LiveWatchPage() {
           presentationTransition.visible &&
           presentationTransition.event?.type ===
           "CHAMPION"
+        }
+      />
+
+      <WorldChampionCelebration
+        creatorName={
+          presentationTransition.event?.creatorName ??
+          ""
+        }
+        title={
+          presentationTransition.event?.title
+        }
+        message={
+          presentationTransition.event?.message
+        }
+        visible={
+          presentationTransition.visible &&
+          presentationTransition.event?.type ===
+          "WORLD_CHAMPION"
         }
       />
 
