@@ -108,6 +108,7 @@ import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
 import { usePresentationDirector } from "@/hooks/usePresentationDirector";
 import { usePresentationTimeline } from "@/hooks/usePresentationTimeline";
 import { usePresentationTransition } from "@/hooks/usePresentationTransition";
+import { usePresentationCinematics } from "@/hooks/usePresentationCinematics";
 
 import type {
   CompetitiveOrchestratorPlayer,
@@ -556,6 +557,11 @@ export default function LiveWatchPage() {
       presentationTimeline.activeEvent,
     );
 
+  const presentationCinematics =
+    usePresentationCinematics(
+      presentationTimeline.activeEvent,
+    );
+
   const {
     state:
       vyroTitles,
@@ -811,6 +817,12 @@ export default function LiveWatchPage() {
           transition:
             presentationTransition.transition,
           zIndex:55,
+          backdropFilter:
+            `blur(${presentationCinematics.cinematic.blurPx}px)`,
+          background:
+            presentationCinematics.cinematic.backdropOpacity > 0
+              ? `rgba(0,0,0,${presentationCinematics.cinematic.backdropOpacity})`
+              : "transparent",
         }}
       >
         <TopRankCelebration
@@ -1055,7 +1067,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "TransmisiÃƒÆ’Ã‚Â³n aÃƒÆ’Ã‚Âºn no iniciada"}
+                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn no iniciada"}
               </span>
             </div>
           </div>
