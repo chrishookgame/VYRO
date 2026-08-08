@@ -335,22 +335,40 @@ export function useVyroLiveCelebrations({
       return;
     }
 
-    freshEvents.forEach(
-      (event) => {
-        seenCelebrationIdsRef
-          .current
-          .add(
-            event.id,
-          );
-      },
-    );
-
     setCelebrationQueue(
-      (currentQueue) =>
-        mergeCelebrationQueue(
-          currentQueue,
-          freshEvents,
-        ),
+      (currentQueue) => {
+        const nextQueue =
+          mergeCelebrationQueue(
+            currentQueue,
+            freshEvents,
+          );
+
+        const admittedFreshEventIds =
+          new Set(
+            nextQueue.map(
+              (event) =>
+                event.id,
+            ),
+          );
+
+        freshEvents.forEach(
+          (event) => {
+            if (
+              admittedFreshEventIds.has(
+                event.id,
+              )
+            ) {
+              seenCelebrationIdsRef
+                .current
+                .add(
+                  event.id,
+                );
+            }
+          },
+        );
+
+        return nextQueue;
+      },
     );
   }, [
     candidateEvents,
