@@ -736,6 +736,38 @@ export default function LiveWatchPage() {
       presentationTimeline.activeEvent,
     );
 
+  const aiPresentationIsActive =
+    Boolean(
+      aiPresentationEvent &&
+      presentationTimeline.activeEvent?.id ===
+        aiPresentationEvent.id,
+    );
+
+  const adaptiveCinematicScale =
+    aiPresentationIsActive
+      ? aiPresentationRuntime.cinematicScale
+      : 1;
+
+  const adaptiveOverlayStrength =
+    aiPresentationIsActive
+      ? aiPresentationRuntime.overlayStrength
+      : 1;
+
+  const adaptiveBackdropOpacity =
+    Math.min(
+      0.9,
+      presentationCinematics
+        .cinematic
+        .backdropOpacity *
+        adaptiveOverlayStrength,
+    );
+
+  const adaptiveBlurPx =
+    presentationCinematics
+      .cinematic
+      .blurPx *
+    adaptiveOverlayStrength;
+
   const {
     entries: leaderboardEntries,
     totalParticipants: leaderboardParticipants,
@@ -920,15 +952,15 @@ export default function LiveWatchPage() {
             presentationTransition
               .animationStyle.opacity,
           transform:
-            `translateY(${presentationTransition.animationStyle.translateY}px) scale(${presentationTransition.animationStyle.scale})`,
+            `translateY(${presentationTransition.animationStyle.translateY}px) scale(${presentationTransition.animationStyle.scale * adaptiveCinematicScale})`,
           transition:
             presentationTransition.transition,
           zIndex:55,
           backdropFilter:
-            `blur(${presentationCinematics.cinematic.blurPx}px)`,
+            `blur(${adaptiveBlurPx}px)`,
           background:
-            presentationCinematics.cinematic.backdropOpacity > 0
-              ? `rgba(0,0,0,${presentationCinematics.cinematic.backdropOpacity})`
+            adaptiveBackdropOpacity > 0
+              ? `rgba(0,0,0,${adaptiveBackdropOpacity})`
               : "transparent",
         }}
       >
