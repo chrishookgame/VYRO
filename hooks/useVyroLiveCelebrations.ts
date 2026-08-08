@@ -395,19 +395,31 @@ export function useVyroLiveCelebrations({
 
   const dismissActive =
     useCallback(
-      () => {
+      (
+        expectedEventId?: string,
+      ) => {
         setCelebrationQueue(
           (currentQueue) => {
             const activeEvent =
               currentQueue[0];
 
-            if (activeEvent) {
-              markCelebrationShown(
-                activeEvent,
-                celebrationCooldownMemoryRef.current,
-                Date.now(),
-              );
+            if (!activeEvent) {
+              return currentQueue;
             }
+
+            if (
+              expectedEventId &&
+              activeEvent.id !==
+                expectedEventId
+            ) {
+              return currentQueue;
+            }
+
+            markCelebrationShown(
+              activeEvent,
+              celebrationCooldownMemoryRef.current,
+              Date.now(),
+            );
 
             return currentQueue.slice(
               1,

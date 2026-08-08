@@ -1549,9 +1549,15 @@ export default function LiveWatchPage() {
                 event={
                   coordinatedCelebrationEvent
                 }
-                onComplete={
-                  dismissVyroLiveCelebration
-                }
+                onComplete={() => {
+                  if (
+                    coordinatedCelebrationEvent
+                  ) {
+                    dismissVyroLiveCelebration(
+                      coordinatedCelebrationEvent.id,
+                    );
+                  }
+                }}
               />
             </section>
 
