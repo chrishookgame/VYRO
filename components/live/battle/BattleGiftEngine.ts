@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   LiveBattleState,
 } from "./LiveBattleEngine";
 
@@ -16,7 +16,6 @@ export interface BattleGiftEvent {
   quantity?: number;
   unitValue: number;
   energyValue: number;
-  intelligenceMultiplier?: number;
 }
 
 export interface BattleGiftResult {
@@ -90,25 +89,10 @@ export class BattleGiftEngine {
         event.energyValue,
       ) * quantity;
 
-    const intelligenceMultiplier =
-      Math.min(
-        3,
-        Math.max(
-          1,
-          normalizePositive(
-            event.intelligenceMultiplier ??
-            1,
-          ),
-        ),
-      );
-
     const scoreAdded =
       Math.round(
-        (
-          giftValue * 100 +
-          energyAdded
-        ) *
-        intelligenceMultiplier,
+        giftValue * 100 +
+        energyAdded,
       );
 
     const scoreInput:
