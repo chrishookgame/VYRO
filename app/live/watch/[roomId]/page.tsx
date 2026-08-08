@@ -413,14 +413,6 @@ export default function LiveWatchPage() {
     eventVersion +
     battleTimelineEvents.length;
 
-  const competitiveStreakLeader =
-    [...competitivePlayers]
-      .sort(
-        (a,b) =>
-          b.streak -
-          a.streak,
-      )[0] ?? null;
-
   const competitiveTopRankPlayer =
     [...competitivePlayers]
       .sort(
@@ -502,82 +494,11 @@ export default function LiveWatchPage() {
         });
       }
 
-      if(
-        competitiveTopRankPlayer &&
-        competitiveTopRankPlayer.rank === 1 &&
-        competitiveTopRankPlayer.previousRank !== 1
-      ){
-        events.push({
-          id:
-            `top-rank-${competitiveTopRankPlayer.creatorId}-${competitiveEventClock}`,
-
-          type:
-            "TOP_RANK",
-
-          creatorId:
-            competitiveTopRankPlayer.creatorId,
-
-          creatorName:
-            competitiveTopRankPlayer.creatorName,
-
-          rank:
-            competitiveTopRankPlayer.rank,
-
-          title:
-            "Nuevo #1",
-
-          message:
-            `${competitiveTopRankPlayer.creatorName} toma el liderazgo.`,
-
-          createdAt:
-            competitiveEventClock,
-
-          durationMs:
-            4000,
-        });
-      }
-
-      if(
-        competitiveStreakLeader &&
-        competitiveStreakLeader.streak >= 3
-      ){
-        events.push({
-          id:
-            `streak-${competitiveStreakLeader.creatorId}-${competitiveStreakLeader.streak}`,
-
-          type:
-            "WIN_STREAK",
-
-          creatorId:
-            competitiveStreakLeader.creatorId,
-
-          creatorName:
-            competitiveStreakLeader.creatorName,
-
-          streak:
-            competitiveStreakLeader.streak,
-
-          title:
-            "Win Streak",
-
-          message:
-            `${competitiveStreakLeader.creatorName} suma ${competitiveStreakLeader.streak} victorias de ventaja.`,
-
-          createdAt:
-            competitiveEventClock,
-
-          durationMs:
-            3500,
-        });
-      }
-
       return events;
     }, [
       battleMVP.winner,
       competitivePresentationEvents,
       competitiveEventClock,
-      competitiveStreakLeader,
-      competitiveTopRankPlayer,
       presentation.showWinnerOverlay,
     ]);
 

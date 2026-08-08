@@ -10,6 +10,14 @@ function createPresentationTitle(
   event: CompetitiveOrchestratorEvent,
 ): string {
   switch (event.type) {
+    case "RANK_UP":
+      return event.rank === 1
+        ? "Nuevo #1"
+        : "VYRO Rank Up";
+
+    case "WIN_STREAK":
+      return "Win Streak";
+
     case "CHAMPION":
       return "VYRO Champion";
 
@@ -21,26 +29,43 @@ function createPresentationTitle(
   }
 }
 
+function resolvePresentationType(
+  event: CompetitiveOrchestratorEvent,
+): PresentationEvent["type"] | null {
+  switch (event.type) {
+    case "RANK_UP":
+      return "TOP_RANK";
+
+    case "WIN_STREAK":
+      return "WIN_STREAK";
+
+    case "CHAMPION":
+      return "CHAMPION";
+
+    case "QUALIFIED":
+      return "BANNER";
+
+    default:
+      return null;
+  }
+}
+
 export function bridgeCompetitivePresentationEvents(
   events: CompetitiveOrchestratorEvent[],
 ): PresentationEvent[] {
   return events.flatMap(
-    event => {
-      if (
-        event.type !== "CHAMPION" &&
-        event.type !== "QUALIFIED"
-      ) {
+    (event) => {
+      const type =
+        resolvePresentationType(event);
+
+      if (!type) {
         return [];
       }
 
-      const type: PresentationEvent["type"] =
-        event.type === "CHAMPION"
-          ? "CHAMPION"
-          : "BANNER";
-
       return [
         {
-          id: `competitive-presentation-${event.id}`,
+          id:
+            `competitive-presentation-${event.id}`,
 
           type,
 
@@ -63,9 +88,7 @@ export function bridgeCompetitivePresentationEvents(
             event.competitivePower,
 
           title:
-            createPresentationTitle(
-              event,
-            ),
+            createPresentationTitle(event),
 
           message:
             event.message,
