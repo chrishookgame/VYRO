@@ -1,10 +1,27 @@
-"use client";
+﻿$ErrorActionPreference="Stop"
 
-import { useAIGiftIntelligence } from "@/hooks/useAIGiftIntelligence";
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "SPRINT 270 - REPARACION FINAL" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
+
+if(git status --porcelain){
+    throw "Repositorio no limpio. NO CONTINUAR."
+}
+
+# ============================================================
+# 1. GIFT OVERLAY - INTEGRACION AI COMPLETA
+# ============================================================
+
+@'
+"use client";
 
 import {
   useEffect,
 } from "react";
+
+import {
+  useAIGiftIntelligence,
+} from "@/hooks/useAIGiftIntelligence";
 
 import {
   useGiftComboEngine,
@@ -105,6 +122,7 @@ function playVyroGiftSound(
     gain.connect(context.destination);
 
     oscillator.start();
+
     oscillator.stop(
       context.currentTime + 0.8,
     );
@@ -116,17 +134,26 @@ function playVyroGiftSound(
       },
     );
   } catch {
-    // Algunos navegadores bloquean audio
-    // antes de la primera interacciÃ³n.
+    // El navegador puede bloquear audio
+    // antes de la primera interacción.
   }
 }
 
 export default function GiftOverlay({
   gift,
+  queuedGifts = 0,
 }: GiftOverlayProps) {
   const {
     activeCombo,
-  } = useGiftComboEngine(gift);
+  } = useGiftComboEngine(
+    gift,
+  );
+
+  const giftIntelligence =
+    useAIGiftIntelligence(
+      gift,
+      queuedGifts,
+    );
 
   const {
     activeGift,
@@ -144,21 +171,84 @@ export default function GiftOverlay({
     playVyroGiftSound(
       activeGift,
     );
-  }, [activeGift]);
+  }, [
+    activeGift,
+  ]);
 
   return (
     <>
+      {giftIntelligence &&
+      giftIntelligence.excitement.score >= 55 ? (
+        <div
+          data-vyro-gift-intelligence="true"
+          data-tier={
+            giftIntelligence
+              .multiplier
+              .tier
+          }
+          data-prediction={
+            giftIntelligence
+              .prediction
+              .prediction
+          }
+          style={{
+            position:"absolute",
+            top:"18px",
+            left:"50%",
+            transform:
+              "translateX(-50%)",
+            zIndex:75,
+            pointerEvents:"none",
+          }}
+        >
+          <div
+            style={{
+              borderRadius:"999px",
+              padding:"8px 14px",
+              background:
+                "rgba(8,10,18,0.88)",
+              border:
+                "1px solid rgba(255,255,255,0.16)",
+              fontSize:"12px",
+              fontWeight:900,
+              letterSpacing:"0.08em",
+              boxShadow:
+                "0 12px 40px rgba(0,0,0,0.4)",
+            }}
+          >
+            VYRO{" "}
+            {
+              giftIntelligence
+                .multiplier
+                .tier
+            }{" "}
+            ×
+            {
+              giftIntelligence
+                .multiplier
+                .multiplier
+            }
+          </div>
+        </div>
+      ) : null}
+
       <AnimationOrchestrator
-        gift={activeGift}
+        gift={
+          activeGift
+        }
       />
 
       <ComboOverlay
-        combo={stageCombo}
+        combo={
+          stageCombo
+        }
       />
 
       {stageCombo ? (
         <ComboEffects
-          tier={stageCombo.tier}
+          tier={
+            stageCombo.tier
+          }
         />
       ) : null}
     </>
