@@ -16,6 +16,7 @@ export default function UniverseLiveOverlay({
   const {
     spectacle,
     universe,
+    intelligence,
   }=state;
 
   const visible=
@@ -33,11 +34,13 @@ export default function UniverseLiveOverlay({
       data-universe-level={
         universe.universeLevel
       }
-      data-arena-stage={
-        universe.arena.stage
+      data-ai-mode={
+        intelligence.aiMode
       }
-      data-world-event={
-        universe.worldEvent.event
+      data-prediction={
+        intelligence
+          .prediction
+          .prediction
       }
       style={{
         position:"fixed",
@@ -45,19 +48,19 @@ export default function UniverseLiveOverlay({
         right:"20px",
         zIndex:74,
         pointerEvents:"none",
-        width:"min(320px, calc(100vw - 40px))",
+        width:"min(340px, calc(100vw - 40px))",
       }}
     >
       <div
         style={{
           borderRadius:"24px",
           padding:"14px 16px",
-          background:"rgba(5,8,18,0.88)",
+          background:"rgba(5,8,18,0.9)",
           border:"1px solid rgba(255,255,255,0.14)",
           boxShadow:"0 20px 70px rgba(0,0,0,0.48)",
           backdropFilter:"blur(18px)",
           transform:
-            `scale(${spectacle.atmosphere.pulse})`,
+            `scale(${spectacle.atmosphere.pulse * intelligence.optimizer.visualScale})`,
           transition:
             "transform 300ms ease, opacity 300ms ease",
         }}
@@ -65,7 +68,6 @@ export default function UniverseLiveOverlay({
         <div
           style={{
             display:"flex",
-            alignItems:"center",
             justifyContent:"space-between",
             gap:"12px",
           }}
@@ -78,7 +80,7 @@ export default function UniverseLiveOverlay({
               opacity:0.65,
             }}
           >
-            VYRO UNIVERSE
+            VYRO UNIVERSE AI
           </span>
 
           <span
@@ -87,7 +89,7 @@ export default function UniverseLiveOverlay({
               fontWeight:950,
             }}
           >
-            {universe.universeLevel}
+            {intelligence.aiMode}
           </span>
         </div>
 
@@ -96,92 +98,76 @@ export default function UniverseLiveOverlay({
             marginTop:"12px",
             display:"grid",
             gridTemplateColumns:"1fr 1fr",
-            gap:"8px",
+            gap:"9px",
           }}
         >
-          <div>
-            <div
-              style={{
-                fontSize:"10px",
-                opacity:0.55,
-              }}
-            >
-              Momentum
-            </div>
+          <Metric
+            label="Momentum"
+            value={
+              universe
+                .momentum
+                .momentum
+            }
+          />
 
-            <div
-              style={{
-                marginTop:"2px",
-                fontSize:"17px",
-                fontWeight:950,
-              }}
-            >
-              {universe.momentum.momentum}
-            </div>
-          </div>
+          <Metric
+            label="Emotion"
+            value={
+              intelligence
+                .emotion
+                .emotion
+            }
+          />
 
-          <div>
-            <div
-              style={{
-                fontSize:"10px",
-                opacity:0.55,
-              }}
-            >
-              Arena
-            </div>
+          <Metric
+            label="Prediction"
+            value={
+              intelligence
+                .prediction
+                .prediction
+            }
+          />
 
-            <div
-              style={{
-                marginTop:"2px",
-                fontSize:"13px",
-                fontWeight:950,
-              }}
-            >
-              {universe.arena.stage}
-            </div>
-          </div>
+          <Metric
+            label="Probability"
+            value={`${intelligence.prediction.probability}%`}
+          />
 
-          <div>
-            <div
-              style={{
-                fontSize:"10px",
-                opacity:0.55,
-              }}
-            >
-              Crowd
-            </div>
+          <Metric
+            label="Arena"
+            value={
+              universe
+                .arena
+                .stage
+            }
+          />
 
-            <div
-              style={{
-                marginTop:"2px",
-                fontSize:"13px",
-                fontWeight:950,
-              }}
-            >
-              {spectacle.crowd.reaction}
-            </div>
-          </div>
+          <Metric
+            label="Creator AI"
+            value={
+              intelligence
+                .performance
+                .level
+            }
+          />
 
-          <div>
-            <div
-              style={{
-                fontSize:"10px",
-                opacity:0.55,
-              }}
-            >
-              Legacy
-            </div>
+          <Metric
+            label="Crowd"
+            value={
+              spectacle
+                .crowd
+                .reaction
+            }
+          />
 
-            <div
-              style={{
-                marginTop:"2px",
-                fontSize:"13px",
-                fontWeight:950,
-              }}
-            >
-              {universe.legacy.tier}
-            </div>
-          </div>
+          <Metric
+            label="Legacy"
+            value={
+              universe
+                .legacy
+                .tier
+            }
+          />
         </div>
 
         {universe.worldEvent.active ? (
@@ -197,10 +183,45 @@ export default function UniverseLiveOverlay({
               background:"rgba(255,255,255,0.08)",
             }}
           >
-            {universe.worldEvent.event}
+            {
+              universe
+                .worldEvent
+                .event
+            }
           </div>
         ) : null}
       </div>
     </aside>
+  );
+}
+
+function Metric({
+  label,
+  value,
+}:{
+  label:string;
+  value:string | number;
+}){
+  return (
+    <div>
+      <div
+        style={{
+          fontSize:"10px",
+          opacity:0.55,
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop:"2px",
+          fontSize:"13px",
+          fontWeight:950,
+        }}
+      >
+        {value}
+      </div>
+    </div>
   );
 }

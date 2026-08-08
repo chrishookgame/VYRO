@@ -1,4 +1,4 @@
-import {
+﻿import {
   createGlobalSpectacleState,
   type GlobalSpectacleInput,
 } from "@/components/live/spectacle/GlobalSpectacleEngine";
@@ -6,6 +6,10 @@ import {
 import {
   createGlobalUniverseDirectorState,
 } from "./director/GlobalUniverseDirector";
+
+import {
+  createGlobalUniverseAIState,
+} from "./intelligence/director/GlobalUniverseAIDirector";
 
 export type ReturnTypeGlobalSpectacle =
   ReturnType<
@@ -31,7 +35,9 @@ export function createUniverseEngineState(
         input.hypeScore,
 
       heatScore:
-        input.globalEvents.heat.heat,
+        input.globalEvents
+          .heat
+          .heat,
 
       creatorName:
         input.creatorName,
@@ -46,8 +52,29 @@ export function createUniverseEngineState(
         input.legendaryMoment,
     });
 
+  const intelligence=
+    createGlobalUniverseAIState({
+      spectacle,
+      universe,
+
+      hypeScore:
+        input.hypeScore,
+
+      heatScore:
+        input.globalEvents
+          .heat
+          .heat,
+
+      creatorRank:
+        input.creatorRank,
+
+      creatorScore:
+        input.creatorScore,
+    });
+
   return {
     spectacle,
     universe,
+    intelligence,
   };
 }
