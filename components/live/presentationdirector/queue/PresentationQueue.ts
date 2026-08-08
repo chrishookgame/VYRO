@@ -1,5 +1,5 @@
-﻿import {
-  getPresentationPriority,
+import {
+  resolvePresentationPriority,
 } from "../priority/PresentationPriority";
 
 import type {
@@ -61,11 +61,6 @@ function normalizeDuration(
 export function normalizePresentationEvent(
   event: PresentationEvent,
 ): ScheduledPresentationEvent {
-  const basePriority =
-    getPresentationPriority(
-      event.type,
-    );
-
   const priorityBoost =
     normalizePriorityBoost(
       event.priorityBoost,
@@ -75,8 +70,10 @@ export function normalizePresentationEvent(
     ...event,
 
     priority:
-      basePriority +
-      priorityBoost,
+      resolvePresentationPriority(
+        event.type,
+        priorityBoost,
+      ),
 
     durationMs:
       normalizeDuration(
