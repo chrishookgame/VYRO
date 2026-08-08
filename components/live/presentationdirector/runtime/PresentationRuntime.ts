@@ -27,7 +27,8 @@ function deriveRuntimeRunning(
 ): boolean {
   return (
     state.activeEvent !== null ||
-    state.pendingEvents.length > 0
+    state.pendingEvents.length > 0 ||
+    state.gapUntil !== null
   );
 }
 
@@ -71,11 +72,13 @@ export function createPresentationRuntime(
 export function tickPresentationRuntime(
   state: PresentationRuntimeState,
   now: number,
+  gapAfterMs = 0,
 ): PresentationRuntimeState {
   const timeline =
     advancePresentationTimeline(
       state,
       normalizeRuntimeNow(now),
+      gapAfterMs,
     );
 
   return {
@@ -162,7 +165,8 @@ export function reconcilePresentationRuntime(
 
   const running =
     state.activeEvent !== null ||
-    pendingEvents.length > 0;
+    pendingEvents.length > 0 ||
+    state.gapUntil !== null;
 
   if (
     running === state.running &&

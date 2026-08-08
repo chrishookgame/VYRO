@@ -56,6 +56,18 @@ export function usePresentationTimeline(
   } =
     usePresentationPreemption();
 
+  const activeGapAfterMs =
+    runtime.activeEvent
+      ? (
+          presentationSequence.items.find(
+            item =>
+              item.event.id ===
+              runtime.activeEvent?.id,
+          )?.gapAfterMs ??
+          0
+        )
+      : 0;
+
   /*
    * Reconcile Director events with the
    * currently running presentation runtime.
@@ -103,6 +115,26 @@ export function usePresentationTimeline(
           );
         },
       );
+
+    /*
+     * During a cinematic gap we update
+     * pending events but do not activate
+     * the next presentation early.
+     */
+    if (
+      runtime.gapUntil !== null &&
+      now < runtime.gapUntil
+    ) {
+      setRuntime(
+        current =>
+          reconcilePresentationRuntime(
+            current,
+            eligibleQueue,
+          ),
+      );
+
+      return;
+    }
 
     const incomingEvent =
       eligibleQueue.find(
@@ -158,6 +190,7 @@ export function usePresentationTimeline(
     presentationSequence.key,
     runtime.activeEvent,
     runtime.completedEventIds,
+    runtime.gapUntil,
     sequenceQueue,
   ]);
 
@@ -183,52 +216,92 @@ export function usePresentationTimeline(
 
   /*
    * Automatic runtime progression.
+   *
+   * Phase 1:
+   * active presentation duration.
+   *
+   * Phase 2:
+   * cinematic gap before next event.
    */
   useEffect(() => {
-    if (
-      !runtime.activeEvent
-    ) {
-      return;
-    }
-
     const now =
       Date.now();
 
-    const remaining =
-      Math.max(
-        0,
-        runtime.activeEvent.durationMs -
-          (
-            now -
+    if (
+      runtime.activeEvent
+    ) {
+      const remaining =
+        Math.max(
+          0,
+          runtime.activeEvent.durationMs -
             (
-              runtime.activeSince ??
-              now
-            )
-          ),
-      );
+              now -
+              (
+                runtime.activeSince ??
+                now
+              )
+            ),
+        );
 
-    const timeout =
-      window.setTimeout(
-        () => {
-          setRuntime(
-            current =>
-              tickPresentationRuntime(
-                current,
-                Date.now(),
-              ),
-          );
-        },
-        remaining,
-      );
+      const timeout =
+        window.setTimeout(
+          () => {
+            setRuntime(
+              current =>
+                tickPresentationRuntime(
+                  current,
+                  Date.now(),
+                  activeGapAfterMs,
+                ),
+            );
+          },
+          remaining,
+        );
 
-    return () => {
-      window.clearTimeout(
-        timeout,
-      );
-    };
+      return () => {
+        window.clearTimeout(
+          timeout,
+        );
+      };
+    }
+
+    if (
+      runtime.gapUntil !== null
+    ) {
+      const remainingGap =
+        Math.max(
+          0,
+          runtime.gapUntil -
+            now,
+        );
+
+      const timeout =
+        window.setTimeout(
+          () => {
+            setRuntime(
+              current =>
+                tickPresentationRuntime(
+                  current,
+                  Date.now(),
+                ),
+            );
+          },
+          remainingGap,
+        );
+
+      return () => {
+        window.clearTimeout(
+          timeout,
+        );
+      };
+    }
+
+    return;
   }, [
+    activeGapAfterMs,
     runtime.activeEvent,
     runtime.activeSince,
+    runtime.gapUntil,
   ]);
 
   return {
@@ -236,5 +309,8 @@ export function usePresentationTimeline(
 
     sequence:
       presentationSequence,
+
+    cinematicGapActive:
+      runtime.gapUntil !== null,
   };
 }

@@ -14,6 +14,9 @@ export interface PresentationTimelineState {
 
   completedEventIds:
     string[];
+
+  gapUntil:
+    number | null;
 }
 
 function createCompletedEventSet(
@@ -59,6 +62,21 @@ function appendCompletedEventId(
   ];
 }
 
+function normalizeGapAfterMs(
+  gapAfterMs: number,
+): number {
+  return Number.isFinite(
+    gapAfterMs,
+  )
+    ? Math.max(
+        0,
+        Math.round(
+          gapAfterMs,
+        ),
+      )
+    : 0;
+}
+
 export function createPresentationTimelineState(
   queue: ScheduledPresentationEvent[],
   now: number,
@@ -78,17 +96,32 @@ export function createPresentationTimelineState(
         : null,
 
     completedEventIds: [],
+
+    gapUntil: null,
   };
 }
 
 export function advancePresentationTimeline(
   state: PresentationTimelineState,
   now: number,
+  gapAfterMs = 0,
 ): PresentationTimelineState {
   const current =
     state.activeEvent;
 
+  /*
+   * No active presentation.
+   * If a cinematic gap is running,
+   * wait until its deadline.
+   */
   if (!current) {
+    if (
+      state.gapUntil !== null &&
+      now < state.gapUntil
+    ) {
+      return state;
+    }
+
     const eligiblePending =
       filterCompletedEvents(
         state.pendingEvents,
@@ -113,6 +146,8 @@ export function advancePresentationTimeline(
 
       completedEventIds:
         state.completedEventIds,
+
+      gapUntil: null,
     };
   }
 
@@ -150,6 +185,47 @@ export function advancePresentationTimeline(
       completedEventIds,
     );
 
+  if (
+    eligiblePending.length === 0
+  ) {
+    return {
+      activeEvent: null,
+      pendingEvents: [],
+      activeSince: null,
+      completedEventIds,
+      gapUntil: null,
+    };
+  }
+
+  const safeGapAfterMs =
+    normalizeGapAfterMs(
+      gapAfterMs,
+    );
+
+  /*
+   * Enter cinematic gap.
+   * Keep the next event pending until
+   * the gap deadline has elapsed.
+   */
+  if (
+    safeGapAfterMs > 0
+  ) {
+    return {
+      activeEvent: null,
+
+      pendingEvents:
+        eligiblePending,
+
+      activeSince: null,
+
+      completedEventIds,
+
+      gapUntil:
+        now +
+        safeGapAfterMs,
+    };
+  }
+
   const next =
     eligiblePending[0] ??
     null;
@@ -167,6 +243,8 @@ export function advancePresentationTimeline(
         : null,
 
     completedEventIds,
+
+    gapUntil: null,
   };
 }
 
@@ -232,5 +310,7 @@ export function preemptPresentationTimeline(
 
     completedEventIds:
       state.completedEventIds,
+
+    gapUntil: null,
   };
 }
