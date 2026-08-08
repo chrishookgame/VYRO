@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -42,6 +42,9 @@ export interface UseAIPresentationRuntimeInput {
 
   creatorId?:string;
   creatorName?:string;
+
+  creatorRank?:number;
+  creatorScore?:number;
 
   excitementScore?:number;
 
@@ -218,6 +221,12 @@ export function useAIPresentationRuntime(
         creatorName:
           input.creatorName,
 
+        rank:
+          input.creatorRank,
+
+        score:
+          input.creatorScore,
+
         createdAt:
           now,
       });
@@ -271,6 +280,8 @@ export function useAIPresentationRuntime(
     input.cooldownMs,
     input.creatorId,
     input.creatorName,
+    input.creatorRank,
+    input.creatorScore,
     input.director,
     input.storyline,
     policy.cooldownMs,

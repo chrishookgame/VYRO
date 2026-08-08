@@ -696,6 +696,13 @@ export default function LiveWatchPage() {
         competitiveTopRankPlayer
           ?.creatorName,
 
+      creatorRank:
+        competitiveTopRankPlayer
+          ?.rank,
+
+      creatorScore:
+        competitiveTopRankPlayer
+          ?.competitivePower,
       cooldownMs:
         Math.max(
           5000,

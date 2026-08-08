@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   PresentationEvent,
   PresentationEventType,
 } from "@/components/live/presentationdirector/types/PresentationEvent";
@@ -17,6 +17,9 @@ export interface AIPresentationBridgeInput {
 
   creatorId?:string;
   creatorName?:string;
+
+  rank?:number;
+  score?:number;
 
   createdAt:number;
 }
@@ -54,6 +57,12 @@ export function createAIPresentationEvent(
 
     creatorName:
       input.creatorName,
+
+    rank:
+      input.rank,
+
+    score:
+      input.score,
 
     title:
       input.storyline.title,
