@@ -15,6 +15,10 @@ export interface PresentationEvent {
   creatorId?: string;
   creatorName?: string;
 
+  rank?: number;
+  streak?: number;
+  score?: number;
+
   title: string;
   message?: string;
 

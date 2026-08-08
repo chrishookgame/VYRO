@@ -465,6 +465,9 @@ export default function LiveWatchPage() {
           creatorName:
             battleMVP.winner.creatorName,
 
+          score:
+            battleMVP.winner.score,
+
           title:
             "VYRO LIVE MVP",
 
@@ -497,6 +500,9 @@ export default function LiveWatchPage() {
           creatorName:
             competitiveTopRankPlayer.creatorName,
 
+          rank:
+            competitiveTopRankPlayer.rank,
+
           title:
             "Nuevo #1",
 
@@ -527,6 +533,9 @@ export default function LiveWatchPage() {
 
           creatorName:
             competitiveStreakLeader.creatorName,
+
+          streak:
+            competitiveStreakLeader.streak,
 
           title:
             "Win Streak",
@@ -994,11 +1003,11 @@ export default function LiveWatchPage() {
       >
         <TopRankCelebration
         creatorName={
-          competitiveTopRankPlayer?.creatorName ??
+          presentationTransition.event?.creatorName ??
           ""
         }
         rank={
-          competitiveTopRankPlayer?.rank ??
+          presentationTransition.event?.rank ??
           0
         }
         visible={
@@ -1010,11 +1019,11 @@ export default function LiveWatchPage() {
 
       <WinStreakOverlay
         creatorName={
-          competitiveStreakLeader?.creatorName ??
+          presentationTransition.event?.creatorName ??
           ""
         }
         streak={
-          competitiveStreakLeader?.streak ??
+          presentationTransition.event?.streak ??
           0
         }
         visible={
@@ -1026,11 +1035,11 @@ export default function LiveWatchPage() {
 
       <MVPCelebration
         creatorName={
-          battleMVP.winner?.creatorName ??
+          presentationTransition.event?.creatorName ??
           ""
         }
         score={
-          battleMVP.winner?.score
+          presentationTransition.event?.score
         }
         visible={
           presentationTransition.visible &&
