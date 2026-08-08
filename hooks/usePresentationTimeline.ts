@@ -8,6 +8,7 @@ import {
 import {
   createPresentationRuntime,
   preemptPresentationRuntime,
+  reconcilePresentationRuntime,
   tickPresentationRuntime,
   type PresentationRuntimeState,
 } from "@/components/live/presentationdirector/runtime/PresentationRuntime";
@@ -56,12 +57,8 @@ export function usePresentationTimeline(
     usePresentationPreemption();
 
   /*
-   * Reconcile the Director sequence with the
-   * currently running Timeline.
-   *
-   * Completed events are excluded before
-   * candidate evaluation so they cannot
-   * re-enter the runtime later in the session.
+   * Reconcile Director events with the
+   * currently running presentation runtime.
    */
   useEffect(() => {
     const now =
@@ -150,52 +147,11 @@ export function usePresentationTimeline(
     }
 
     setRuntime(
-      current => {
-        const completedIds =
-          new Set(
-            current.completedEventIds,
-          );
-
-        const pendingEvents =
-          eligibleQueue.filter(
-            event =>
-              event.id !==
-                current.activeEvent?.id &&
-              !completedIds.has(
-                event.id,
-              ),
-          );
-
-        const samePending =
-          pendingEvents.length ===
-            current.pendingEvents.length &&
-          pendingEvents.every(
-            (
-              event,
-              index,
-            ) =>
-              event.id ===
-              current
-                .pendingEvents[
-                  index
-                ]?.id,
-          );
-
-        if (samePending) {
-          return current;
-        }
-
-        return {
-          ...current,
-
-          pendingEvents,
-
-          running:
-            current.activeEvent !==
-              null ||
-            pendingEvents.length > 0,
-        };
-      },
+      current =>
+        reconcilePresentationRuntime(
+          current,
+          eligibleQueue,
+        ),
     );
   }, [
     evaluateEvent,
@@ -206,8 +162,8 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Record only presentations that
-   * truly become active.
+   * Record presentations only after
+   * they truly become active.
    */
   useEffect(() => {
     if (
@@ -226,7 +182,7 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Timeline automatic progression.
+   * Automatic runtime progression.
    */
   useEffect(() => {
     if (
