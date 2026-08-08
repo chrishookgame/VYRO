@@ -94,6 +94,39 @@ export function mergeCelebrationQueue(
     ...pendingEvents
   ] = currentQueue;
 
+  const preemptingEvent =
+    orderCelebrationEvents(
+      freshEvents.filter(
+        (event) =>
+          event.intensity === "legendary" &&
+          getCelebrationPriority(event) >
+            getCelebrationPriority(activeEvent),
+      ),
+    )[0] ?? null;
+
+  if (preemptingEvent) {
+    const remainingFreshEvents =
+      freshEvents.filter(
+        (event) =>
+          event.id !== preemptingEvent.id,
+      );
+
+    const prioritizedPending =
+      orderCelebrationEvents([
+        activeEvent,
+        ...pendingEvents,
+        ...remainingFreshEvents,
+      ]).slice(
+        0,
+        MAX_CELEBRATION_QUEUE_SIZE - 1,
+      );
+
+    return [
+      preemptingEvent,
+      ...prioritizedPending,
+    ];
+  }
+
   const pendingCapacity =
     Math.max(
       0,
