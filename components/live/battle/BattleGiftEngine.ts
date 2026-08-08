@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   LiveBattleState,
 } from "./LiveBattleEngine";
 
@@ -16,6 +16,7 @@ export interface BattleGiftEvent {
   quantity?: number;
   unitValue: number;
   energyValue: number;
+  intelligenceMultiplier?: number;
 }
 
 export interface BattleGiftResult {

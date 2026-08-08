@@ -1,5 +1,7 @@
 "use client";
 
+import { useAIGiftIntelligence } from "@/hooks/useAIGiftIntelligence";
+
 import {
   useEffect,
 } from "react";
@@ -115,7 +117,7 @@ function playVyroGiftSound(
     );
   } catch {
     // Algunos navegadores bloquean audio
-    // antes de la primera interacción.
+    // antes de la primera interacciÃ³n.
   }
 }
 
