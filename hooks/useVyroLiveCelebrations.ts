@@ -1,7 +1,10 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import type {
@@ -10,6 +13,7 @@ import type {
 
 import {
   getVyroLiveLevel,
+  VYRO_LIVE_LEVELS,
 } from "@/components/live/achievements/levels/AchievementLevels";
 
 import type {
@@ -42,10 +46,156 @@ function getIntensity(
 
 
 
+function getVyroLiveLevelIndex(
+  levelName: string,
+): number {
+  return VYRO_LIVE_LEVELS.findIndex(
+    (level) =>
+      level.name === levelName,
+  );
+}
+
+
 export function useVyroLiveCelebrations({
   ranking,
   titles,
 }: UseVyroLiveCelebrationsInput) {
+  const previousLevelsRef =
+    useRef<Map<string, string>>(
+      new Map(),
+    );
+
+  const [
+    levelTransitionEvents,
+    setLevelTransitionEvents,
+  ] =
+    useState<
+      VyroLiveCelebrationEvent[]
+    >([]);
+
+  useEffect(() => {
+    const creators =
+      [
+        ranking.left,
+        ranking.right,
+      ].filter(
+        Boolean,
+      );
+
+    const transitionEvents:
+      VyroLiveCelebrationEvent[] = [];
+
+    const activeCreatorIds =
+      new Set<string>();
+
+    creators.forEach(
+      (creator) => {
+        if (!creator) {
+          return;
+        }
+
+        activeCreatorIds.add(
+          creator.creatorId,
+        );
+
+        const level =
+          getVyroLiveLevel(
+            creator.score,
+          );
+
+        const previousLevelName =
+          previousLevelsRef.current.get(
+            creator.creatorId,
+          );
+
+        previousLevelsRef.current.set(
+          creator.creatorId,
+          level.name,
+        );
+
+        // First observation establishes baseline only.
+        if (!previousLevelName) {
+          return;
+        }
+
+        const previousLevelIndex =
+          getVyroLiveLevelIndex(
+            previousLevelName,
+          );
+
+        const currentLevelIndex =
+          getVyroLiveLevelIndex(
+            level.name,
+          );
+
+        const leveledUp =
+          previousLevelIndex >= 0 &&
+          currentLevelIndex >
+            previousLevelIndex;
+
+        if (
+          !leveledUp ||
+          !level.celebrates
+        ) {
+          return;
+        }
+
+        transitionEvents.push({
+          id:
+            `level:${creator.creatorId}:${previousLevelName}:${level.name}`,
+
+          type:
+            "LEVEL_UP",
+
+          intensity:
+            level.intensity,
+
+          creatorId:
+            creator.creatorId,
+
+          creatorName:
+            creator.creatorName,
+
+          title:
+            `${creator.creatorName} alcanzó ${level.name}`,
+
+          message:
+            `VYRO felicita a ${creator.creatorName} por alcanzar el nivel ${level.name}.`,
+
+          levelName:
+            level.name,
+
+          streak:
+            null,
+
+          visible:
+            true,
+        });
+      },
+    );
+
+    for (
+      const creatorId of
+      previousLevelsRef.current.keys()
+    ) {
+      if (
+        !activeCreatorIds.has(
+          creatorId,
+        )
+      ) {
+        previousLevelsRef.current.delete(
+          creatorId,
+        );
+      }
+    }
+
+    setLevelTransitionEvents(
+      transitionEvents,
+    );
+  }, [
+    ranking,
+  ]);
+
   const state =
     useMemo<
       VyroLiveCelebrationState
@@ -105,45 +255,11 @@ export function useVyroLiveCelebrations({
             });
           }
 
-          const level =
-            getVyroLiveLevel(
-              creator.score,
-            );
-
-          if (level.celebrates) {
-            events.push({
-              id:
-                `level:${creator.creatorId}:${level.name}`,
-
-              type:
-                "LEVEL_UP",
-
-              intensity:
-                level.intensity,
-
-              creatorId:
-                creator.creatorId,
-
-              creatorName:
-                creator.creatorName,
-
-              title:
-                `${creator.creatorName} alcanzó ${level.name}`,
-
-              message:
-                `VYRO felicita a ${creator.creatorName} por alcanzar el nivel ${level.name}.`,
-
-              levelName:
-                level.name,
-
-              streak:
-                null,
-
-              visible:
-                true,
-            });
-          }
         },
+      );
+
+      events.push(
+        ...levelTransitionEvents,
       );
 
       if (titles.king) {
@@ -191,6 +307,7 @@ export function useVyroLiveCelebrations({
           ),
       };
     }, [
+      levelTransitionEvents,
       ranking,
       titles,
     ]);
