@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -25,20 +25,20 @@ import type {
 } from "@/components/live/presentationdirector/types/PresentationEvent";
 
 export function usePresentationTimeline(
-  queue:ScheduledPresentationEvent[],
-){
-  const presentationSequence=
+  queue: ScheduledPresentationEvent[],
+) {
+  const presentationSequence =
     usePresentationSequence(
       queue,
     );
 
-  const sequenceQueue=
+  const sequenceQueue =
     presentationSequence.events;
 
   const [
     runtime,
     setRuntime,
-  ]=
+  ] =
     useState<
       PresentationRuntimeState
     >(
@@ -52,31 +52,48 @@ export function usePresentationTimeline(
   const {
     evaluateEvent,
     rememberShownEvent,
-  }=
+  } =
     usePresentationPreemption();
 
   /*
    * Reconcile the Director sequence with the
    * currently running Timeline.
+   *
+   * Completed events are excluded before
+   * candidate evaluation so they cannot
+   * re-enter the runtime later in the session.
    */
   useEffect(() => {
-    const now=
+    const now =
       Date.now();
 
-    const activeEvent=
+    const activeEvent =
       runtime.activeEvent;
 
-    const eligibleQueue=
+    const completed =
+      new Set(
+        runtime.completedEventIds,
+      );
+
+    const eligibleQueue =
       sequenceQueue.filter(
         event => {
-          if(
+          if (
             event.id ===
             activeEvent?.id
-          ){
+          ) {
             return true;
           }
 
-          const evaluation=
+          if (
+            completed.has(
+              event.id,
+            )
+          ) {
+            return false;
+          }
+
+          const evaluation =
             evaluateEvent(
               null,
               event,
@@ -90,33 +107,42 @@ export function usePresentationTimeline(
         },
       );
 
-    const incomingEvent=
-      eligibleQueue[0] ??
+    const incomingEvent =
+      eligibleQueue.find(
+        event =>
+          event.id !==
+            activeEvent?.id,
+      ) ??
       null;
 
-    if(
-      incomingEvent &&
-      incomingEvent.id !==
-        activeEvent?.id
-    ){
-      const evaluation=
+    if (incomingEvent) {
+      const evaluation =
         evaluateEvent(
           activeEvent,
           incomingEvent,
           now,
         );
 
-      if(
+      if (
         evaluation.decision
           .shouldPreempt
-      ){
+      ) {
         setRuntime(
-          current =>
-            preemptPresentationRuntime(
+          current => {
+            if (
+              current.completedEventIds.includes(
+                incomingEvent.id,
+              )
+            ) {
+              return current;
+            }
+
+            return preemptPresentationRuntime(
               current,
               incomingEvent,
               now,
-            ),
+            );
+          },
         );
 
         return;
@@ -125,22 +151,22 @@ export function usePresentationTimeline(
 
     setRuntime(
       current => {
-        const completed=
+        const completedIds =
           new Set(
             current.completedEventIds,
           );
 
-        const pendingEvents=
+        const pendingEvents =
           eligibleQueue.filter(
             event =>
               event.id !==
                 current.activeEvent?.id &&
-              !completed.has(
+              !completedIds.has(
                 event.id,
               ),
           );
 
-        const samePending=
+        const samePending =
           pendingEvents.length ===
             current.pendingEvents.length &&
           pendingEvents.every(
@@ -155,7 +181,7 @@ export function usePresentationTimeline(
                 ]?.id,
           );
 
-        if(samePending){
+        if (samePending) {
           return current;
         }
 
@@ -175,14 +201,18 @@ export function usePresentationTimeline(
     evaluateEvent,
     presentationSequence.key,
     runtime.activeEvent,
+    runtime.completedEventIds,
     sequenceQueue,
   ]);
 
   /*
-   * Record only presentations that truly become active.
+   * Record only presentations that
+   * truly become active.
    */
   useEffect(() => {
-    if(!runtime.activeEvent){
+    if (
+      !runtime.activeEvent
+    ) {
       return;
     }
 
@@ -199,27 +229,29 @@ export function usePresentationTimeline(
    * Timeline automatic progression.
    */
   useEffect(() => {
-    if(!runtime.activeEvent){
+    if (
+      !runtime.activeEvent
+    ) {
       return;
     }
 
-    const now=
+    const now =
       Date.now();
 
-    const remaining=
+    const remaining =
       Math.max(
         0,
         runtime.activeEvent.durationMs -
-        (
-          now -
           (
-            runtime.activeSince ??
-            now
-          )
-        ),
+            now -
+            (
+              runtime.activeSince ??
+              now
+            )
+          ),
       );
 
-    const timeout=
+    const timeout =
       window.setTimeout(
         () => {
           setRuntime(
