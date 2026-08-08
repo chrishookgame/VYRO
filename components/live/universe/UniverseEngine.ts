@@ -8,6 +8,10 @@ import {
 } from "@/components/live/directorai/GlobalLiveDirectorAI";
 
 import {
+  createGlobalLiveOrchestratorState,
+} from "@/components/live/orchestrator/GlobalLiveOrchestrator";
+
+import {
   createGlobalUniverseDirectorState,
 } from "./director/GlobalUniverseDirector";
 
@@ -89,10 +93,17 @@ export function createUniverseEngineState(
         input.legendaryMoment,
     });
 
+  const orchestrator=
+    createGlobalLiveOrchestratorState({
+      directorAI,
+      universe,
+    });
+
   return {
     spectacle,
     universe,
     intelligence,
     directorAI,
+    orchestrator,
   };
 }
