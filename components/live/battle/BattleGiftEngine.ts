@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   LiveBattleState,
 } from "./LiveBattleEngine";
 
@@ -71,14 +71,15 @@ export class BattleGiftEngine {
       };
     }
 
-    const quantity = Math.max(
-      1,
-      Math.floor(
-        normalizePositive(
-          event.quantity ?? 1,
+    const quantity =
+      Math.max(
+        1,
+        Math.floor(
+          normalizePositive(
+            event.quantity ?? 1,
+          ),
         ),
-      ),
-    );
+      );
 
     const giftValue =
       normalizePositive(
@@ -90,19 +91,37 @@ export class BattleGiftEngine {
         event.energyValue,
       ) * quantity;
 
+    const intelligenceMultiplier =
+      Math.min(
+        3,
+        Math.max(
+          1,
+          normalizePositive(
+            event.intelligenceMultiplier ??
+            1,
+          ),
+        ),
+      );
+
     const scoreAdded =
       Math.round(
-        giftValue * 100 +
-        energyAdded,
+        (
+          giftValue * 100 +
+          energyAdded
+        ) *
+        intelligenceMultiplier,
       );
 
     const scoreInput:
       BattleScoreInput = {
         creatorId:
           event.receiverId,
-        score: scoreAdded,
-        giftCount: quantity,
-        energy: energyAdded,
+        score:
+          scoreAdded,
+        giftCount:
+          quantity,
+        energy:
+          energyAdded,
       };
 
     return {
@@ -112,9 +131,11 @@ export class BattleGiftEngine {
           scoreInput,
         ),
       scoreAdded,
-      giftCountAdded: quantity,
+      giftCountAdded:
+        quantity,
       energyAdded,
-      applied: true,
+      applied:
+        true,
     };
   }
 }
