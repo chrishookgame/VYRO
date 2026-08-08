@@ -9,7 +9,7 @@ import type {
 } from "@/components/live/battle/ranking/types";
 
 import {
-  getVyroLiveLevelName,
+  getVyroLiveLevel,
 } from "@/components/live/achievements/levels/AchievementLevels";
 
 import type {
@@ -105,27 +105,21 @@ export function useVyroLiveCelebrations({
             });
           }
 
-          const levelName =
-            getVyroLiveLevelName(
+          const level =
+            getVyroLiveLevel(
               creator.score,
             );
 
-          if (
-            creator.score >= 120
-          ) {
+          if (level.celebrates) {
             events.push({
               id:
-                `level:${creator.creatorId}:${levelName}`,
+                `level:${creator.creatorId}:${level.name}`,
 
               type:
                 "LEVEL_UP",
 
               intensity:
-                creator.score >= 900
-                  ? "legendary"
-                  : creator.score >= 500
-                    ? "epic"
-                    : "standard",
+                level.intensity,
 
               creatorId:
                 creator.creatorId,
@@ -134,12 +128,13 @@ export function useVyroLiveCelebrations({
                 creator.creatorName,
 
               title:
-                `${creator.creatorName} alcanzó ${levelName}`,
+                `${creator.creatorName} alcanzó ${level.name}`,
 
               message:
-                `VYRO felicita a ${creator.creatorName} por alcanzar el nivel ${levelName}.`,
+                `VYRO felicita a ${creator.creatorName} por alcanzar el nivel ${level.name}.`,
 
-              levelName,
+              levelName:
+                level.name,
 
               streak:
                 null,
