@@ -117,7 +117,7 @@ function playVyroGiftSound(
     );
   } catch {
     // Algunos navegadores bloquean audio
-    // antes de la primera interacciÃ³n.
+    // antes de la primera interacciÃƒÂ³n.
   }
 }
 
