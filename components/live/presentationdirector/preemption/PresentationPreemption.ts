@@ -3,7 +3,7 @@
 } from "../types/PresentationEvent";
 
 export interface PresentationPreemptionDecision {
-  shouldPreempt:boolean;
+  shouldPreempt: boolean;
 
   activeEvent:
     ScheduledPresentationEvent | null;
@@ -14,6 +14,7 @@ export interface PresentationPreemptionDecision {
   reason:
     | "NO_ACTIVE_EVENT"
     | "NO_INCOMING_EVENT"
+    | "SAME_EVENT"
     | "PREEMPTION_DISABLED"
     | "HIGHER_PRIORITY"
     | "SAME_OR_LOWER_PRIORITY";
@@ -25,19 +26,26 @@ export function shouldPreemptPresentation(
 
   incomingEvent:
     ScheduledPresentationEvent | null,
-):boolean{
-  if(!incomingEvent){
+): boolean {
+  if (!incomingEvent) {
     return false;
   }
 
-  if(!activeEvent){
+  if (!activeEvent) {
     return true;
   }
 
-  if(
+  if (
+    activeEvent.id ===
+    incomingEvent.id
+  ) {
+    return false;
+  }
+
+  if (
     incomingEvent.allowPreemption ===
       false
-  ){
+  ) {
     return false;
   }
 
@@ -53,33 +61,46 @@ export function resolvePresentationPreemption(
 
   incomingEvent:
     ScheduledPresentationEvent | null,
-):PresentationPreemptionDecision{
-  if(!incomingEvent){
+): PresentationPreemptionDecision {
+  if (!incomingEvent) {
     return {
-      shouldPreempt:false,
+      shouldPreempt: false,
       activeEvent,
-      incomingEvent:null,
+      incomingEvent: null,
       reason:
         "NO_INCOMING_EVENT",
     };
   }
 
-  if(!activeEvent){
+  if (!activeEvent) {
     return {
-      shouldPreempt:true,
-      activeEvent:null,
+      shouldPreempt: true,
+      activeEvent: null,
       incomingEvent,
       reason:
         "NO_ACTIVE_EVENT",
     };
   }
 
-  if(
+  if (
+    activeEvent.id ===
+    incomingEvent.id
+  ) {
+    return {
+      shouldPreempt: false,
+      activeEvent,
+      incomingEvent,
+      reason:
+        "SAME_EVENT",
+    };
+  }
+
+  if (
     incomingEvent.allowPreemption ===
       false
-  ){
+  ) {
     return {
-      shouldPreempt:false,
+      shouldPreempt: false,
       activeEvent,
       incomingEvent,
       reason:

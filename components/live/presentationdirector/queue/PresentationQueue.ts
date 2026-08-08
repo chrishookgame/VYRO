@@ -1,4 +1,4 @@
-import {
+﻿import {
   getPresentationPriority,
 } from "../priority/PresentationPriority";
 
@@ -7,25 +7,68 @@ import type {
   ScheduledPresentationEvent,
 } from "../types/PresentationEvent";
 
-const DEFAULT_DURATION_MS=4000;
+const DEFAULT_DURATION_MS = 4000;
+
+const MIN_DURATION_MS = 1000;
+
+const MIN_PRIORITY_BOOST = 0;
+
+const MAX_PRIORITY_BOOST = 100;
+
+function normalizeFiniteNumber(
+  value: number | undefined,
+  fallback: number,
+): number {
+  return typeof value === "number" &&
+    Number.isFinite(value)
+    ? value
+    : fallback;
+}
+
+function normalizePriorityBoost(
+  priorityBoost: number | undefined,
+): number {
+  const normalized =
+    normalizeFiniteNumber(
+      priorityBoost,
+      MIN_PRIORITY_BOOST,
+    );
+
+  return Math.max(
+    MIN_PRIORITY_BOOST,
+    Math.min(
+      MAX_PRIORITY_BOOST,
+      Math.round(normalized),
+    ),
+  );
+}
+
+function normalizeDuration(
+  durationMs: number | undefined,
+): number {
+  const normalized =
+    normalizeFiniteNumber(
+      durationMs,
+      DEFAULT_DURATION_MS,
+    );
+
+  return Math.max(
+    MIN_DURATION_MS,
+    Math.round(normalized),
+  );
+}
 
 export function normalizePresentationEvent(
-  event:PresentationEvent,
-):ScheduledPresentationEvent{
+  event: PresentationEvent,
+): ScheduledPresentationEvent {
   const basePriority =
     getPresentationPriority(
       event.type,
     );
 
   const priorityBoost =
-    Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          event.priorityBoost ?? 0,
-        ),
-      ),
+    normalizePriorityBoost(
+      event.priorityBoost,
     );
 
   return {
@@ -36,49 +79,64 @@ export function normalizePresentationEvent(
       priorityBoost,
 
     durationMs:
-      Math.max(
-        1000,
-        event.durationMs ??
-        DEFAULT_DURATION_MS,
+      normalizeDuration(
+        event.durationMs,
       ),
   };
 }
 
+function comparePresentationEvents(
+  a: ScheduledPresentationEvent,
+  b: ScheduledPresentationEvent,
+): number {
+  if (
+    b.priority !==
+    a.priority
+  ) {
+    return (
+      b.priority -
+      a.priority
+    );
+  }
+
+  if (
+    a.createdAt !==
+    b.createdAt
+  ) {
+    return (
+      a.createdAt -
+      b.createdAt
+    );
+  }
+
+  return a.id.localeCompare(
+    b.id,
+  );
+}
+
 export function createPresentationQueue(
-  events:PresentationEvent[],
-):ScheduledPresentationEvent[]{
+  events: PresentationEvent[],
+): ScheduledPresentationEvent[] {
   return events
     .map(
       normalizePresentationEvent,
     )
     .sort(
-      (a,b)=>{
-        if(
-          b.priority !==
-          a.priority
-        ){
-          return (
-            b.priority -
-            a.priority
-          );
-        }
-
-        return (
-          a.createdAt -
-          b.createdAt
-        );
-      },
+      comparePresentationEvents,
     );
 }
 
 export function deduplicatePresentationQueue(
-  events:ScheduledPresentationEvent[],
-):ScheduledPresentationEvent[]{
-  const ids=new Set<string>();
+  events: ScheduledPresentationEvent[],
+): ScheduledPresentationEvent[] {
+  const ids =
+    new Set<string>();
 
   return events.filter(
-    event=>{
-      if(ids.has(event.id)){
+    event => {
+      if (
+        ids.has(event.id)
+      ) {
         return false;
       }
 
