@@ -12,6 +12,16 @@ import type {
 export interface PresentationRuntimeState
   extends PresentationTimelineState {
   running: boolean;
+
+  activeGapAfterMs: number;
+
+  activeCinematicChain: boolean;
+
+  activeNextEventId:
+    string | null;
+
+  executionContractLocked:
+    boolean;
 }
 
 function normalizeRuntimeNow(
@@ -19,6 +29,21 @@ function normalizeRuntimeNow(
 ): number {
   return Number.isFinite(now)
     ? Math.max(0, now)
+    : 0;
+}
+
+function normalizeRuntimeGap(
+  gapAfterMs: number,
+): number {
+  return Number.isFinite(
+    gapAfterMs,
+  )
+    ? Math.max(
+        0,
+        Math.round(
+          gapAfterMs,
+        ),
+      )
     : 0;
 }
 
@@ -49,6 +74,21 @@ function hasSamePendingEvents(
   );
 }
 
+function createEmptyExecutionContract() {
+  return {
+    activeGapAfterMs: 0,
+
+    activeCinematicChain:
+      false,
+
+    activeNextEventId:
+      null as string | null,
+
+    executionContractLocked:
+      false,
+  };
+}
+
 export function createPresentationRuntime(
   queue: ScheduledPresentationEvent[],
   now: number,
@@ -66,20 +106,72 @@ export function createPresentationRuntime(
       deriveRuntimeRunning(
         timeline,
       ),
+
+    ...createEmptyExecutionContract(),
+  };
+}
+
+export function lockPresentationRuntimeExecutionContract(
+  state: PresentationRuntimeState,
+  activeEventId: string,
+  gapAfterMs: number,
+  cinematicChain: boolean,
+  nextEventId: string | null,
+): PresentationRuntimeState {
+  if (
+    state.activeEvent?.id !==
+    activeEventId
+  ) {
+    return state;
+  }
+
+  if (
+    state.executionContractLocked
+  ) {
+    return state;
+  }
+
+  return {
+    ...state,
+
+    activeGapAfterMs:
+      normalizeRuntimeGap(
+        gapAfterMs,
+      ),
+
+    activeCinematicChain:
+      cinematicChain,
+
+    activeNextEventId:
+      nextEventId,
+
+    executionContractLocked:
+      true,
   };
 }
 
 export function tickPresentationRuntime(
   state: PresentationRuntimeState,
   now: number,
-  gapAfterMs = 0,
 ): PresentationRuntimeState {
+  const previousActiveId =
+    state.activeEvent?.id ??
+    null;
+
   const timeline =
     advancePresentationTimeline(
       state,
       normalizeRuntimeNow(now),
-      gapAfterMs,
+      state.activeGapAfterMs,
     );
+
+  const nextActiveId =
+    timeline.activeEvent?.id ??
+    null;
+
+  const activeChanged =
+    previousActiveId !==
+    nextActiveId;
 
   return {
     ...timeline,
@@ -88,6 +180,22 @@ export function tickPresentationRuntime(
       deriveRuntimeRunning(
         timeline,
       ),
+
+    ...(activeChanged
+      ? createEmptyExecutionContract()
+      : {
+          activeGapAfterMs:
+            state.activeGapAfterMs,
+
+          activeCinematicChain:
+            state.activeCinematicChain,
+
+          activeNextEventId:
+            state.activeNextEventId,
+
+          executionContractLocked:
+            state.executionContractLocked,
+        }),
   };
 }
 
@@ -96,12 +204,24 @@ export function preemptPresentationRuntime(
   incomingEvent: ScheduledPresentationEvent,
   now: number,
 ): PresentationRuntimeState {
+  const previousActiveId =
+    state.activeEvent?.id ??
+    null;
+
   const timeline =
     preemptPresentationTimeline(
       state,
       incomingEvent,
       normalizeRuntimeNow(now),
     );
+
+  const nextActiveId =
+    timeline.activeEvent?.id ??
+    null;
+
+  const activeChanged =
+    previousActiveId !==
+    nextActiveId;
 
   return {
     ...timeline,
@@ -110,6 +230,22 @@ export function preemptPresentationRuntime(
       deriveRuntimeRunning(
         timeline,
       ),
+
+    ...(activeChanged
+      ? createEmptyExecutionContract()
+      : {
+          activeGapAfterMs:
+            state.activeGapAfterMs,
+
+          activeCinematicChain:
+            state.activeCinematicChain,
+
+          activeNextEventId:
+            state.activeNextEventId,
+
+          executionContractLocked:
+            state.executionContractLocked,
+        }),
   };
 }
 

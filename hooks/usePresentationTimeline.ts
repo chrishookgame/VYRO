@@ -7,6 +7,7 @@ import {
 
 import {
   createPresentationRuntime,
+  lockPresentationRuntimeExecutionContract,
   preemptPresentationRuntime,
   reconcilePresentationRuntime,
   tickPresentationRuntime,
@@ -56,17 +57,54 @@ export function usePresentationTimeline(
   } =
     usePresentationPreemption();
 
-  const activeGapAfterMs =
-    runtime.activeEvent
-      ? (
-          presentationSequence.items.find(
-            item =>
-              item.event.id ===
-              runtime.activeEvent?.id,
-          )?.gapAfterMs ??
-          0
-        )
-      : 0;
+  /*
+   * Freeze the cinematic execution contract
+   * when an event becomes active.
+   *
+   * Queue changes after this point do not
+   * mutate the transition already selected
+   * for the active presentation.
+   */
+  useEffect(() => {
+    const activeEvent =
+      runtime.activeEvent;
+
+    if (
+      !activeEvent ||
+      runtime.executionContractLocked
+    ) {
+      return;
+    }
+
+    const item =
+      presentationSequence.items.find(
+        sequenceItem =>
+          sequenceItem.event.id ===
+          activeEvent.id,
+      );
+
+    setRuntime(
+      current =>
+        lockPresentationRuntimeExecutionContract(
+          current,
+          activeEvent.id,
+          item?.gapAfterMs ?? 0,
+          item?.cinematicChain ?? false,
+          item?.nextType
+            ? (
+                presentationSequence.items[
+                  (item?.index ?? -1) + 1
+                ]?.event.id ??
+                null
+              )
+            : null,
+        ),
+    );
+  }, [
+    presentationSequence.items,
+    runtime.activeEvent,
+    runtime.executionContractLocked,
+  ]);
 
   /*
    * Reconcile Director events with the
@@ -117,9 +155,9 @@ export function usePresentationTimeline(
       );
 
     /*
-     * During a cinematic gap we update
-     * pending events but do not activate
-     * the next presentation early.
+     * While the cinematic gap is active,
+     * pending events may be reconciled but
+     * cannot activate early.
      */
     if (
       runtime.gapUntil !== null &&
@@ -195,8 +233,8 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Record presentations only after
-   * they truly become active.
+   * Cooldown memory starts only when the
+   * event truly becomes active.
    */
   useEffect(() => {
     if (
@@ -215,13 +253,11 @@ export function usePresentationTimeline(
   ]);
 
   /*
-   * Automatic runtime progression.
+   * Automatic execution:
    *
-   * Phase 1:
-   * active presentation duration.
-   *
-   * Phase 2:
-   * cinematic gap before next event.
+   * active event
+   * -> locked cinematic gap
+   * -> next event
    */
   useEffect(() => {
     const now =
@@ -251,7 +287,6 @@ export function usePresentationTimeline(
                 tickPresentationRuntime(
                   current,
                   Date.now(),
-                  activeGapAfterMs,
                 ),
             );
           },
@@ -298,7 +333,6 @@ export function usePresentationTimeline(
 
     return;
   }, [
-    activeGapAfterMs,
     runtime.activeEvent,
     runtime.activeSince,
     runtime.gapUntil,
@@ -312,5 +346,8 @@ export function usePresentationTimeline(
 
     cinematicGapActive:
       runtime.gapUntil !== null,
+
+    cinematicChainActive:
+      runtime.activeCinematicChain,
   };
 }
