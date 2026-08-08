@@ -2,6 +2,7 @@
 
 import {
   bridgeCompetitivePresentationEvents,
+  createWinLeaderPresentation,
 } from "@/components/live/competitiveorchestrator/bridge/CompetitivePresentationBridge";
 
 
@@ -439,14 +440,31 @@ export default function LiveWatchPage() {
 
   const competitivePresentationEvents =
     useMemo(
-      () =>
-        bridgeCompetitivePresentationEvents(
-          competitiveOrchestrator
-            .orchestratorEvents,
-        ),
+      () => {
+        const events =
+          bridgeCompetitivePresentationEvents(
+            competitiveOrchestrator
+              .orchestratorEvents,
+          );
+
+        const winLeaderEvent =
+          createWinLeaderPresentation(
+            competitivePlayers,
+            competitiveEventClock,
+          );
+
+        return winLeaderEvent
+          ? [
+              ...events,
+              winLeaderEvent,
+            ]
+          : events;
+      },
       [
+        competitiveEventClock,
         competitiveOrchestrator
           .orchestratorEvents,
+        competitivePlayers,
       ],
     );
 
@@ -1046,6 +1064,9 @@ export default function LiveWatchPage() {
         rank={
           presentationTransition.event?.rank ??
           0
+        }
+        wins={
+          presentationTransition.event?.wins
         }
         competitivePower={
           presentationTransition.event?.competitivePower ??

@@ -1,7 +1,8 @@
-﻿interface CompetitiveSpotlightOverlayProps {
+interface CompetitiveSpotlightOverlayProps {
   creatorName: string;
   rank: number;
   competitivePower: number;
+  wins?: number;
   visible: boolean;
 }
 
@@ -9,6 +10,7 @@ export function CompetitiveSpotlightOverlay({
   creatorName,
   rank,
   competitivePower,
+  wins,
   visible,
 }: CompetitiveSpotlightOverlayProps) {
   if(!visible){
@@ -46,7 +48,9 @@ export function CompetitiveSpotlightOverlay({
             opacity:0.65,
           }}
         >
-          VYRO SPOTLIGHT
+          {typeof wins === "number"
+            ? "VYRO WIN LEADER"
+            : "VYRO SPOTLIGHT"}
         </div>
 
         <div
@@ -65,11 +69,18 @@ export function CompetitiveSpotlightOverlay({
             display:"flex",
             gap:"14px",
             fontSize:"13px",
+            flexWrap:"wrap",
           }}
         >
           <span>
             Rank #{rank}
           </span>
+
+          {typeof wins === "number" ? (
+            <span>
+              Wins {wins}
+            </span>
+          ) : null}
 
           <span>
             Power {competitivePower}

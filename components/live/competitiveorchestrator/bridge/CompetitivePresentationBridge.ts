@@ -1,5 +1,6 @@
 import type {
   CompetitiveOrchestratorEvent,
+  CompetitiveOrchestratorPlayer,
 } from "../types/CompetitiveOrchestratorTypes";
 
 import type {
@@ -81,6 +82,9 @@ export function bridgeCompetitivePresentationEvents(
           streak:
             event.streak,
 
+          wins:
+            event.wins,
+
           championships:
             event.championships,
 
@@ -108,4 +112,77 @@ export function bridgeCompetitivePresentationEvents(
       ];
     },
   );
+}
+export function createWinLeaderPresentation(
+  players: CompetitiveOrchestratorPlayer[],
+  now: number,
+): PresentationEvent | null {
+  if (players.length < 2) {
+    return null;
+  }
+
+  const ranking =
+    [...players].sort(
+      (a, b) =>
+        b.wins - a.wins ||
+        a.rank - b.rank,
+    );
+
+  const leader = ranking[0];
+  const challenger = ranking[1];
+
+  if (
+    !leader ||
+    leader.wins <= 0 ||
+    (
+      challenger &&
+      challenger.wins === leader.wins
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    id:
+      `competitive-win-leader-${leader.creatorId}-${leader.wins}`,
+
+    type:
+      "SPOTLIGHT",
+
+    creatorId:
+      leader.creatorId,
+
+    creatorName:
+      leader.creatorName,
+
+    rank:
+      leader.rank,
+
+    streak:
+      leader.streak,
+
+    wins:
+      leader.wins,
+
+    championships:
+      leader.championships,
+
+    competitivePower:
+      leader.competitivePower,
+
+    title:
+      "VYRO Win Leader",
+
+    message:
+      `${leader.creatorName} leads the battle with ${leader.wins} wins.`,
+
+    createdAt:
+      now,
+
+    priorityBoost:
+      35,
+
+    allowPreemption:
+      false,
+  };
 }
