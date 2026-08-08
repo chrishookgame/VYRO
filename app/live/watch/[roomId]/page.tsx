@@ -110,6 +110,9 @@ import { usePresentationTimeline } from "@/hooks/usePresentationTimeline";
 import { usePresentationTransition } from "@/hooks/usePresentationTransition";
 import { usePresentationCinematics } from "@/hooks/usePresentationCinematics";
 import UniverseLiveOverlay from "@/components/live/universe/visual/UniverseLiveOverlay";
+import {
+  LiveOrchestratorOverlay,
+} from "@/components/live/orchestrator/visual";
 import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
 import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
 import { useUniverseEngine } from "@/hooks/useUniverseEngine";
@@ -844,6 +847,12 @@ export default function LiveWatchPage() {
         }
       />
 
+      <LiveOrchestratorOverlay
+        state={
+          universeEngine
+        }
+      />
+
       <CompetitiveOverlay
         event={
           competitiveVisuals.primaryEvent
@@ -1114,7 +1123,7 @@ export default function LiveWatchPage() {
                     ).format(
                       new Date(room.startedAt),
                     )
-                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºn no iniciada"}
+                  : "TransmisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n aÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºn no iniciada"}
               </span>
             </div>
           </div>
