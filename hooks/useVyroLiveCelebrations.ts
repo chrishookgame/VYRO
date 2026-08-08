@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -196,10 +197,7 @@ export function useVyroLiveCelebrations({
     ranking,
   ]);
 
-  const state =
-    useMemo<
-      VyroLiveCelebrationState
-    >(() => {
+  const candidateEvents = useMemo<VyroLiveCelebrationEvent[]>(() => {
       const events:
         VyroLiveCelebrationEvent[] = [];
 
@@ -296,23 +294,97 @@ export function useVyroLiveCelebrations({
         });
       }
 
-      return {
-        active:
-          events[0] ??
-          null,
-
-        queue:
-          events.slice(
-            1,
-          ),
-      };
+      return events;
     }, [
       levelTransitionEvents,
       ranking,
       titles,
     ]);
 
+  const [
+    celebrationQueue,
+    setCelebrationQueue,
+  ] =
+    useState<
+      VyroLiveCelebrationEvent[]
+    >([]);
+
+  const seenCelebrationIdsRef =
+    useRef<Set<string>>(
+      new Set(),
+    );
+
+  useEffect(() => {
+    const freshEvents =
+      candidateEvents.filter(
+        (event) =>
+          !seenCelebrationIdsRef
+            .current
+            .has(
+              event.id,
+            ),
+      );
+
+    if (
+      freshEvents.length === 0
+    ) {
+      return;
+    }
+
+    freshEvents.forEach(
+      (event) => {
+        seenCelebrationIdsRef
+          .current
+          .add(
+            event.id,
+          );
+      },
+    );
+
+    setCelebrationQueue(
+      (currentQueue) => [
+        ...currentQueue,
+        ...freshEvents,
+      ],
+    );
+  }, [
+    candidateEvents,
+  ]);
+
+  const dismissActive =
+    useCallback(
+      () => {
+        setCelebrationQueue(
+          (currentQueue) =>
+            currentQueue.slice(
+              1,
+            ),
+        );
+      },
+      [],
+    );
+
+  const state =
+    useMemo<
+      VyroLiveCelebrationState
+    >(
+      () => ({
+        active:
+          celebrationQueue[0] ??
+          null,
+
+        queue:
+          celebrationQueue.slice(
+            1,
+          ),
+      }),
+      [
+        celebrationQueue,
+      ],
+    );
+
   return {
     state,
+    dismissActive,
   };
 }

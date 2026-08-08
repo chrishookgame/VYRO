@@ -1,4 +1,6 @@
-﻿"use client";
+"use client";
+
+import { useEffect } from "react";
 
 import {
   Crown,
@@ -14,11 +16,45 @@ import type {
 
 interface VyroLiveCelebrationProps {
   event: VyroLiveCelebrationEvent | null;
+  onComplete: () => void;
 }
 
 export default function VyroLiveCelebration({
   event,
+  onComplete,
 }: VyroLiveCelebrationProps) {
+  useEffect(() => {
+    if (
+      !event ||
+      !event.visible
+    ) {
+      return;
+    }
+
+    const durationMs =
+      event.intensity ===
+      "legendary"
+        ? 6500
+        : event.intensity ===
+            "epic"
+          ? 5200
+          : 4000;
+
+    const timeout =
+      window.setTimeout(
+        onComplete,
+        durationMs,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+    };
+  }, [
+    event,
+    onComplete,
+  ]);
   if (
     !event ||
     !event.visible

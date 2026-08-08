@@ -536,6 +536,9 @@ export default function LiveWatchPage() {
   const {
     state:
       vyroLiveCelebrations,
+
+    dismissActive:
+      dismissVyroLiveCelebration,
   } = useVyroLiveCelebrations({
     ranking:
       battleRankingEvolution,
@@ -1511,6 +1514,9 @@ export default function LiveWatchPage() {
               <VyroLiveCelebration
                 event={
                   vyroLiveCelebrations.active
+                }
+                onComplete={
+                  dismissVyroLiveCelebration
                 }
               />
             </section>
