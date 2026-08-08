@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useMemo,
@@ -7,6 +7,10 @@ import {
 import type {
   BattleRankingEvolutionData,
 } from "@/components/live/battle/ranking/types";
+
+import {
+  getVyroLiveLevelName,
+} from "@/components/live/achievements/levels/AchievementLevels";
 
 import type {
   VyroTitlesState,
@@ -36,39 +40,7 @@ function getIntensity(
   return "standard";
 }
 
-function getLevelName(
-  score: number,
-): string {
-  if (score >= 1200) {
-    return "VYRO INFINITY";
-  }
 
-  if (score >= 900) {
-    return "VYRO IMMORTAL";
-  }
-
-  if (score >= 700) {
-    return "VYRO APEX";
-  }
-
-  if (score >= 500) {
-    return "VYRO TITAN";
-  }
-
-  if (score >= 350) {
-    return "VYRO PRIME";
-  }
-
-  if (score >= 220) {
-    return "VYRO NOVA";
-  }
-
-  if (score >= 120) {
-    return "VYRO PULSE";
-  }
-
-  return "VYRO SPARK";
-}
 
 export function useVyroLiveCelebrations({
   ranking,
@@ -134,7 +106,7 @@ export function useVyroLiveCelebrations({
           }
 
           const levelName =
-            getLevelName(
+            getVyroLiveLevelName(
               creator.score,
             );
 

@@ -1,5 +1,8 @@
-﻿"use client";
+"use client";
 
+import {
+  getVyroLiveLevelName,
+} from "@/components/live/achievements/levels/AchievementLevels";
 import {
   useMemo,
 } from "react";
@@ -40,39 +43,7 @@ function clamp(
   );
 }
 
-function getLevelName(
-  score: number,
-): string {
-  if (score >= 1200) {
-    return "VYRO INFINITY";
-  }
 
-  if (score >= 900) {
-    return "VYRO IMMORTAL";
-  }
-
-  if (score >= 700) {
-    return "VYRO APEX";
-  }
-
-  if (score >= 500) {
-    return "VYRO TITAN";
-  }
-
-  if (score >= 350) {
-    return "VYRO PRIME";
-  }
-
-  if (score >= 220) {
-    return "VYRO NOVA";
-  }
-
-  if (score >= 120) {
-    return "VYRO PULSE";
-  }
-
-  return "VYRO SPARK";
-}
 
 function getWinRate(
   creator: BattleRankingCreator,
@@ -194,7 +165,7 @@ export function useNextChallenger({
         countryCode,
 
         level:
-          getLevelName(
+          getVyroLiveLevelName(
             creator.score,
           ),
 
