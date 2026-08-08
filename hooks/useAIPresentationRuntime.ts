@@ -45,6 +45,8 @@ export interface UseAIPresentationRuntimeInput {
 
   creatorRank?:number;
   creatorScore?:number;
+  creatorChampionships?:number;
+  creatorCompetitivePower?:number;
 
   excitementScore?:number;
 
@@ -226,6 +228,11 @@ export function useAIPresentationRuntime(
 
         score:
           input.creatorScore,
+        championships:
+          input.creatorChampionships,
+
+        competitivePower:
+          input.creatorCompetitivePower,
 
         createdAt:
           now,
@@ -282,6 +289,8 @@ export function useAIPresentationRuntime(
     input.creatorName,
     input.creatorRank,
     input.creatorScore,
+    input.creatorChampionships,
+    input.creatorCompetitivePower,
     input.director,
     input.storyline,
     policy.cooldownMs,

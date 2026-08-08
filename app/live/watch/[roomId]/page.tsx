@@ -703,6 +703,13 @@ export default function LiveWatchPage() {
       creatorScore:
         competitiveTopRankPlayer
           ?.competitivePower,
+      creatorChampionships:
+        competitiveTopRankPlayer
+          ?.championships,
+
+      creatorCompetitivePower:
+        competitiveTopRankPlayer
+          ?.competitivePower,
       cooldownMs:
         Math.max(
           5000,
@@ -1061,7 +1068,7 @@ export default function LiveWatchPage() {
           ""
         }
         championships={
-          competitiveTopRankPlayer?.championships ??
+          presentationTransition.event?.championships ??
           0
         }
         visible={
@@ -1095,11 +1102,11 @@ export default function LiveWatchPage() {
           ""
         }
         rank={
-          competitiveTopRankPlayer?.rank ??
+          presentationTransition.event?.rank ??
           0
         }
         competitivePower={
-          competitiveTopRankPlayer?.competitivePower ??
+          presentationTransition.event?.competitivePower ??
           0
         }
         visible={

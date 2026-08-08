@@ -18,6 +18,8 @@ export interface PresentationEvent {
   rank?: number;
   streak?: number;
   score?: number;
+  championships?: number;
+  competitivePower?: number;
 
   title: string;
   message?: string;

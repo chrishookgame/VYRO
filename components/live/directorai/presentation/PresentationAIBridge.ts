@@ -20,6 +20,8 @@ export interface AIPresentationBridgeInput {
 
   rank?:number;
   score?:number;
+  championships?:number;
+  competitivePower?:number;
 
   createdAt:number;
 }
@@ -63,6 +65,12 @@ export function createAIPresentationEvent(
 
     score:
       input.score,
+
+    championships:
+      input.championships,
+
+    competitivePower:
+      input.competitivePower,
 
     title:
       input.storyline.title,
