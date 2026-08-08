@@ -10,6 +10,7 @@ import {
   lockPresentationRuntimeExecutionContract,
   preemptPresentationRuntime,
   reconcilePresentationRuntime,
+  shouldPreemptPresentationGap,
   tickPresentationRuntime,
   type PresentationRuntimeState,
 } from "@/components/live/presentationdirector/runtime/PresentationRuntime";
@@ -144,19 +145,46 @@ export function usePresentationTimeline(
       );
 
     /*
-     * During GAP, queue updates are accepted,
-     * but activation remains controlled by
-     * tickPresentationRuntime.
+     * During GAP the locked transition remains
+     * protected, except when a truly higher
+     * priority eligible event arrives.
+     *
+     * Evaluate against the latest runtime state
+     * inside the state updater to avoid stale
+     * execution-contract decisions.
      */
     if (
       runtime.phase === "GAP"
     ) {
       setRuntime(
-        current =>
-          reconcilePresentationRuntime(
+        current => {
+          const gapIncomingEvent =
+            eligibleQueue.find(
+              event =>
+                event.id !==
+                  current.activeNextEventId &&
+                shouldPreemptPresentationGap(
+                  current,
+                  event,
+                ),
+            ) ??
+            null;
+
+          if (
+            gapIncomingEvent
+          ) {
+            return preemptPresentationRuntime(
+              current,
+              gapIncomingEvent,
+              now,
+            );
+          }
+
+          return reconcilePresentationRuntime(
             current,
             eligibleQueue,
-          ),
+          );
+        },
       );
 
       return;

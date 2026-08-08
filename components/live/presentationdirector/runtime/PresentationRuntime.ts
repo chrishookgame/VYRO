@@ -189,6 +189,62 @@ function prioritizeLockedNextEvent(
   };
 }
 
+export function shouldPreemptPresentationGap(
+  state: PresentationRuntimeState,
+  incomingEvent: ScheduledPresentationEvent,
+): boolean {
+  if (
+    state.phase !== "GAP"
+  ) {
+    return false;
+  }
+
+  if (
+    state.completedEventIds.includes(
+      incomingEvent.id,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    incomingEvent.allowPreemption ===
+      false
+  ) {
+    return false;
+  }
+
+  if (
+    incomingEvent.id ===
+      state.activeNextEventId
+  ) {
+    return false;
+  }
+
+  const lockedNextEvent =
+    state.activeNextEventId
+      ? state.pendingEvents.find(
+          event =>
+            event.id ===
+            state.activeNextEventId,
+        ) ??
+        null
+      : null;
+
+  /*
+   * If the locked next event disappeared,
+   * allow the best eligible incoming event
+   * to recover the runtime.
+   */
+  if (!lockedNextEvent) {
+    return true;
+  }
+
+  return (
+    incomingEvent.priority >
+    lockedNextEvent.priority
+  );
+}
 export function createPresentationRuntime(
   queue: ScheduledPresentationEvent[],
   now: number,
