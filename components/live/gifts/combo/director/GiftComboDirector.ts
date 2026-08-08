@@ -1,4 +1,8 @@
 ﻿import {
+  createGlobalGiftEventState,
+} from "../../events/GlobalGiftEventEngine";
+
+import {
   calculateGiftComboFusion,
 } from "../fusion/GiftComboFusion";
 
@@ -37,6 +41,11 @@ export interface GiftComboDirectorState {
       typeof createGlobalComboRanking
     >[number] | null;
 
+  globalEvents:
+    ReturnType<
+      typeof createGlobalGiftEventState
+    >;
+
   legendaryMoment:boolean;
 }
 
@@ -58,6 +67,11 @@ export function createGiftComboDirectorState(
       combos,
     );
 
+  const globalEvents=
+    createGlobalGiftEventState(
+      combos,
+    );
+
   return {
     activeCombos:
       combos,
@@ -72,10 +86,14 @@ export function createGiftComboDirectorState(
       ranking[0] ??
       null,
 
+    globalEvents,
+
     legendaryMoment:
       hype.level ===
         "LEGENDARY" ||
       fusion.fusionMultiplier >=
-        2.5,
+        2.5 ||
+      globalEvents.globalMoment ===
+        "GLOBAL_VIRAL",
   };
 }
