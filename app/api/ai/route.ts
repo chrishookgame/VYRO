@@ -5,6 +5,12 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { runProvider } from "@/lib/ai/providers";
 import type { AIRequest } from "@/lib/ai/types";
 
+type AiRateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  retry_after_seconds: number;
+};
+
 export async function POST(request: Request) {
   try {
     const supabase =
@@ -24,6 +30,78 @@ export async function POST(request: Request) {
           error: "Debes iniciar sesión para utilizar VYRO AI.",
         },
         { status: 401 },
+      );
+    }
+
+    const {
+      data: rateLimitData,
+      error: rateLimitError,
+    } = await supabase.rpc(
+      "consume_ai_rate_limit",
+    );
+
+    if (rateLimitError) {
+      console.error(
+        "VYRO AI rate limit error:",
+        rateLimitError,
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          provider: "openai",
+          content: "",
+          error:
+            "El control de uso de VYRO AI no está disponible temporalmente.",
+        },
+        { status: 503 },
+      );
+    }
+
+    const rateLimit =
+      (
+        Array.isArray(rateLimitData)
+          ? rateLimitData[0]
+          : null
+      ) as AiRateLimitResult | null;
+
+    if (!rateLimit) {
+      return NextResponse.json(
+        {
+          success: false,
+          provider: "openai",
+          content: "",
+          error:
+            "No fue posible validar el límite de uso de VYRO AI.",
+        },
+        { status: 503 },
+      );
+    }
+
+    if (!rateLimit.allowed) {
+      const retryAfter =
+        Math.max(
+          1,
+          rateLimit.retry_after_seconds,
+        );
+
+      return NextResponse.json(
+        {
+          success: false,
+          provider: "openai",
+          content: "",
+          error:
+            "Has alcanzado temporalmente el límite de solicitudes de VYRO AI.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After":
+              String(retryAfter),
+            "X-RateLimit-Remaining":
+              "0",
+          },
+        },
       );
     }
 
