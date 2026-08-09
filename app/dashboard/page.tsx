@@ -1,4 +1,6 @@
-﻿import AiCore from "@/components/dashboard/AiCore";
+export const dynamic = "force-dynamic";
+
+import AiCore from "@/components/dashboard/AiCore";
 import HeroWelcome from "@/components/dashboard/HeroWelcome";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
