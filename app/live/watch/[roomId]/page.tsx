@@ -968,12 +968,22 @@ export default function LiveWatchPage() {
 
   return (
     <>
-      {visualCoordination.showGiftOverlay ? (
+      <div
+        aria-hidden={
+          !visualCoordination.showGiftOverlay
+        }
+        style={{
+          display:
+            visualCoordination.showGiftOverlay
+              ? "contents"
+              : "none",
+        }}
+      >
         <GiftOverlay
           gift={activeGift}
           queuedGifts={queuedGifts}
         />
-      ) : null}
+      </div>
 
       {visualCoordination.showUniverseOverlay ? (
         <UniverseLiveOverlay
