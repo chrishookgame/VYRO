@@ -131,6 +131,12 @@ import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
 import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
 import { createGlobalCompetitiveRuntime } from "@/components/live/ecosystem/GlobalCompetitiveRuntime";
 import {
+  createLiveRecognitionMoment,
+  createLiveRecognitionSignals,
+  resolvePrimaryLiveRecognitionMoment,
+  useLiveRecognitionLifecycle,
+} from "@/components/live/recognition";
+import {
   competitiveOrchestratorPlayersToSeasonPlayers,
 } from "@/components/live/ecosystem/adapters/CompetitiveRuntimeAdapters";
 import { useVyroLeagues } from "@/hooks/useVyroLeagues";
@@ -798,6 +804,82 @@ export default function LiveWatchPage() {
       presentationTimeline.activeEvent,
     );
 
+  const recognitionCreatorId =
+    liveBattle?.winnerId ??
+    liveBattle?.left.creatorId ??
+    roomId;
+
+  const recognitionCreatorName =
+    presentation.winnerName ??
+    (
+      liveBattle?.winnerId ===
+      liveBattle?.right.creatorId
+        ? liveBattle?.right.creatorName
+        : liveBattle?.left.creatorName
+    ) ??
+    "VYRO Creator";
+
+  const recognitionHypeScore =
+    Math.max(
+      giftComboDirector.hype.score,
+      globalCompetitiveEcosystem.intensity,
+    );
+
+  const recognitionBundle =
+    createLiveRecognitionSignals({
+      creatorId:
+        recognitionCreatorId,
+
+      creatorName:
+        recognitionCreatorName,
+
+      winStreak:
+        presentationTransition.event?.streak ??
+        undefined,
+
+      battleWinner:
+        Boolean(
+          liveBattle?.winnerId,
+        ),
+
+      champion:
+        presentationTransition.event?.type ===
+          "CHAMPION" ||
+        presentationTransition.event?.type ===
+          "WORLD_CHAMPION",
+
+      hypeScore:
+        recognitionHypeScore,
+
+      competitiveIntensity:
+        globalCompetitiveEcosystem.intensity,
+    });
+
+  const recognitionMoments =
+    recognitionBundle.signals.map(
+      (signal) =>
+        createLiveRecognitionMoment(
+          signal,
+          recognitionBundle.context,
+        ),
+    );
+
+  const primaryRecognitionMoment =
+    resolvePrimaryLiveRecognitionMoment(
+      recognitionMoments,
+    );
+
+  const recognitionBannerMoment =
+    primaryRecognitionMoment?.kind ===
+      "HYPE"
+      ? primaryRecognitionMoment
+      : null;
+
+  const activeRecognitionBannerMoment =
+    useLiveRecognitionLifecycle(
+      recognitionBannerMoment,
+    );
+
   const presentationCinematics =
     usePresentationCinematics(
       presentationTimeline.activeEvent,
@@ -816,6 +898,11 @@ export default function LiveWatchPage() {
     visualCoordination.showCelebration
       ? vyroLiveCelebrations.active
       : null;
+
+  const showRecognitionBanner =
+    activeRecognitionBannerMoment !== null &&
+    !presentationTransition.visible &&
+    visualCoordination.showCelebration;
 
   const aiPresentationIsActive =
     Boolean(
@@ -1191,6 +1278,18 @@ export default function LiveWatchPage() {
           presentationTransition.visible &&
           presentationTransition.event?.type ===
           "BANNER"
+        }
+      />
+      <CompetitiveBanner
+        title={
+          activeRecognitionBannerMoment?.title ??
+          ""
+        }
+        subtitle={
+          activeRecognitionBannerMoment?.message
+        }
+        visible={
+          showRecognitionBanner
         }
       />
 
