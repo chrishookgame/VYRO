@@ -130,6 +130,10 @@ import {
 import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
 import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
 import { createGlobalCompetitiveRuntime } from "@/components/live/ecosystem/GlobalCompetitiveRuntime";
+import {
+  competitiveOrchestratorPlayersToSeasonPlayers,
+} from "@/components/live/ecosystem/adapters/CompetitiveRuntimeAdapters";
+import { useVyroLeagues } from "@/hooks/useVyroLeagues";
 import { useUniverseEngine } from "@/hooks/useUniverseEngine";
 import { useAIPresentationRuntime } from "@/hooks/useAIPresentationRuntime";
 
@@ -171,15 +175,6 @@ export default function LiveWatchPage() {
     lastUpdate,
   );
 
-  const globalCompetitiveRuntime =
-    createGlobalCompetitiveRuntime({
-      battleActive:
-        liveBattle !== null,
-    });
-
-  const {
-    ecosystem: globalCompetitiveEcosystem,
-  } = globalCompetitiveRuntime;
 
   const {
     series: liveBattleSeries,
@@ -427,6 +422,15 @@ export default function LiveWatchPage() {
       battleRankingEvolution.right,
     ]);
 
+  const seasonPlayers =
+    competitiveOrchestratorPlayersToSeasonPlayers(
+      competitivePlayers,
+    );
+
+  const competitiveSeasonActive =
+    seasonPlayers.length > 0;
+
+
   const competitiveEventClock =
     rankingVersion +
     eventVersion +
@@ -575,6 +579,34 @@ export default function LiveWatchPage() {
     countryCode:
       "CL",
   });
+
+  const {
+    state:
+      vyroLeagueState,
+  } = useVyroLeagues({
+    nextChallenger,
+  });
+
+  const realLeagueActive =
+    vyroLeagueState.player !== null;
+
+  const globalCompetitiveRuntime =
+    createGlobalCompetitiveRuntime({
+      battleActive:
+        liveBattle !== null,
+
+      season: {
+        active:
+          competitiveSeasonActive,
+      },
+
+      leagueActive:
+        realLeagueActive,
+    });
+
+  const {
+    ecosystem: globalCompetitiveEcosystem,
+  } = globalCompetitiveRuntime;
 
   const {
     data:
