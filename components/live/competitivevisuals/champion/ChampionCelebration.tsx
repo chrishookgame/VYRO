@@ -1,4 +1,6 @@
-﻿interface ChampionCelebrationProps {
+﻿import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+interface ChampionCelebrationProps {
   creatorName: string;
   championships: number;
   visible: boolean;
@@ -18,7 +20,7 @@ export function ChampionCelebration({
       style={{
         position:"absolute",
         inset:0,
-        zIndex:60,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.championMoment,
         pointerEvents:"none",
         display:"grid",
         placeItems:"center",

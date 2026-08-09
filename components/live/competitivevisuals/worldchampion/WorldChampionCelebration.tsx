@@ -1,3 +1,5 @@
+import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
 interface WorldChampionCelebrationProps {
   creatorName: string;
   title?: string;
@@ -21,7 +23,7 @@ export function WorldChampionCelebration({
       style={{
         position: "absolute",
         inset: 0,
-        zIndex: 70,
+        zIndex: VYRO_LIVE_VISUAL_LAYER.worldChampionMoment,
         pointerEvents: "none",
         display: "grid",
         placeItems: "center",

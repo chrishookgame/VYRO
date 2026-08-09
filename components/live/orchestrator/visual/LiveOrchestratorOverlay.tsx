@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
 import type {
   createUniverseEngineState,
 } from "@/components/live/universe/UniverseEngine";
@@ -68,7 +70,7 @@ export default function LiveOrchestratorOverlay({
         style={{
           position:"fixed",
           inset:0,
-          zIndex:52,
+          zIndex:VYRO_LIVE_VISUAL_LAYER.orchestratorBase,
           pointerEvents:"none",
           overflow:"hidden",
         }}
@@ -144,7 +146,7 @@ export default function LiveOrchestratorOverlay({
           position:"fixed",
           left:"20px",
           bottom:"20px",
-          zIndex:76,
+          zIndex:VYRO_LIVE_VISUAL_LAYER.orchestratorOverlay,
           pointerEvents:"none",
           width:
             "min(300px, calc(100vw - 40px))",

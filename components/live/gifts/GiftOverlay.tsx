@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
 import {
   useEffect,
 } from "react";
@@ -172,7 +174,7 @@ export default function GiftOverlay({
             top:"18px",
             left:"50%",
             transform:"translateX(-50%)",
-            zIndex:75,
+            zIndex:VYRO_LIVE_VISUAL_LAYER.giftOverlay,
             pointerEvents:"none",
           }}
         >

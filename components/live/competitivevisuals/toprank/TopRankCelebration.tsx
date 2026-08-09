@@ -1,4 +1,6 @@
-﻿interface TopRankCelebrationProps {
+﻿import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+interface TopRankCelebrationProps {
   creatorName: string;
   rank: number;
   visible: boolean;
@@ -24,7 +26,7 @@ export function TopRankCelebration({
         top:"26%",
         left:"50%",
         transform:"translateX(-50%)",
-        zIndex:50,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.supportingMoment,
         pointerEvents:"none",
       }}
     >

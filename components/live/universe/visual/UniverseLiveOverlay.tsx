@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
 import {
   createUniverseEngineState,
 } from "../UniverseEngine";
@@ -46,7 +48,7 @@ export default function UniverseLiveOverlay({
         position:"fixed",
         top:"84px",
         right:"20px",
-        zIndex:74,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.universeOverlay,
         pointerEvents:"none",
         width:"min(340px, calc(100vw - 40px))",
       }}

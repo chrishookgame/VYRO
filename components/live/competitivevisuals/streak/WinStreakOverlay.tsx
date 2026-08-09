@@ -1,4 +1,6 @@
-﻿interface WinStreakOverlayProps {
+﻿import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+interface WinStreakOverlayProps {
   creatorName: string;
   streak: number;
   visible: boolean;
@@ -19,7 +21,7 @@ export function WinStreakOverlay({
         position:"absolute",
         right:"24px",
         top:"110px",
-        zIndex:35,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.competitiveAmbient,
         pointerEvents:"none",
       }}
     >

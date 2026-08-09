@@ -1,4 +1,6 @@
-﻿import type {
+﻿import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+import type {
   CompetitiveVisualEvent,
 } from "../types/CompetitiveVisualTypes";
 
@@ -25,7 +27,7 @@ export function CompetitiveOverlay({
         alignItems:"flex-start",
         justifyContent:"center",
         padding:"24px",
-        zIndex:40,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.competitiveOverlay,
       }}
     >
       <div

@@ -1,4 +1,6 @@
-﻿interface MVPCelebrationProps {
+﻿import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+interface MVPCelebrationProps {
   creatorName: string;
   score?: number;
   visible: boolean;
@@ -20,7 +22,7 @@ export function MVPCelebration({
         left:"50%",
         bottom:"150px",
         transform:"translateX(-50%)",
-        zIndex:50,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.supportingMoment,
         pointerEvents:"none",
         textAlign:"center",
       }}

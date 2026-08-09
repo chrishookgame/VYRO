@@ -4,6 +4,10 @@ import {
 } from "@/components/live/visualcoordination/VisualCoordinationPolicy";
 
 import {
+  VYRO_LIVE_VISUAL_LAYER,
+} from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
+import {
   bridgeCompetitivePresentationEvents,
   createWinLeaderPresentation,
 } from "@/components/live/competitiveorchestrator/bridge/CompetitivePresentationBridge";
@@ -1000,7 +1004,7 @@ export default function LiveWatchPage() {
             `translateY(${presentationTransition.animationStyle.translateY}px) scale(${presentationTransition.animationStyle.scale * adaptiveCinematicScale})`,
           transition:
             presentationTransition.transition,
-          zIndex:55,
+          zIndex:VYRO_LIVE_VISUAL_LAYER.presentationSurface,
           backdropFilter:
             `blur(${adaptiveBlurPx}px)`,
           background:

@@ -1,3 +1,5 @@
+import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
+
 interface CompetitiveSpotlightOverlayProps {
   creatorName: string;
   rank: number;
@@ -23,7 +25,7 @@ export function CompetitiveSpotlightOverlay({
         position:"absolute",
         left:"24px",
         bottom:"100px",
-        zIndex:35,
+        zIndex:VYRO_LIVE_VISUAL_LAYER.competitiveAmbient,
         pointerEvents:"none",
       }}
     >
