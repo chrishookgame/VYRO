@@ -16,7 +16,7 @@ export default function LoginForm() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -26,11 +26,11 @@ export default function LoginForm() {
       return;
     }
 
-    console.log("LOGIN DATA:", data);
+
 
     const session = await supabase.auth.getSession();
 
-    console.log("SESSION:", session);
+
 
     if (session.data.session) {
       alert("SESIÓN CREADA CORRECTAMENTE");
