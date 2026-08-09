@@ -18,6 +18,59 @@ export type DashboardActivity = {
 type VideoMetricRow = {
   views: number | null;
 };
+type VyroAiScoreInput = {
+  videos: number;
+  views: number;
+  followers: number;
+};
+
+function calculateVyroAiScore({
+  videos,
+  views,
+  followers,
+}: VyroAiScoreInput): number {
+  const safeVideos =
+    Math.max(0, videos);
+
+  const safeViews =
+    Math.max(0, views);
+
+  const safeFollowers =
+    Math.max(0, followers);
+
+  const videoScore =
+    Math.min(
+      safeVideos,
+      30,
+    );
+
+  const viewScore =
+    Math.min(
+      Math.floor(
+        Math.log10(
+          safeViews + 1,
+        ) * 10,
+      ),
+      40,
+    );
+
+  const followerScore =
+    Math.min(
+      Math.floor(
+        Math.log10(
+          safeFollowers + 1,
+        ) * 10,
+      ),
+      30,
+    );
+
+  return Math.min(
+    100,
+    videoScore +
+      viewScore +
+      followerScore,
+  );
+}
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const {
@@ -84,19 +137,26 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         total + (video.views ?? 0),
       0,
     );
+  const videoCount =
+    videosResult.count ??
+    videos.length;
+
+  const followerCount =
+    followersResult.count ??
+    0;
+
+  const aiScore =
+    calculateVyroAiScore({
+      videos: videoCount,
+      views,
+      followers: followerCount,
+    });
 
   return {
-    videos:
-      videosResult.count ??
-      videos.length,
+    videos: videoCount,
     views,
-    followers:
-      followersResult.count ??
-      0,
-
-    // AI Score necesita su propio contrato
-    // antes de convertirse en una métrica real.
-    aiScore: 0,
+    followers: followerCount,
+    aiScore,
   };
 }
 export async function getDashboardRecentActivity(
