@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -55,6 +55,10 @@ export default function BattleWinnerOverlay({
         ),
       );
 
+    let completionTimeoutId:
+      number | null =
+        null;
+
     const timeoutId =
       window.setTimeout(() => {
         if (
@@ -67,9 +71,13 @@ export default function BattleWinnerOverlay({
           true;
         setMounted(false);
 
-        window.setTimeout(() => {
-          onFinished?.();
-        }, 450);
+        completionTimeoutId =
+          window.setTimeout(() => {
+            onFinished?.();
+
+            completionTimeoutId =
+              null;
+          }, 450);
       }, safeDuration);
 
     return () => {
@@ -80,6 +88,15 @@ export default function BattleWinnerOverlay({
       window.clearTimeout(
         timeoutId,
       );
+
+      if (
+        completionTimeoutId !==
+        null
+      ) {
+        window.clearTimeout(
+          completionTimeoutId,
+        );
+      }
     };
   }, [
     durationMs,
