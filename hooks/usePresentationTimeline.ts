@@ -220,6 +220,23 @@ export function usePresentationTimeline(
               return current;
             }
 
+            const currentEvaluation =
+              evaluateEvent(
+                current.activeEvent,
+                incomingEvent,
+                now,
+              );
+
+            if (
+              !currentEvaluation.decision
+                .shouldPreempt
+            ) {
+              return reconcilePresentationRuntime(
+                current,
+                eligibleQueue,
+              );
+            }
+
             return preemptPresentationRuntime(
               current,
               incomingEvent,
