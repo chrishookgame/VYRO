@@ -49,3 +49,5 @@ OPENAI.txt
 .env
 
 .env.local
+
+!.env.example
