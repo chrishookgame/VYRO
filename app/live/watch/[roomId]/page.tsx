@@ -968,22 +968,28 @@ export default function LiveWatchPage() {
 
   return (
     <>
-      <GiftOverlay
-        gift={activeGift}
-        queuedGifts={queuedGifts}
-      />
+      {visualCoordination.showGiftOverlay ? (
+        <GiftOverlay
+          gift={activeGift}
+          queuedGifts={queuedGifts}
+        />
+      ) : null}
 
-      <UniverseLiveOverlay
-        state={
-          universeEngine
-        }
-      />
+      {visualCoordination.showUniverseOverlay ? (
+        <UniverseLiveOverlay
+          state={
+            universeEngine
+          }
+        />
+      ) : null}
 
-      <LiveOrchestratorOverlay
-        state={
-          universeEngine
-        }
-      />
+      {visualCoordination.showOrchestratorOverlay ? (
+        <LiveOrchestratorOverlay
+          state={
+            universeEngine
+          }
+        />
+      ) : null}
 
       <CompetitiveOverlay
         event={

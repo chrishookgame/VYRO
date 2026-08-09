@@ -18,6 +18,10 @@ export interface VisualCoordinationDecision {
   showPresentation: boolean;
   showCelebration: boolean;
   celebrationBlocked: boolean;
+
+  showGiftOverlay: boolean;
+  showUniverseOverlay: boolean;
+  showOrchestratorOverlay: boolean;
 }
 
 export function resolveVisualCoordination(
@@ -29,11 +33,26 @@ export function resolveVisualCoordination(
   const hasCelebration =
     state.celebrationEvent !== null;
 
+  const hasCriticalPresentation =
+    state.presentationEvent?.type ===
+      "CHAMPION" ||
+    state.presentationEvent?.type ===
+      "WORLD_CHAMPION";
+
   if (hasPresentation) {
     return {
       showPresentation: true,
       showCelebration: false,
       celebrationBlocked: hasCelebration,
+
+      showGiftOverlay:
+        !hasCriticalPresentation,
+
+      showUniverseOverlay:
+        !hasCriticalPresentation,
+
+      showOrchestratorOverlay:
+        !hasCriticalPresentation,
     };
   }
 
@@ -41,6 +60,10 @@ export function resolveVisualCoordination(
     showPresentation: false,
     showCelebration: hasCelebration,
     celebrationBlocked: false,
+
+    showGiftOverlay: true,
+    showUniverseOverlay: true,
+    showOrchestratorOverlay: true,
   };
 }
 
