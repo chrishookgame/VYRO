@@ -8,6 +8,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import {
   Badge,
   Card,
+  EmptyState,
   StatCard,
 } from "@/components/ui";
 
@@ -20,12 +21,28 @@ import {
 
 export default async function Dashboard() {
   const [
-    metrics,
-    recentActivity,
-  ] = await Promise.all([
+    metricsResult,
+    activityResult,
+  ] = await Promise.allSettled([
     getDashboardMetrics(),
     getDashboardRecentActivity(),
   ]);
+
+  if (
+    metricsResult.status ===
+    "rejected"
+  ) {
+    throw metricsResult.reason;
+  }
+
+  const metrics =
+    metricsResult.value;
+
+  const recentActivity =
+    activityResult.status ===
+    "fulfilled"
+      ? activityResult.value
+      : [];
 
   return (
     <main className="flex h-screen overflow-hidden bg-[#05070A]">
@@ -97,28 +114,36 @@ export default async function Dashboard() {
                 </Card.Header>
 
                 <Card.Body>
-                  <div className="space-y-4">
-                    {recentActivity.map((item) => (
-                      <article
-                        key={item.id}
-                        className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <h3 className="font-semibold text-white">
-                            {item.title}
-                          </h3>
+                  {recentActivity.length === 0 ? (
+                    <EmptyState
+                      title="Sin actividad reciente"
+                      description="Cuando haya nuevos movimientos en tu cuenta, aparecerán aquí."
+                      icon="📭"
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      {recentActivity.map((item) => (
+                        <article
+                          key={item.id}
+                          className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <h3 className="font-semibold text-white">
+                              {item.title}
+                            </h3>
 
-                          <p className="mt-1 text-sm text-slate-400">
-                            {item.detail}
-                          </p>
-                        </div>
+                            <p className="mt-1 text-sm text-slate-400">
+                              {item.detail}
+                            </p>
+                          </div>
 
-                        <Badge variant="success">
-                          {item.status}
-                        </Badge>
-                      </article>
-                    ))}
-                  </div>
+                          <Badge variant="success">
+                            {item.status}
+                          </Badge>
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
 
