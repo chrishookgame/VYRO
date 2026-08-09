@@ -1,10 +1,32 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 import { runProvider } from "@/lib/ai/providers";
 import type { AIRequest } from "@/lib/ai/types";
 
 export async function POST(request: Request) {
   try {
+    const supabase =
+      await createServerSupabaseClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          success: false,
+          provider: "openai",
+          content: "",
+          error: "Debes iniciar sesión para utilizar VYRO AI.",
+        },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as Partial<AIRequest>;
 
     if (
