@@ -1,4 +1,4 @@
-﻿import OpenAI from "openai";
+import OpenAI from "openai";
 
 import type {
   AIRequest,
@@ -102,6 +102,7 @@ export async function runOpenAI(
       message.toLowerCase().includes("credits");
 
     const mockFallbackEnabled =
+      process.env.NODE_ENV !== "production" &&
       process.env.VYRO_AI_MOCK_FALLBACK === "true";
 
     if (isCreditsError && mockFallbackEnabled) {
