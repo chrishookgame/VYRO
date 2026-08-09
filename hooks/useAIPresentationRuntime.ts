@@ -107,6 +107,11 @@ export function useAIPresentationRuntime(
       Record<string,number>
     >({});
 
+  const expirationTimeoutRef=
+    useRef<
+      number | null
+    >(null);
+
   const policy=
     useMemo(
       () =>
@@ -264,7 +269,13 @@ export function useAIPresentationRuntime(
       adaptiveEvent,
     );
 
-    const timeout=
+    if(expirationTimeoutRef.current){
+      window.clearTimeout(
+        expirationTimeoutRef.current,
+      );
+    }
+
+    expirationTimeoutRef.current=
       window.setTimeout(
         () => {
           setEvent(
@@ -274,15 +285,12 @@ export function useAIPresentationRuntime(
                 ? null
                 : current,
           );
+
+          expirationTimeoutRef.current=
+            null;
         },
         policy.durationMs,
       );
-
-    return () => {
-      window.clearTimeout(
-        timeout,
-      );
-    };
   }, [
     input.cooldownMs,
     input.creatorId,
@@ -298,6 +306,22 @@ export function useAIPresentationRuntime(
     policy.repeatProtectionMs,
     signature,
   ]);
+
+  useEffect(
+    () => {
+      return () => {
+        if(expirationTimeoutRef.current){
+          window.clearTimeout(
+            expirationTimeoutRef.current,
+          );
+
+          expirationTimeoutRef.current=
+            null;
+        }
+      };
+    },
+    [],
+  );
 
   return {
     event,
