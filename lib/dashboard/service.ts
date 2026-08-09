@@ -1,10 +1,18 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export type DashboardMetrics = {
   videos: number;
   views: number;
   followers: number;
   aiScore: number;
+};
+
+export type DashboardActivity = {
+  id: string;
+  title: string;
+  detail: string;
+  status: string;
+  createdAt: string;
 };
 
 type VideoMetricRow = {
@@ -90,4 +98,50 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     // antes de convertirse en una métrica real.
     aiScore: 0,
   };
+}
+export async function getDashboardRecentActivity(
+  limit = 5,
+): Promise<DashboardActivity[]> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw new Error(
+      `No se pudo cargar el usuario de actividad: ${userError.message}`,
+    );
+  }
+
+  if (!user) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(
+      "id,title,message,type,read_at,created_at",
+    )
+    .eq("user_id", user.id)
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(
+      `No se pudo cargar la actividad reciente: ${error.message}`,
+    );
+  }
+
+  return (data ?? []).map((item) => ({
+    id: item.id,
+    title: item.title,
+    detail: item.message,
+    status:
+      item.read_at === null
+        ? "Nuevo"
+        : "Visto",
+    createdAt: item.created_at,
+  }));
 }

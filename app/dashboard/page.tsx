@@ -13,32 +13,19 @@ import {
 
 import {
   getDashboardMetrics,
+  getDashboardRecentActivity,
 } from "@/lib/dashboard";
 
-const recentActivity = [
-  {
-    id: "1",
-    title: "Nuevo video publicado",
-    detail: "Proyecto VYRO Vision",
-    status: "Completado",
-  },
-  {
-    id: "2",
-    title: "Análisis de IA finalizado",
-    detail: "AI Score actualizado",
-    status: "Procesado",
-  },
-  {
-    id: "3",
-    title: "Nuevo seguidor",
-    detail: "Tu comunidad continúa creciendo",
-    status: "Nuevo",
-  },
-];
+
 
 export default async function Dashboard() {
-  const metrics =
-    await getDashboardMetrics();
+  const [
+    metrics,
+    recentActivity,
+  ] = await Promise.all([
+    getDashboardMetrics(),
+    getDashboardRecentActivity(),
+  ]);
 
   return (
     <main className="flex h-screen overflow-hidden bg-[#05070A]">
