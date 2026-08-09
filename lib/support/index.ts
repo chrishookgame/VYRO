@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export async function createTicket(data: {
   user_id: string;
@@ -19,6 +19,30 @@ export async function getTickets() {
     .order("created_at", {
       ascending: false,
     });
+}
+
+export async function getSupportUserProfiles(
+  userIds: string[],
+) {
+  const uniqueUserIds =
+    [...new Set(userIds)].filter(Boolean);
+
+  if (uniqueUserIds.length === 0) {
+    return {
+      data: [],
+      error: null,
+    };
+  }
+
+  return await supabase
+    .from("profiles")
+    .select(
+      "id, username, full_name",
+    )
+    .in(
+      "id",
+      uniqueUserIds,
+    );
 }
 
 export async function getTicketMessages(

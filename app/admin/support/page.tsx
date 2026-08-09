@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Badge,
@@ -10,6 +10,10 @@ import {
   StatCard,
   Table,
 } from "@/components/ui";
+import {
+  getSupportUserProfiles,
+  getTickets,
+} from "@/lib/support";
 
 type TicketStatus =
   | "Abierto"
@@ -33,48 +37,199 @@ type SupportTicket = {
   updatedAt: string;
 };
 
-const tickets: SupportTicket[] = [
-  {
-    id: "TCK-0001",
-    user: "Demo User",
-    subject: "Problema con Wallet",
-    category: "Wallet",
-    priority: "Alta",
-    status: "Abierto",
-    updatedAt: "2026-08-04T00:15:00.000Z",
-  },
-  {
-    id: "TCK-0002",
-    user: "María López",
-    subject: "No puedo verificar mi identidad",
-    category: "Member ID",
-    priority: "Normal",
-    status: "En revisión",
-    updatedAt: "2026-08-03T22:40:00.000Z",
-  },
-  {
-    id: "TCK-0003",
-    user: "Carlos Pérez",
-    subject: "Retiro pendiente",
-    category: "Retiros",
-    priority: "Urgente",
-    status: "Esperando usuario",
-    updatedAt: "2026-08-03T20:05:00.000Z",
-  },
-  {
-    id: "TCK-0004",
-    user: "Ana Torres",
-    subject: "Consulta sobre Academy",
-    category: "Academy",
-    priority: "Baja",
-    status: "Resuelto",
-    updatedAt: "2026-08-02T18:30:00.000Z",
-  },
-];
+
+type SupportUserProfileRow = {
+  id: string;
+  username: string;
+  full_name: string | null;
+};
+
+type SupportTicketRow = {
+  id: string;
+  user_id: string;
+  subject: string;
+  category: string;
+  priority: string;
+  status: string;
+  updated_at: string | null;
+  created_at: string | null;
+};
+
+function normalizeTicketPriority(
+  value: string,
+): TicketPriority {
+  switch (value.trim().toLowerCase()) {
+    case "low":
+    case "baja":
+      return "Baja";
+
+    case "high":
+    case "alta":
+      return "Alta";
+
+    case "urgent":
+    case "urgente":
+      return "Urgente";
+
+    default:
+      return "Normal";
+  }
+}
+
+function normalizeTicketStatus(
+  value: string,
+): TicketStatus {
+  switch (value.trim().toLowerCase()) {
+    case "resolved":
+    case "closed":
+    case "resuelto":
+      return "Resuelto";
+
+    case "review":
+    case "in_review":
+    case "in-review":
+    case "en revisión":
+      return "En revisión";
+
+    case "waiting_user":
+    case "waiting-user":
+    case "awaiting_user":
+    case "esperando usuario":
+      return "Esperando usuario";
+
+    default:
+      return "Abierto";
+  }
+}
 
 export default function AdminSupportPage() {
+  const [tickets, setTickets] =
+    useState<SupportTicket[]>([]);
+
+  const [ticketsLoading, setTicketsLoading] =
+    useState(true);
+
+  const [ticketsError, setTicketsError] =
+    useState<string | null>(null);
+
   const [query, setQuery] =
     useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTickets() {
+      if (active) {
+        setTicketsLoading(true);
+        setTicketsError(null);
+      }
+
+      const { data, error } =
+        await getTickets();
+
+      if (error) {
+        console.error(
+          "VYRO Admin Support load error:",
+          error,
+        );
+
+        if (active) {
+          setTickets([]);
+          setTicketsError(
+            "No se pudieron cargar los tickets. Intenta nuevamente.",
+          );
+          setTicketsLoading(false);
+        }
+
+        return;
+      }
+
+      if (!active) {
+        return;
+      }
+
+      const rows =
+        (data ?? []) as SupportTicketRow[];
+
+      const userIds =
+        rows.map(
+          (ticket) =>
+            ticket.user_id,
+        );
+
+      const {
+        data: profileData,
+        error: profileError,
+      } =
+        await getSupportUserProfiles(
+          userIds,
+        );
+
+      if (profileError) {
+        console.error(
+          "VYRO Admin Support profile load error:",
+          profileError,
+        );
+      }
+
+      if (!active) {
+        return;
+      }
+
+      const profiles =
+        (profileData ?? []) as
+          SupportUserProfileRow[];
+
+      const profileById =
+        new Map(
+          profiles.map(
+            (profile) => [
+              profile.id,
+              profile,
+            ],
+          ),
+        );
+
+      const realTickets =
+        rows.map(
+          (ticket): SupportTicket => ({
+            id: ticket.id,
+            user:
+              profileById
+                .get(ticket.user_id)
+                ?.full_name?.trim() ||
+              profileById
+                .get(ticket.user_id)
+                ?.username?.trim() ||
+              ticket.user_id,
+            subject: ticket.subject,
+            category: ticket.category,
+            priority:
+              normalizeTicketPriority(
+                ticket.priority,
+              ),
+            status:
+              normalizeTicketStatus(
+                ticket.status,
+              ),
+            updatedAt:
+              ticket.updated_at ??
+              ticket.created_at ??
+              "",
+          }),
+        );
+
+      setTickets(realTickets);
+      setTicketsError(null);
+      setTicketsLoading(false);
+    }
+
+    void loadTickets();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredTickets =
     useMemo(() => {
@@ -99,7 +254,7 @@ export default function AdminSupportPage() {
             .includes(normalized),
         ),
       );
-    }, [query]);
+    }, [query, tickets]);
 
   const openTickets =
     tickets.filter(
@@ -295,17 +450,42 @@ export default function AdminSupportPage() {
                 ),
               )}
 
-              {filteredTickets.length ===
-                0 && (
+              {ticketsLoading && (
                 <Table.Row>
                   <Table.Cell
                     colSpan={8}
                     className="py-10 text-center text-slate-400"
                   >
-                    No se encontraron tickets.
+                    Cargando tickets...
                   </Table.Cell>
                 </Table.Row>
               )}
+
+              {!ticketsLoading &&
+                ticketsError && (
+                  <Table.Row>
+                    <Table.Cell
+                      colSpan={8}
+                      className="py-10 text-center text-red-300"
+                    >
+                      {ticketsError}
+                    </Table.Cell>
+                  </Table.Row>
+                )}
+
+              {!ticketsLoading &&
+                !ticketsError &&
+                filteredTickets.length ===
+                  0 && (
+                  <Table.Row>
+                    <Table.Cell
+                      colSpan={8}
+                      className="py-10 text-center text-slate-400"
+                    >
+                      No se encontraron tickets.
+                    </Table.Cell>
+                  </Table.Row>
+                )}
             </Table.Body>
           </Table>
         </Card.Body>
