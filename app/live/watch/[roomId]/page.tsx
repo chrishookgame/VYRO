@@ -129,7 +129,7 @@ import {
 } from "@/components/live/orchestrator/visual";
 import { useGiftComboEngine } from "@/hooks/useGiftComboEngine";
 import { useGiftComboDirector } from "@/hooks/useGiftComboDirector";
-import { useGlobalCompetitiveEcosystem } from "@/hooks/useGlobalCompetitiveEcosystem";
+import { createGlobalCompetitiveRuntime } from "@/components/live/ecosystem/GlobalCompetitiveRuntime";
 import { useUniverseEngine } from "@/hooks/useUniverseEngine";
 import { useAIPresentationRuntime } from "@/hooks/useAIPresentationRuntime";
 
@@ -171,35 +171,15 @@ export default function LiveWatchPage() {
     lastUpdate,
   );
 
-  const globalCompetitiveEcosystem =
-    useGlobalCompetitiveEcosystem({
+  const globalCompetitiveRuntime =
+    createGlobalCompetitiveRuntime({
       battleActive:
         liveBattle !== null,
-
-      seasonActive:
-        false,
-
-      leagueActive:
-        false,
-
-      tournamentActive:
-        false,
-
-      worldCircuitActive:
-        false,
-
-      worldLeagueActive:
-        false,
-
-      raidActive:
-        false,
-
-      guildWarActive:
-        false,
-
-      allianceWarActive:
-        false,
     });
+
+  const {
+    ecosystem: globalCompetitiveEcosystem,
+  } = globalCompetitiveRuntime;
 
   const {
     series: liveBattleSeries,
