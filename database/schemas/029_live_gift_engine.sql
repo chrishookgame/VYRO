@@ -20,7 +20,12 @@ as $$
         select 1
         from public.profiles
         where profiles.id = auth.uid()
-          and profiles.role = 'admin'
+          and profiles.role in (
+              'super_admin',
+              'admin',
+              'support',
+              'finance'
+          )
     );
 $$;
 
