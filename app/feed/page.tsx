@@ -1,5 +1,11 @@
-﻿import Feed from "@/components/feed/Feed";
+import Feed from "@/components/feed/Feed";
+import Header from "@/components/layout/Header";
 
 export default function FeedPage() {
-  return <Feed />;
+  return (
+    <>
+      <Header />
+      <Feed />
+    </>
+  );
 }
