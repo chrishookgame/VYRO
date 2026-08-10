@@ -33,6 +33,26 @@ export async function POST(request: Request) {
       );
     }
 
+    const body =
+      (await request.json()) as Partial<AIRequest>;
+
+    if (
+      !body.module ||
+      !body.provider ||
+      !body.systemPrompt ||
+      !body.userPrompt
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          provider: body.provider ?? "openai",
+          content: "",
+          error: "La solicitud de IA está incompleta.",
+        },
+        { status: 400 },
+      );
+    }
+
     const {
       data: rateLimitData,
       error: rateLimitError,
@@ -102,25 +122,6 @@ export async function POST(request: Request) {
               "0",
           },
         },
-      );
-    }
-
-    const body = (await request.json()) as Partial<AIRequest>;
-
-    if (
-      !body.module ||
-      !body.provider ||
-      !body.systemPrompt ||
-      !body.userPrompt
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          provider: body.provider ?? "openai",
-          content: "",
-          error: "La solicitud de IA está incompleta.",
-        },
-        { status: 400 },
       );
     }
 
