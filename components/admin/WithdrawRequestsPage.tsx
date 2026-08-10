@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -36,8 +36,17 @@ export default function WithdrawRequestsPage() {
         await getWithdrawRequests();
 
       setRequests(
-        data ?? [],
-      );
+    (data ?? []).map((item) => ({
+      id: item.id,
+      user_id: item.user_id,
+      amount:
+        typeof item.amount === "number"
+          ? item.amount
+          : Number(item.amount),
+      status: item.status,
+      created_at: item.created_at,
+    })),
+  );
 
     }
 

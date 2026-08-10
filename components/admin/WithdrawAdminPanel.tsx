@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -27,7 +27,6 @@ export default function WithdrawAdminPanel({
   onReject,
   onPay,
 }: Props) {
-
   const [filter] =
     useState<
       "all" |
@@ -46,9 +45,7 @@ export default function WithdrawAdminPanel({
         );
 
   return (
-
     <section className="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
-
       <h1 className="text-3xl font-bold">
         Admin Maestro
       </h1>
@@ -58,18 +55,13 @@ export default function WithdrawAdminPanel({
       </p>
 
       <div className="mt-8 space-y-4">
-
         {data.map(item => (
-
           <div
             key={item.id}
             className="rounded-2xl border border-slate-700 bg-slate-900 p-5"
           >
-
             <div className="flex items-center justify-between">
-
               <div>
-
                 <h2 className="font-bold">
                   {item.userName}
                 </h2>
@@ -77,11 +69,9 @@ export default function WithdrawAdminPanel({
                 <p className="text-sm text-slate-400">
                   {item.createdAt}
                 </p>
-
               </div>
 
               <div className="text-right">
-
                 <p className="text-2xl font-bold text-green-400">
                   ${item.amount.toFixed(2)}
                 </p>
@@ -89,50 +79,53 @@ export default function WithdrawAdminPanel({
                 <p className="text-sm uppercase text-cyan-300">
                   {item.status}
                 </p>
-
               </div>
-
             </div>
 
             <div className="mt-5 flex gap-3">
+              {item.status === "pending" && (
+                <>
+                  <button
+                    onClick={() =>
+                      onApprove(item.id)
+                    }
+                    className="rounded-lg bg-green-500 px-4 py-2 font-bold text-black"
+                  >
+                    Aprobar
+                  </button>
 
-              <button
-                onClick={() =>
-                  onApprove(item.id)
-                }
-                className="rounded-lg bg-green-500 px-4 py-2 font-bold text-black"
-              >
-                Aprobar
-              </button>
+                  <button
+                    onClick={() =>
+                      onReject(item.id)
+                    }
+                    className="rounded-lg bg-red-500 px-4 py-2 font-bold"
+                  >
+                    Rechazar
+                  </button>
+                </>
+              )}
 
-              <button
-                onClick={() =>
-                  onReject(item.id)
-                }
-                className="rounded-lg bg-red-500 px-4 py-2 font-bold"
-              >
-                Rechazar
-              </button>
+              {item.status === "approved" && (
+                <button
+                  onClick={() =>
+                    onPay(item.id)
+                  }
+                  className="rounded-lg bg-cyan-500 px-4 py-2 font-bold text-black"
+                >
+                  Liberar Pago
+                </button>
+              )}
 
-              <button
-                onClick={() =>
-                  onPay(item.id)
-                }
-                className="rounded-lg bg-cyan-500 px-4 py-2 font-bold text-black"
-              >
-                Liberar Pago
-              </button>
-
+              {(item.status === "rejected" ||
+                item.status === "paid") && (
+                <span className="text-sm text-slate-500">
+                  Sin acciones pendientes
+                </span>
+              )}
             </div>
-
           </div>
-
         ))}
-
       </div>
-
     </section>
-
   );
-
 }
