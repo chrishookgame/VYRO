@@ -48,7 +48,7 @@ export async function runOpenAI(
       provider: "openai",
       content: "",
       error:
-        "OPENAI_API_KEY no está configurada en el servidor.",
+        "El proveedor de IA no está disponible temporalmente.",
     };
   }
 
@@ -117,7 +117,8 @@ export async function runOpenAI(
       success: false,
       provider: "openai",
       content: "",
-      error: `OpenAI no pudo generar la respuesta: ${message}`,
+      error:
+        "El proveedor de IA no pudo completar la solicitud.",
     };
   }
 }
