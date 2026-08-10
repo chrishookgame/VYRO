@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export type DashboardMetrics = {
   videos: number;
@@ -73,6 +73,8 @@ function calculateVyroAiScore({
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+  const supabase =
+    await createServerSupabaseClient();
   const {
     data: { user },
     error: userError,
@@ -162,6 +164,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 export async function getDashboardRecentActivity(
   limit = 5,
 ): Promise<DashboardActivity[]> {
+  const supabase =
+    await createServerSupabaseClient();
   const {
     data: { user },
     error: userError,
