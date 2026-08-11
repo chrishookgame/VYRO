@@ -20,6 +20,10 @@ type BoostPackage = {
   priority_boost: number;
 };
 
+type BoostActivationRow = {
+  remaining_balance: number | string | null;
+};
+
 type BoostPanelProps = {
   postId: string;
   open: boolean;
@@ -52,6 +56,49 @@ export default function BoostPanel({
 
   const [successMessage, setSuccessMessage] =
     useState<string | null>(null);
+
+  const [walletBalance, setWalletBalance] =
+    useState<number | null>(null);
+
+  const [loadingWallet, setLoadingWallet] =
+    useState(false);
+
+  const loadWallet = useCallback(async () => {
+    setLoadingWallet(true);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setWalletBalance(null);
+      setLoadingWallet(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("wallets")
+      .select("available_balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "VYRO Boost wallet load error:",
+        error,
+      );
+      setWalletBalance(null);
+      setLoadingWallet(false);
+      return;
+    }
+
+    setWalletBalance(
+      Number(data?.available_balance ?? 0),
+    );
+
+    setLoadingWallet(false);
+  }, []);
 
   const loadPackages = useCallback(async () => {
     setLoading(true);
@@ -104,12 +151,24 @@ export default function BoostPanel({
     }
 
     void loadPackages();
-  }, [open, loadPackages]);
+    void loadWallet();
+  }, [open, loadPackages, loadWallet]);
 
   const selectedPackage =
     packages.find(
       (item) => item.code === selectedCode,
     ) ?? null;
+
+  const balanceAfterBoost =
+    selectedPackage &&
+    walletBalance !== null
+      ? walletBalance -
+        Number(selectedPackage.price)
+      : null;
+
+  const insufficientBalance =
+    balanceAfterBoost !== null &&
+    balanceAfterBoost < 0;
 
   const activateBoost = useCallback(async () => {
     if (!selectedPackage || activating) {
@@ -120,7 +179,7 @@ export default function BoostPanel({
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const { error } = await supabase.rpc(
+    const { data, error } = await supabase.rpc(
       "activate_post_boost",
       {
         target_post_id: postId,
@@ -137,6 +196,23 @@ export default function BoostPanel({
       return;
     }
 
+    const activationRows =
+      (data ?? []) as BoostActivationRow[];
+
+    const remainingBalance =
+      activationRows[0]?.remaining_balance;
+
+    if (
+      remainingBalance !== null &&
+      remainingBalance !== undefined
+    ) {
+      setWalletBalance(
+        Number(remainingBalance),
+      );
+    } else {
+      void loadWallet();
+    }
+
     setSuccessMessage(
       `Boost ${selectedPackage.name} activado correctamente.`,
     );
@@ -148,6 +224,7 @@ export default function BoostPanel({
     setActivating(false);
   }, [
     activating,
+    loadWallet,
     onActivated,
     postId,
     selectedPackage,
@@ -164,7 +241,7 @@ export default function BoostPanel({
             {selectedPackage
               ? `$${Number(
                   selectedPackage.price,
-                ).toFixed(2)} Â· ${
+                ).toFixed(2)} · ${
                   selectedPackage.duration_hours
                 }h`
               : "Selecciona un paquete"}
@@ -173,7 +250,11 @@ export default function BoostPanel({
           <button
             type="button"
             onClick={() => void activateBoost()}
-            disabled={!selectedPackage || activating}
+            disabled={
+              !selectedPackage ||
+              activating ||
+              insufficientBalance
+            }
             className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
             title={
               activating
@@ -195,6 +276,51 @@ export default function BoostPanel({
           </div>
         ) : null}
 
+        <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                VYRO Wallet
+              </p>
+
+              <p className="mt-1 text-lg font-bold text-white">
+                {loadingWallet
+                  ? "Cargando saldo..."
+                  : walletBalance !== null
+                    ? `$${walletBalance.toFixed(2)}`
+                    : "Saldo no disponible"}
+              </p>
+            </div>
+
+            {balanceAfterBoost !== null ? (
+              <div className="text-right">
+                <p className="text-xs text-slate-500">
+                  Después del Boost
+                </p>
+
+                <p
+                  className={`mt-1 font-bold ${
+                    insufficientBalance
+                      ? "text-red-300"
+                      : "text-emerald-300"
+                  }`}
+                >
+                  ${Math.max(
+                    0,
+                    balanceAfterBoost,
+                  ).toFixed(2)}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {insufficientBalance ? (
+            <p className="mt-3 text-sm font-semibold text-red-300">
+              Saldo insuficiente para este paquete.
+            </p>
+          ) : null}
+        </div>
+
         <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
           <div className="flex items-center gap-3">
             <Rocket
@@ -209,7 +335,7 @@ export default function BoostPanel({
 
               <p className="text-sm text-slate-400">
                 Aumenta temporalmente la prioridad
-                de distribuciÃ³n de tu publicaciÃ³n.
+                de distribución de tu publicación.
               </p>
             </div>
           </div>
