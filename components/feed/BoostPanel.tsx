@@ -77,6 +77,9 @@ export default function BoostPanel({
   const [loadingCampaign, setLoadingCampaign] =
     useState(false);
 
+  const [countdownNow, setCountdownNow] =
+    useState(() => Date.now());
+
   const loadActiveCampaign = useCallback(async () => {
     setLoadingCampaign(true);
 
@@ -110,6 +113,43 @@ export default function BoostPanel({
 
     setLoadingCampaign(false);
   }, [postId]);
+
+  useEffect(() => {
+    if (!open || !activeCampaign) {
+      return;
+    }
+
+    setCountdownNow(Date.now());
+
+    const intervalId = window.setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [open, activeCampaign]);
+
+  useEffect(() => {
+    if (!open || !activeCampaign) {
+      return;
+    }
+
+    const endsAt =
+      new Date(activeCampaign.ends_at).getTime();
+
+    if (
+      Number.isFinite(endsAt) &&
+      endsAt <= countdownNow
+    ) {
+      void loadActiveCampaign();
+    }
+  }, [
+    open,
+    activeCampaign,
+    countdownNow,
+    loadActiveCampaign,
+  ]);
 
   const loadWallet = useCallback(async () => {
     setLoadingWallet(true);
@@ -212,6 +252,44 @@ export default function BoostPanel({
     packages.find(
       (item) => item.code === selectedCode,
     ) ?? null;
+
+  const boostRemainingMs =
+    activeCampaign
+      ? Math.max(
+          0,
+          new Date(
+            activeCampaign.ends_at,
+          ).getTime() - countdownNow,
+        )
+      : 0;
+
+  const boostRemainingHours =
+    Math.floor(
+      boostRemainingMs /
+        (1000 * 60 * 60),
+    );
+
+  const boostRemainingMinutes =
+    Math.floor(
+      (boostRemainingMs /
+        (1000 * 60)) %
+        60,
+    );
+
+  const boostRemainingSeconds =
+    Math.floor(
+      (boostRemainingMs / 1000) %
+        60,
+    );
+
+  const boostRemainingLabel =
+    activeCampaign
+      ? `${boostRemainingHours}h ${String(
+          boostRemainingMinutes,
+        ).padStart(2, "0")}m ${String(
+          boostRemainingSeconds,
+        ).padStart(2, "0")}s`
+      : null;
 
   const balanceAfterBoost =
     selectedPackage &&
@@ -364,6 +442,12 @@ export default function BoostPanel({
                   Priority +
                   {activeCampaign.priority_boost}
                 </p>
+
+                {boostRemainingLabel ? (
+                  <p className="mt-2 font-mono text-sm font-bold text-emerald-300">
+                    {boostRemainingLabel}
+                  </p>
+                ) : null}
 
                 <p className="mt-2 text-xs text-slate-300">
                   Finaliza{" "}
