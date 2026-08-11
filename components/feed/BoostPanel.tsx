@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useCallback,
@@ -24,12 +24,16 @@ type BoostPanelProps = {
   postId: string;
   open: boolean;
   onClose: () => void;
+  onActivated?: (
+    priorityBoost: number,
+  ) => void;
 };
 
 export default function BoostPanel({
   postId,
   open,
   onClose,
+  onActivated,
 }: BoostPanelProps) {
   const [packages, setPackages] =
     useState<BoostPackage[]>([]);
@@ -136,8 +140,18 @@ export default function BoostPanel({
     setSuccessMessage(
       `Boost ${selectedPackage.name} activado correctamente.`,
     );
+
+    onActivated?.(
+      selectedPackage.priority_boost,
+    );
+
     setActivating(false);
-  }, [activating, postId, selectedPackage]);
+  }, [
+    activating,
+    onActivated,
+    postId,
+    selectedPackage,
+  ]);
 
   return (
     <Modal
@@ -150,7 +164,7 @@ export default function BoostPanel({
             {selectedPackage
               ? `$${Number(
                   selectedPackage.price,
-                ).toFixed(2)} · ${
+                ).toFixed(2)} Â· ${
                   selectedPackage.duration_hours
                 }h`
               : "Selecciona un paquete"}
@@ -195,7 +209,7 @@ export default function BoostPanel({
 
               <p className="text-sm text-slate-400">
                 Aumenta temporalmente la prioridad
-                de distribución de tu publicación.
+                de distribuciÃ³n de tu publicaciÃ³n.
               </p>
             </div>
           </div>

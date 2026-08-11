@@ -10,6 +10,7 @@ type VideoCardProps = {
   description: string;
   videoUrl: string;
   likes: number;
+  priorityBoost: number;
 };
 
 export default function VideoCard({
@@ -19,6 +20,7 @@ export default function VideoCard({
   description,
   videoUrl,
   likes,
+  priorityBoost,
 }: VideoCardProps) {
   return (
     <div className="relative h-screen w-full snap-start overflow-hidden bg-black">
@@ -39,6 +41,9 @@ export default function VideoCard({
       <ActionBar
         postId={postId}
         initialLikes={likes}
+        initialPriorityBoost={
+          priorityBoost
+        }
       />
     </div>
   );

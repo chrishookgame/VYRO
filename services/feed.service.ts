@@ -8,6 +8,7 @@ export type FeedVideo = {
   videoUrl: string;
   likes: number;
   createdAt: string;
+  priorityBoost: number;
 };
 
 type RankedPostRow = {
@@ -87,6 +88,8 @@ export async function getFeed(): Promise<FeedVideo[]> {
       videoUrl: post.video_url,
       likes: post.likes ?? 0,
       createdAt: post.created_at,
+      priorityBoost:
+        post.priority_boost ?? 0,
     };
   });
 }

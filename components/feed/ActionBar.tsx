@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useCallback,
@@ -61,6 +61,7 @@ function ActionButton({
 type ActionBarProps = {
   postId: string;
   initialLikes: number;
+  initialPriorityBoost: number;
 };
 
 function formatCount(value: number) {
@@ -76,6 +77,7 @@ function formatCount(value: number) {
 export default function ActionBar({
   postId,
   initialLikes,
+  initialPriorityBoost,
 }: ActionBarProps) {
   const [liked, setLiked] =
     useState(false);
@@ -91,6 +93,13 @@ export default function ActionBar({
 
   const [boostOpen, setBoostOpen] =
     useState(false);
+
+  const [
+    boostPriority,
+    setBoostPriority,
+  ] = useState(
+    initialPriorityBoost,
+  );
 
   const [vaulted, setVaulted] =
     useState(false);
@@ -202,7 +211,7 @@ export default function ActionBar({
 
     if (!user) {
       window.alert(
-        "Debes iniciar sesión para dar Me gusta.",
+        "Debes iniciar sesiÃ³n para dar Me gusta.",
       );
 
       return;
@@ -252,7 +261,7 @@ export default function ActionBar({
 
     if (userError || !user) {
       window.alert(
-        "Debes iniciar sesión para usar Vault.",
+        "Debes iniciar sesiÃ³n para usar Vault.",
       );
 
       return;
@@ -353,8 +362,16 @@ export default function ActionBar({
               className="text-cyan-300"
             />
           }
-          label="Boost"
-          count="0"
+          label={
+            boostPriority > 0
+              ? "Boosted"
+              : "Boost"
+          }
+          count={
+            boostPriority > 0
+              ? `+${boostPriority}`
+              : "0"
+          }
           onClick={() =>
             setBoostOpen(true)
           }
@@ -390,6 +407,13 @@ export default function ActionBar({
           onClose={() =>
             setBoostOpen(false)
           }
+          onActivated={(
+            priorityBoost,
+          ) => {
+            setBoostPriority(
+              priorityBoost,
+            );
+          }}
         />
       ) : null}
 
