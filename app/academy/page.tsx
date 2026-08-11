@@ -198,12 +198,12 @@ export default function AcademyPage() {
               <div className="flex items-center gap-2 text-cyan-300">
                 <Brain size={20} />
                 <span className="font-bold">
-                  AI Teacher preparado
+                  AI Teacher activo
                 </span>
               </div>
 
               <p className="mt-2 text-sm text-gray-300">
-                Próximamente generará módulos y lecciones.
+                Genera módulos y lecciones con VYRO AI y guárdalos directamente en tu curso.
               </p>
             </div>
           </div>
