@@ -4,14 +4,17 @@ import {
   ChevronLeft,
   LogOut,
   Mail,
+  Save,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function AccountSettings() {
   const router = useRouter();
@@ -21,6 +24,104 @@ export default function AccountSettings() {
     loading,
     signOut,
   } = useAuth();
+
+  const [currentPassword, setCurrentPassword] =
+    useState("");
+
+  const [newPassword, setNewPassword] =
+    useState("");
+
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
+
+  const [updatingPassword, setUpdatingPassword] =
+    useState(false);
+
+  const [securityError, setSecurityError] =
+    useState("");
+
+  const [securityMessage, setSecurityMessage] =
+    useState("");
+
+  async function handlePasswordUpdate() {
+    if (updatingPassword) {
+      return;
+    }
+
+    setSecurityError("");
+    setSecurityMessage("");
+
+    if (!currentPassword) {
+      setSecurityError(
+        "Escribe tu contraseña actual.",
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setSecurityError(
+        "La nueva contraseña debe tener al menos 6 caracteres.",
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setSecurityError(
+        "Las nuevas contraseñas no coinciden.",
+      );
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setSecurityError(
+        "La nueva contraseña debe ser diferente a la actual.",
+      );
+      return;
+    }
+
+    setUpdatingPassword(true);
+
+    try {
+      const { error } =
+        await supabase.auth.updateUser({
+          password: newPassword,
+          current_password: currentPassword,
+        });
+
+      if (error) {
+        console.error(
+          "VYRO password update error:",
+          error,
+        );
+
+        setSecurityError(
+          error.message ||
+            "No fue posible actualizar la contraseña.",
+        );
+
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setSecurityMessage(
+        "Contraseña actualizada correctamente.",
+      );
+    } catch (error) {
+      console.error(
+        "VYRO password update unexpected error:",
+        error,
+      );
+
+      setSecurityError(
+        "No fue posible actualizar la contraseña.",
+      );
+    } finally {
+      setUpdatingPassword(false);
+    }
+  }
 
   async function handleSignOut() {
     try {
@@ -131,15 +232,106 @@ export default function AccountSettings() {
                 <ShieldCheck size={21} />
               </div>
 
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="font-black">
                   Seguridad
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-gray-400">
-                  Próximamente podrás administrar contraseña,
-                  correo electrónico y opciones avanzadas de seguridad.
+                  Actualiza la contraseña de acceso a tu cuenta VYRO.
                 </p>
+
+                <div className="mt-5 grid gap-4">
+                  <label>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Contraseña actual
+                    </span>
+
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(event) =>
+                        setCurrentPassword(
+                          event.target.value,
+                        )
+                      }
+                      autoComplete="current-password"
+                      disabled={updatingPassword}
+                      className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:opacity-60"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Nueva contraseña
+                    </span>
+
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(event) =>
+                        setNewPassword(
+                          event.target.value,
+                        )
+                      }
+                      autoComplete="new-password"
+                      disabled={updatingPassword}
+                      className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:opacity-60"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Confirmar nueva contraseña
+                    </span>
+
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(event) =>
+                        setConfirmPassword(
+                          event.target.value,
+                        )
+                      }
+                      autoComplete="new-password"
+                      disabled={updatingPassword}
+                      className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:opacity-60"
+                    />
+                  </label>
+                </div>
+
+                {securityError ? (
+                  <p
+                    role="alert"
+                    className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                  >
+                    {securityError}
+                  </p>
+                ) : null}
+
+                {securityMessage ? (
+                  <p
+                    aria-live="polite"
+                    className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+                  >
+                    {securityMessage}
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handlePasswordUpdate();
+                  }}
+                  disabled={updatingPassword}
+                  className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-cyan-500 px-5 py-3 font-black text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Save size={18} />
+
+                  {updatingPassword
+                    ? "Actualizando..."
+                    : "Actualizar contraseña"}
+                </button>
               </div>
             </div>
           </div>
