@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -88,6 +88,12 @@ export default function ActionBar({
   const [talkOpen, setTalkOpen] =
     useState(false);
 
+  const [vaulted, setVaulted] =
+    useState(false);
+
+  const [loadingVault, setLoadingVault] =
+    useState(true);
+
   const [commentCount, setCommentCount] =
     useState(0);
 
@@ -143,8 +149,38 @@ export default function ActionBar({
         );
       }
 
+      if (user) {
+        const {
+          data: vaultData,
+          error: vaultError,
+        } = await supabase
+          .from("post_vault")
+          .select("id")
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (
+          mounted &&
+          !vaultError
+        ) {
+          setVaulted(Boolean(vaultData));
+        }
+
+        if (
+          mounted &&
+          vaultError
+        ) {
+          console.error(
+            "VYRO vault load error:",
+            vaultError,
+          );
+        }
+      }
+
       if (mounted) {
         setLoadingLike(false);
+        setLoadingVault(false);
       }
     }
 
@@ -202,6 +238,58 @@ export default function ActionBar({
     }
 
     setLoadingLike(false);
+  }
+
+  async function toggleVault() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      window.alert(
+        "Debes iniciar sesión para usar Vault.",
+      );
+
+      return;
+    }
+
+    setLoadingVault(true);
+
+    if (vaulted) {
+      const { error } = await supabase
+        .from("post_vault")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error(
+          "VYRO vault remove error:",
+          error,
+        );
+      } else {
+        setVaulted(false);
+      }
+    } else {
+      const { error } = await supabase
+        .from("post_vault")
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+        });
+
+      if (error) {
+        console.error(
+          "VYRO vault save error:",
+          error,
+        );
+      } else {
+        setVaulted(true);
+      }
+    }
+
+    setLoadingVault(false);
   }
 
   return (
@@ -269,10 +357,22 @@ export default function ActionBar({
           icon={
             <Gem
               size={30}
-              className="text-cyan-300"
+              className={
+                vaulted
+                  ? "fill-cyan-300 text-cyan-300"
+                  : "text-cyan-300"
+              }
             />
           }
-          label="Vault"
+          label={
+            vaulted
+              ? "Vaulted"
+              : "Vault"
+          }
+          onClick={() =>
+            void toggleVault()
+          }
+          disabled={loadingVault}
         />
       </div>
 
