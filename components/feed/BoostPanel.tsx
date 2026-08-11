@@ -24,6 +24,14 @@ type BoostActivationRow = {
   remaining_balance: number | string | null;
 };
 
+type ActiveBoostCampaign = {
+  id: string;
+  package_code: string;
+  priority_boost: number;
+  starts_at: string;
+  ends_at: string;
+};
+
 type BoostPanelProps = {
   postId: string;
   open: boolean;
@@ -62,6 +70,46 @@ export default function BoostPanel({
 
   const [loadingWallet, setLoadingWallet] =
     useState(false);
+
+  const [activeCampaign, setActiveCampaign] =
+    useState<ActiveBoostCampaign | null>(null);
+
+  const [loadingCampaign, setLoadingCampaign] =
+    useState(false);
+
+  const loadActiveCampaign = useCallback(async () => {
+    setLoadingCampaign(true);
+
+    const { data, error } = await supabase
+      .from("post_boost_campaigns")
+      .select(
+        "id,package_code,priority_boost,starts_at,ends_at",
+      )
+      .eq("post_id", postId)
+      .eq("status", "active")
+      .gt("ends_at", new Date().toISOString())
+      .order("ends_at", {
+        ascending: false,
+      })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "VYRO Boost campaign load error:",
+        error,
+      );
+      setActiveCampaign(null);
+      setLoadingCampaign(false);
+      return;
+    }
+
+    setActiveCampaign(
+      (data as ActiveBoostCampaign | null) ?? null,
+    );
+
+    setLoadingCampaign(false);
+  }, [postId]);
 
   const loadWallet = useCallback(async () => {
     setLoadingWallet(true);
@@ -152,7 +200,13 @@ export default function BoostPanel({
 
     void loadPackages();
     void loadWallet();
-  }, [open, loadPackages, loadWallet]);
+    void loadActiveCampaign();
+  }, [
+    open,
+    loadPackages,
+    loadWallet,
+    loadActiveCampaign,
+  ]);
 
   const selectedPackage =
     packages.find(
@@ -171,7 +225,11 @@ export default function BoostPanel({
     balanceAfterBoost < 0;
 
   const activateBoost = useCallback(async () => {
-    if (!selectedPackage || activating) {
+    if (
+      !selectedPackage ||
+      activating ||
+      activeCampaign
+    ) {
       return;
     }
 
@@ -221,9 +279,13 @@ export default function BoostPanel({
       selectedPackage.priority_boost,
     );
 
+    await loadActiveCampaign();
+
     setActivating(false);
   }, [
+    activeCampaign,
     activating,
+    loadActiveCampaign,
     loadWallet,
     onActivated,
     postId,
@@ -253,7 +315,8 @@ export default function BoostPanel({
             disabled={
               !selectedPackage ||
               activating ||
-              insufficientBalance
+              insufficientBalance ||
+              Boolean(activeCampaign)
             }
             className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
             title={
@@ -262,12 +325,57 @@ export default function BoostPanel({
                 : "Activar VYRO Boost"
             }
           >
-            {activating ? "Activating..." : "Continue"}
+            {activeCampaign
+              ? "Boost activo"
+              : activating
+                ? "Activating..."
+                : "Continue"}
           </button>
         </div>
       }
     >
       <div className="space-y-5">
+        {loadingCampaign ? (
+          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+            <p className="text-sm text-cyan-200">
+              Verificando Boost activo...
+            </p>
+          </div>
+        ) : null}
+
+        {!loadingCampaign && activeCampaign ? (
+          <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4">
+            <div className="flex items-start gap-3">
+              <Rocket
+                size={26}
+                className="mt-0.5 text-emerald-300"
+              />
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">
+                  Boost activo
+                </p>
+
+                <p className="mt-2 font-bold text-white">
+                  {activeCampaign.package_code}
+                </p>
+
+                <p className="mt-1 text-sm text-emerald-100">
+                  Priority +
+                  {activeCampaign.priority_boost}
+                </p>
+
+                <p className="mt-2 text-xs text-slate-300">
+                  Finaliza{" "}
+                  {new Date(
+                    activeCampaign.ends_at,
+                  ).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {successMessage ? (
           <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4">
             <p className="text-sm font-semibold text-emerald-200">
