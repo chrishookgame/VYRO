@@ -142,13 +142,31 @@ export default function BoostPanel({
       Number.isFinite(endsAt) &&
       endsAt <= countdownNow
     ) {
-      void loadActiveCampaign();
+      void (async () => {
+        const { error } = await supabase.rpc(
+          "complete_expired_post_boost",
+          {
+            target_post_id: postId,
+          },
+        );
+
+        if (error) {
+          console.error(
+            "VYRO Boost expiration error:",
+            error,
+          );
+          return;
+        }
+
+        await loadActiveCampaign();
+      })();
     }
   }, [
     open,
     activeCampaign,
     countdownNow,
     loadActiveCampaign,
+    postId,
   ]);
 
   const loadWallet = useCallback(async () => {
