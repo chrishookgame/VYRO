@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Bell,
   ChevronLeft,
+  CircleUserRound,
   LifeBuoy,
   Settings,
   UserRound,
@@ -41,7 +42,24 @@ export default function SettingsPage() {
           </div>
         </header>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3">
+        <section className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Link
+            href="/account"
+            className="group rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-cyan-400/40 hover:bg-white/[0.06]"
+          >
+            <CircleUserRound
+              size={26}
+              className="text-cyan-400"
+            />
+
+            <h2 className="mt-5 text-lg font-black">
+              Cuenta
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-gray-400">
+              Administra acceso, correo y seguridad de tu cuenta.
+            </p>
+          </Link>
           <Link
             href="/profile"
             className="group rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-cyan-400/40 hover:bg-white/[0.06]"
