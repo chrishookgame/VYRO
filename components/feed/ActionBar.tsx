@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/lib/supabase";
 
 import TalkPanel from "./TalkPanel";
+import BoostPanel from "./BoostPanel";
 
 type ActionButtonProps = {
   icon: ReactNode;
@@ -86,6 +87,9 @@ export default function ActionBar({
     useState(true);
 
   const [talkOpen, setTalkOpen] =
+    useState(false);
+
+  const [boostOpen, setBoostOpen] =
     useState(false);
 
   const [vaulted, setVaulted] =
@@ -351,6 +355,9 @@ export default function ActionBar({
           }
           label="Boost"
           count="0"
+          onClick={() =>
+            setBoostOpen(true)
+          }
         />
 
         <ActionButton
@@ -375,6 +382,16 @@ export default function ActionBar({
           disabled={loadingVault}
         />
       </div>
+
+      {boostOpen ? (
+        <BoostPanel
+          postId={postId}
+          open={boostOpen}
+          onClose={() =>
+            setBoostOpen(false)
+          }
+        />
+      ) : null}
 
       {talkOpen ? (
         <TalkPanel
