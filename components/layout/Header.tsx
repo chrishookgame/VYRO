@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Search,
   Sparkles,
@@ -51,22 +52,24 @@ export default function Header() {
           />
         </div>
 
-        <button
-          type="button"
+        <Link
+          href="/ai"
           className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111827] text-white transition hover:bg-cyan-500 hover:text-black sm:h-12 sm:w-12"
           aria-label="Abrir asistente"
         >
           <Sparkles size={22} />
-        </button>
+        </Link>
 
         <NotificationCenter />
 
-        <div
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 font-bold text-black sm:h-12 sm:w-12"
+        <Link
+          href="/profile"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 font-bold text-black transition hover:scale-105 sm:h-12 sm:w-12"
           title={displayName}
+          aria-label="Abrir perfil"
         >
           {initial}
-        </div>
+        </Link>
       </div>
     </header>
   );

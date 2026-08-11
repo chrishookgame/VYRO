@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Sparkles } from "lucide-react";
 
 export default function AiCore() {
@@ -31,9 +33,12 @@ export default function AiCore() {
               Create
             </button>
 
-            <button className="rounded-2xl border border-cyan-500/30 bg-white/5 px-8 py-4 font-bold text-white transition hover:bg-white/10">
+            <Link
+              href="/ai"
+              className="rounded-2xl border border-cyan-500/30 bg-white/5 px-8 py-4 font-bold text-white transition hover:bg-white/10"
+            >
               Explore AI
-            </button>
+            </Link>
 
           </div>
 
