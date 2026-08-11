@@ -23,7 +23,7 @@ const rankingTypes: Array<{
   label: string;
 }> = [
   { id: "gifter", label: "Regalos" },
-  { id: "energy", label: "EnergÃƒÂ­a" },
+  { id: "energy", label: "Energía" },
   { id: "viewer", label: "Audiencia" },
   { id: "creator", label: "Creadores" },
 ];
@@ -129,11 +129,11 @@ export default function LiveRankingPanel({
             </div>
 
             <h2 className="mt-3 text-3xl font-black text-white">
-              LÃƒÂ­deres del Universo VYRO
+              Líderes del Universo VYRO
             </h2>
 
             <p className="mt-2 text-gray-400">
-              Reconocimiento por regalos, energÃƒÂ­a, audiencia y creaciÃƒÂ³n.
+              Reconocimiento por regalos, energía, audiencia y creación.
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export default function LiveRankingPanel({
             </h3>
 
             <p className="mt-2 text-gray-400">
-              La actividad de los prÃƒÂ³ximos LIVE aparecerÃƒÂ¡ aquÃƒÂ­.
+              La actividad de los próximos LIVE aparecerá aquí.
             </p>
           </div>
         ) : null}
@@ -228,14 +228,14 @@ export default function LiveRankingPanel({
                 >
                   <div className="text-4xl">
                     {index === 0
-                      ? "Ã°Å¸â€˜â€˜"
+                      ? "👑"
                       : index === 1
-                        ? "Ã°Å¸Â¥Ë†"
-                        : "Ã°Å¸Â¥â€°"}
+                        ? "🥈"
+                        : "🥉"}
                   </div>
 
                   <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-400">
-                    PosiciÃƒÂ³n {index + 1}
+                    Posición {index + 1}
                   </p>
 
                   <h3 className="mt-2 truncate text-lg font-black text-white">
@@ -268,7 +268,7 @@ export default function LiveRankingPanel({
                         </p>
 
                         <p className="text-xs text-gray-500">
-                          {entry.reactions_sent} reacciones Ã‚Â·{" "}
+                          {entry.reactions_sent} reacciones ·{" "}
                           {entry.gifts_sent} regalos
                         </p>
                       </div>

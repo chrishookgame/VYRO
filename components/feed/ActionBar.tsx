@@ -211,7 +211,7 @@ export default function ActionBar({
 
     if (!user) {
       window.alert(
-        "Debes iniciar sesiÃ³n para dar Me gusta.",
+        "Debes iniciar sesión para dar Me gusta.",
       );
 
       return;
@@ -261,7 +261,7 @@ export default function ActionBar({
 
     if (userError || !user) {
       window.alert(
-        "Debes iniciar sesiÃ³n para usar Vault.",
+        "Debes iniciar sesión para usar Vault.",
       );
 
       return;
