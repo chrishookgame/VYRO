@@ -10,13 +10,14 @@ export type FeedVideo = {
   createdAt: string;
 };
 
-type PostRow = {
+type RankedPostRow = {
   id: string;
   user_id: string;
   caption: string | null;
   video_url: string;
   likes: number | null;
   created_at: string;
+  priority_boost: number | null;
 };
 
 type ProfileRow = {
@@ -26,22 +27,19 @@ type ProfileRow = {
 };
 
 export async function getFeed(): Promise<FeedVideo[]> {
-  const { data: posts, error: postsError } =
-    await supabase
-      .from("posts")
-      .select(
-        "id, user_id, caption, video_url, likes, created_at",
-      )
-      .order("created_at", {
-        ascending: false,
-      });
+  const {
+    data: posts,
+    error: postsError,
+  } = await supabase.rpc(
+    "get_ranked_feed",
+  );
 
   if (postsError) {
     throw new Error(postsError.message);
   }
 
   const postRows =
-    (posts ?? []) as PostRow[];
+    (posts ?? []) as RankedPostRow[];
 
   if (postRows.length === 0) {
     return [];
