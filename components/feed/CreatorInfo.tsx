@@ -1,4 +1,6 @@
-﻿import FollowButton from "./FollowButton";
+import Link from "next/link";
+
+import FollowButton from "./FollowButton";
 
 type CreatorInfoProps = {
   creatorId: string;
@@ -22,9 +24,12 @@ export default function CreatorInfo({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        <h2 className="text-2xl font-black tracking-wide">
+        <Link
+          href={`/profile/${creatorId}`}
+          className="text-2xl font-black tracking-wide transition hover:text-cyan-300"
+        >
           @{creator}
-        </h2>
+        </Link>
 
         <FollowButton
           creatorId={creatorId}
