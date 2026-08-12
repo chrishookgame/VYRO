@@ -14,6 +14,7 @@ import {
 } from "@/components/ai";
 
 import { runAI } from "@/lib/ai/client";
+import { supabase } from "@/lib/supabase";
 import { generateSEO } from "@/services/ai/seo";
 import { generateHashtags } from "@/services/ai/hashtags";
 
@@ -104,6 +105,15 @@ export default function AIPage() {
 
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] =
     useState(false);
+
+  const [isSavingProject, setIsSavingProject] =
+    useState(false);
+
+  const [saveMessage, setSaveMessage] =
+    useState("");
+
+  const [saveError, setSaveError] =
+    useState("");
 
   async function handleGenerate(
     prompt: string,
@@ -263,6 +273,137 @@ Visual direction:
     }
   }
 
+  async function handleSaveProject() {
+    if (
+      !project.title.trim() ||
+      !project.script.trim() ||
+      project.scenes.length === 0 ||
+      isSavingProject
+    ) {
+      return;
+    }
+
+    setIsSavingProject(true);
+    setSaveMessage("");
+    setSaveError("");
+
+    let createdProjectId = "";
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error(
+          "Debes iniciar sesión para guardar el proyecto.",
+        );
+      }
+
+      const currentSeo = generateSEO(
+        project.title,
+      );
+
+      const hashtags = generateHashtags(
+        "youtube",
+        project.title,
+      );
+
+      const {
+        data: createdProject,
+        error: projectError,
+      } = await supabase
+        .from("projects")
+        .insert({
+          user_id: user.id,
+          title: project.title,
+          description:
+            "Proyecto generado con VYRO AI Director.",
+          module: "creator",
+          status: "active",
+          progress: 0,
+        })
+        .select("id")
+        .single();
+
+      if (projectError || !createdProject) {
+        console.error(
+          "VYRO AI project creation failed:",
+          projectError,
+        );
+
+        throw new Error(
+          "No fue posible crear el proyecto en VYRO.",
+        );
+      }
+
+      createdProjectId = createdProject.id;
+
+      const {
+        error: contentError,
+      } = await supabase
+        .from("ai_project_content")
+        .insert({
+          project_id: createdProjectId,
+          user_id: user.id,
+          source_prompt: project.title,
+          script: project.script,
+          scenes: project.scenes,
+          seo: {
+            title: currentSeo.title,
+            description: currentSeo.description,
+            keywords: currentSeo.keywords,
+            hashtags,
+          },
+          thumbnail_data_url:
+            thumbnailImage || null,
+        });
+
+      if (contentError) {
+        console.error(
+          "VYRO AI project content save failed:",
+          contentError,
+        );
+
+        const { error: rollbackError } =
+          await supabase
+            .from("projects")
+            .delete()
+            .eq("id", createdProjectId)
+            .eq("user_id", user.id);
+
+        if (rollbackError) {
+          console.error(
+            "VYRO AI project rollback failed:",
+            rollbackError,
+          );
+        }
+
+        throw new Error(
+          "No fue posible guardar el contenido del proyecto.",
+        );
+      }
+
+      setSaveMessage(
+        "Proyecto guardado correctamente en VYRO.",
+      );
+    } catch (saveProjectError) {
+      console.error(
+        "VYRO AI save project failed:",
+        saveProjectError,
+      );
+
+      setSaveError(
+        saveProjectError instanceof Error
+          ? saveProjectError.message
+          : "No fue posible guardar el proyecto.",
+      );
+    } finally {
+      setIsSavingProject(false);
+    }
+  }
+
   const seo = generateSEO(
     project.title || "AI Video",
   );
@@ -339,7 +480,20 @@ Visual direction:
             }
           />
 
-          <ExportPanel />
+          <ExportPanel
+            onSaveProject={
+              project.title &&
+              project.script &&
+              project.scenes.length > 0
+                ? () => {
+                    void handleSaveProject();
+                  }
+                : undefined
+            }
+            isSavingProject={isSavingProject}
+            saveMessage={saveMessage}
+            saveError={saveError}
+          />
         </div>
       </div>
     </main>
