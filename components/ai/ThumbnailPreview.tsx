@@ -38,7 +38,7 @@ export default function ThumbnailPreview({
             fill
             unoptimized
             sizes="(max-width: 1600px) 100vw, 1600px"
-            className="object-cover"
+            className="object-contain"
           />
         </div>
       ) : (
