@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 
 import ProjectActions from "@/components/workspace/ProjectActions";
 import ProjectAI from "@/components/workspace/ProjectAI";
+import ProjectAIContent, {
+  type AIProjectContentData,
+} from "@/components/workspace/ProjectAIContent";
 import ProjectFiles from "@/components/workspace/ProjectFiles";
 import ProjectHeader from "@/components/workspace/ProjectHeader";
 import ProjectOverview from "@/components/workspace/ProjectOverview";
@@ -31,7 +34,10 @@ type ProjectWorkspaceItem = {
   created_at: string;
 };
 
-const moduleLabels: Record<ProjectWorkspaceItem["module"], string> = {
+const moduleLabels: Record<
+  ProjectWorkspaceItem["module"],
+  string
+> = {
   creator: "Creator Studio",
   live: "VYRO Live",
   feed: "Social Feed",
@@ -41,7 +47,10 @@ const moduleLabels: Record<ProjectWorkspaceItem["module"], string> = {
   marketplace: "Marketplace",
 };
 
-const statusLabels: Record<ProjectWorkspaceItem["status"], string> = {
+const statusLabels: Record<
+  ProjectWorkspaceItem["status"],
+  string
+> = {
   draft: "Borrador",
   active: "Activo",
   completed: "Completado",
@@ -55,8 +64,14 @@ export default function ProjectWorkspacePage() {
   const [project, setProject] =
     useState<ProjectWorkspaceItem | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [aiContent, setAiContent] =
+    useState<AIProjectContentData | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     async function loadProject() {
@@ -70,11 +85,16 @@ export default function ProjectWorkspacePage() {
 
       if (userError || !user) {
         setLoading(false);
-        setError("Debes iniciar sesión para abrir este proyecto.");
+        setError(
+          "Debes iniciar sesión para abrir este proyecto.",
+        );
         return;
       }
 
-      const { data, error: projectError } = await supabase
+      const {
+        data,
+        error: projectError,
+      } = await supabase
         .from("projects")
         .select(
           "id, title, description, status, module, progress, created_at",
@@ -90,17 +110,55 @@ export default function ProjectWorkspacePage() {
         );
 
         setLoading(false);
-        setError("No fue posible cargar el proyecto.");
+        setError(
+          "No fue posible cargar el proyecto.",
+        );
         return;
       }
 
       if (!data) {
         setLoading(false);
-        setError("El proyecto no existe o no tienes acceso.");
+        setError(
+          "El proyecto no existe o no tienes acceso.",
+        );
         return;
       }
 
-      setProject(data as ProjectWorkspaceItem);
+      const {
+        data: aiData,
+        error: aiError,
+      } = await supabase
+        .from("ai_project_content")
+        .select(
+          "project_id, source_prompt, script, scenes, seo, thumbnail_data_url, created_at, updated_at",
+        )
+        .eq("project_id", projectId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (aiError) {
+        console.error(
+          "VYRO could not load AI project content:",
+          aiError,
+        );
+
+        setLoading(false);
+        setError(
+          "El proyecto existe, pero no fue posible cargar su contenido AI.",
+        );
+        return;
+      }
+
+      setProject(
+        data as ProjectWorkspaceItem,
+      );
+
+      setAiContent(
+        aiData
+          ? (aiData as AIProjectContentData)
+          : null,
+      );
+
       setLoading(false);
     }
 
@@ -182,18 +240,30 @@ export default function ProjectWorkspacePage() {
           />
         </div>
 
+        <ProjectAIContent
+          content={aiContent}
+        />
+
         <div
           id="project-tasks"
           className="grid grid-cols-1 gap-8 xl:grid-cols-2"
         >
-          <ProjectTasks projectId={project.id} />
+          <ProjectTasks
+            projectId={project.id}
+          />
 
-          <ProjectTimeline progress={project.progress} />
+          <ProjectTimeline
+            progress={project.progress}
+          />
         </div>
 
-        <ProjectFiles projectId={project.id} />
+        <ProjectFiles
+          projectId={project.id}
+        />
 
-        <ProjectActions module={project.module} />
+        <ProjectActions
+          module={project.module}
+        />
       </div>
     </main>
   );
