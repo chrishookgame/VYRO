@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import {
+  LocalTrack,
+  Room,
+  Track,
+} from "livekit-client";
+import {
   ArrowLeft,
   Camera,
   CameraOff,
@@ -24,6 +29,8 @@ import {
   type BattleSeriesConfig,
 } from "@/components/live/battle";
 import { LiveCommandCenter } from "@/components/live/command-center";
+import { LiveGuestControlCenter } from "@/components/live/guest";
+import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
 import {
   useBattleCountdown,
   useBattleInvitations,
@@ -52,6 +59,8 @@ function formatDuration(totalSeconds: number) {
 export default function LiveStudioPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const liveKitRoomRef = useRef<Room | null>(null);
+  const liveKitPublishedTracksRef = useRef<LocalTrack[]>([]);
 
   const {
     session,
@@ -96,8 +105,21 @@ export default function LiveStudioPage() {
     session?.id,
   );
   const [devicesReady, setDevicesReady] = useState(false);
+  const [availableCameras, setAvailableCameras] =
+    useState<MediaDeviceInfo[]>([]);
+  const [availableMicrophones, setAvailableMicrophones] =
+    useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] =
+    useState("");
+  const [selectedMicrophoneId, setSelectedMicrophoneId] =
+    useState("");
+  const [settingsOpen, setSettingsOpen] =
+    useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
+  const [screenShareEnabled, setScreenShareEnabled] = useState(false);
+  const [liveKitRoom, setLiveKitRoom] =
+    useState<Room | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [liveDuration, setLiveDuration] = useState(0);
   const [title, setTitle] = useState("");
@@ -273,28 +295,98 @@ export default function LiveStudioPage() {
     };
   }, [isLive]);
 
-  async function startDevices() {
+  async function startDevices(
+    cameraId = selectedCameraId,
+    microphoneId = selectedMicrophoneId,
+  ) {
     setError("");
     setMessage("");
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
+      streamRef.current
+        ?.getTracks()
+        .forEach((track) => track.stop());
+
+      streamRef.current = null;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 500);
       });
 
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          video: cameraId
+            ? {
+                deviceId: {
+                  exact: cameraId,
+                },
+              }
+            : true,
+          audio: microphoneId
+            ? {
+                deviceId: {
+                  exact: microphoneId,
+                },
+              }
+            : true,
+        });
+
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
 
+      const devices =
+        await navigator.mediaDevices.enumerateDevices();
+
+      const cameras =
+        devices.filter(
+          (device) =>
+            device.kind === "videoinput",
+        );
+
+      const microphones =
+        devices.filter(
+          (device) =>
+            device.kind === "audioinput",
+        );
+
+      setAvailableCameras(cameras);
+      setAvailableMicrophones(microphones);
+
+      const videoDeviceId =
+        stream
+          .getVideoTracks()[0]
+          ?.getSettings()
+          .deviceId;
+
+      const audioDeviceId =
+        stream
+          .getAudioTracks()[0]
+          ?.getSettings()
+          .deviceId;
+
+      if (videoDeviceId) {
+        setSelectedCameraId(videoDeviceId);
+      }
+
+      if (audioDeviceId) {
+        setSelectedMicrophoneId(audioDeviceId);
+      }
+
       setDevicesReady(true);
       setCameraEnabled(true);
       setMicrophoneEnabled(true);
     } catch (deviceError) {
-      console.error("VYRO LIVE device error:", deviceError);
+      console.error(
+        "VYRO LIVE device error:",
+        deviceError,
+      );
 
       setDevicesReady(false);
       setCameraEnabled(false);
@@ -305,29 +397,94 @@ export default function LiveStudioPage() {
       );
     }
   }
+  async function toggleCamera() {
+    setError("");
 
-  function toggleCamera() {
-    const videoTrack = streamRef.current?.getVideoTracks()[0];
+    const nextEnabled =
+      !cameraEnabled;
 
-    if (!videoTrack) {
-      void startDevices();
-      return;
+    try {
+      const room =
+        liveKitRoomRef.current;
+
+      if (isLive && room) {
+        await room.localParticipant.setCameraEnabled(
+          nextEnabled,
+        );
+      }
+      else {
+        const videoTrack =
+          streamRef.current
+            ?.getVideoTracks()[0];
+
+        if (!videoTrack) {
+          await startDevices();
+          return;
+        }
+
+        videoTrack.enabled =
+          nextEnabled;
+      }
+
+      setCameraEnabled(
+        nextEnabled,
+      );
     }
+    catch (cameraError) {
+      console.error(
+        "VYRO LIVE camera control error:",
+        cameraError,
+      );
 
-    videoTrack.enabled = !videoTrack.enabled;
-    setCameraEnabled(videoTrack.enabled);
+      setError(
+        "No fue posible cambiar el estado de la cámara.",
+      );
+    }
   }
 
-  function toggleMicrophone() {
-    const audioTrack = streamRef.current?.getAudioTracks()[0];
+  async function toggleMicrophone() {
+    setError("");
 
-    if (!audioTrack) {
-      void startDevices();
-      return;
+    const nextEnabled =
+      !microphoneEnabled;
+
+    try {
+      const room =
+        liveKitRoomRef.current;
+
+      if (isLive && room) {
+        await room.localParticipant.setMicrophoneEnabled(
+          nextEnabled,
+        );
+      }
+      else {
+        const audioTrack =
+          streamRef.current
+            ?.getAudioTracks()[0];
+
+        if (!audioTrack) {
+          await startDevices();
+          return;
+        }
+
+        audioTrack.enabled =
+          nextEnabled;
+      }
+
+      setMicrophoneEnabled(
+        nextEnabled,
+      );
     }
+    catch (microphoneError) {
+      console.error(
+        "VYRO LIVE microphone control error:",
+        microphoneError,
+      );
 
-    audioTrack.enabled = !audioTrack.enabled;
-    setMicrophoneEnabled(audioTrack.enabled);
+      setError(
+        "No fue posible cambiar el estado del micrófono.",
+      );
+    }
   }
 
   async function shareScreen() {
@@ -335,26 +492,147 @@ export default function LiveStudioPage() {
     setMessage("");
 
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
+      const room =
+        liveKitRoomRef.current;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = screenStream;
+      if (isLive && room) {
+        if (screenShareEnabled) {
+          await room.localParticipant
+            .setScreenShareEnabled(false);
+
+          setScreenShareEnabled(false);
+
+          if (
+            videoRef.current &&
+            streamRef.current
+          ) {
+            videoRef.current.srcObject =
+              streamRef.current;
+          }
+
+          setMessage(
+            "Compartir pantalla finalizado.",
+          );
+
+          return;
+        }
+
+        const publication =
+          await room.localParticipant
+            .setScreenShareEnabled(true);
+
+        const screenTrack =
+          publication?.videoTrack;
+
+        if (
+          screenTrack &&
+          videoRef.current
+        ) {
+          screenTrack.attach(
+            videoRef.current,
+          );
+
+          screenTrack.mediaStreamTrack
+            .addEventListener(
+              "ended",
+              () => {
+                void (
+                  async () => {
+                    try {
+                      await room
+                        .localParticipant
+                        .setScreenShareEnabled(
+                          false,
+                        );
+                    }
+                    catch (
+                      stopScreenError
+                    ) {
+                      console.error(
+                        "VYRO LIVE screen stop error:",
+                        stopScreenError,
+                      );
+                    }
+
+                    setScreenShareEnabled(
+                      false,
+                    );
+
+                    if (
+                      videoRef.current &&
+                      streamRef.current
+                    ) {
+                      videoRef.current
+                        .srcObject =
+                        streamRef.current;
+                    }
+                  }
+                )();
+              },
+              {
+                once: true,
+              },
+            );
+        }
+
+        setScreenShareEnabled(true);
+
+        setMessage(
+          "Pantalla compartida en VYRO LIVE.",
+        );
+
+        return;
       }
 
-      screenStream.getVideoTracks()[0]?.addEventListener("ended", () => {
-        if (videoRef.current && streamRef.current) {
-          videoRef.current.srcObject = streamRef.current;
-        }
-      });
-    } catch (screenError) {
-      console.error("VYRO LIVE screen share error:", screenError);
-      setError("No se pudo compartir la pantalla.");
+      const screenStream =
+        await navigator.mediaDevices
+          .getDisplayMedia({
+            video: true,
+            audio: true,
+          });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject =
+          screenStream;
+      }
+
+      setScreenShareEnabled(true);
+
+      screenStream
+        .getVideoTracks()[0]
+        ?.addEventListener(
+          "ended",
+          () => {
+            setScreenShareEnabled(
+              false,
+            );
+
+            if (
+              videoRef.current &&
+              streamRef.current
+            ) {
+              videoRef.current.srcObject =
+                streamRef.current;
+            }
+          },
+          {
+            once: true,
+          },
+        );
+    }
+    catch (screenError) {
+      console.error(
+        "VYRO LIVE screen share error:",
+        screenError,
+      );
+
+      setScreenShareEnabled(false);
+
+      setError(
+        "No se pudo compartir la pantalla.",
+      );
     }
   }
-
   async function handleCreateBattleSeries(
     config: BattleSeriesConfig,
   ) {
@@ -471,6 +749,15 @@ export default function LiveStudioPage() {
       return;
     }
 
+    const localStream = streamRef.current;
+
+    if (!localStream) {
+      setError(
+        "No existe un stream local de cámara y micrófono.",
+      );
+      return;
+    }
+
     let targetSession = session;
 
     if (
@@ -488,22 +775,141 @@ export default function LiveStudioPage() {
       return;
     }
 
-    const startedSession =
-      targetSession.status === "live" ||
-      targetSession.status === "active"
-        ? targetSession
-        : await startSession(targetSession.id);
+    let room: Room | null = null;
+    const publishedTracks: LocalTrack[] = [];
 
-    if (!startedSession) {
-      return;
+    try {
+      const response = await fetch(
+        "/api/live/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            roomId: targetSession.id,
+            role: "host",
+          }),
+        },
+      );
+
+      const payload = (await response.json()) as {
+        success: boolean;
+        token?: string;
+        url?: string;
+        error?: string;
+      };
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.token ||
+        !payload.url
+      ) {
+        throw new Error(
+          payload.error ||
+            "No fue posible obtener acceso al Media Core.",
+        );
+      }
+
+      room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+      });
+
+      await room.connect(
+        payload.url,
+        payload.token,
+      );
+
+      const videoTrack =
+        localStream.getVideoTracks()[0];
+
+      const audioTrack =
+        localStream.getAudioTracks()[0];
+
+      if (!videoTrack) {
+        throw new Error(
+          "No existe una pista de cámara para transmitir.",
+        );
+      }
+
+      const publishedVideo =
+        await room.localParticipant.publishTrack(
+          videoTrack,
+          {
+            name: "vyro-camera",
+            source: Track.Source.Camera,
+            simulcast: true,
+          },
+        );
+
+      if (publishedVideo.track) {
+        publishedTracks.push(
+          publishedVideo.track,
+        );
+      }
+
+      if (audioTrack) {
+        const publishedAudio =
+          await room.localParticipant.publishTrack(
+            audioTrack,
+            {
+              name: "vyro-microphone",
+              source: Track.Source.Microphone,
+            },
+          );
+
+        if (publishedAudio.track) {
+          publishedTracks.push(
+            publishedAudio.track,
+          );
+        }
+      }
+
+      const startedSession =
+        targetSession.status === "live" ||
+        targetSession.status === "active"
+          ? targetSession
+          : await startSession(targetSession.id);
+
+      if (!startedSession) {
+        throw new Error(
+          "Media Core conectado, pero VYRO no pudo activar la sala.",
+        );
+      }
+
+      liveKitRoomRef.current = room;
+      setLiveKitRoom(room);
+
+      liveKitPublishedTracksRef.current =
+        publishedTracks;
+
+      setLiveDuration(0);
+      setIsLive(true);
+
+      setMessage(
+        `VYRO LIVE conectado y transmitiendo. Sala: ${startedSession.id}`,
+      );
+    } catch (liveError) {
+      if (room) {
+        await room.disconnect();
+      }
+
+      liveKitRoomRef.current = null;
+      liveKitPublishedTracksRef.current = [];
+
+      console.error(
+        "VYRO LIVE Media Core start failed:",
+        liveError,
+      );
+
+      setError(
+        liveError instanceof Error
+          ? liveError.message
+          : "No fue posible iniciar VYRO LIVE Media Core.",
+      );
     }
-
-    setLiveDuration(0);
-    setIsLive(true);
-
-    setMessage(
-      `VYRO LIVE iniciado correctamente. Sala: ${startedSession.id}`,
-    );
   }
 
   async function stopLive() {
@@ -511,19 +917,31 @@ export default function LiveStudioPage() {
     setMessage("");
     clearSessionError();
 
-    const endedSession = await endSession();
+    const room =
+      liveKitRoomRef.current;
+
+    liveKitRoomRef.current = null;
+    setLiveKitRoom(null);
+
+    liveKitPublishedTracksRef.current = [];
+
+    if (room) {
+      await room.disconnect();
+    }
+
+    const endedSession =
+      await endSession();
+
+    setIsLive(false);
 
     if (!endedSession) {
       return;
     }
 
-    setIsLive(false);
-
     setMessage(
       `Transmisión finalizada. Duración total: ${formatDuration(liveDuration)}.`,
     );
   }
-
   return (
     <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
       <section className="mx-auto max-w-7xl">
@@ -652,7 +1070,6 @@ export default function LiveStudioPage() {
               <button
                 type="button"
                 onClick={toggleCamera}
-                disabled={isLive}
                 className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {cameraEnabled ? (
@@ -693,24 +1110,118 @@ export default function LiveStudioPage() {
                 <MonitorUp className="mx-auto text-cyan-400" />
 
                 <span className="mt-2 block text-sm font-semibold">
-                  Compartir pantalla
+                  {screenShareEnabled ? "Detener pantalla" : "Compartir pantalla"}
                 </span>
               </button>
 
-              <button
-                type="button"
-                className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
-              >
-                <Settings className="mx-auto text-cyan-400" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsOpen(
+                      (current) => !current,
+                    );
+                  }}
+                  className="w-full rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
+                >
+                  <Settings className="mx-auto text-cyan-400" />
 
-                <span className="mt-2 block text-sm font-semibold">
-                  Ajustes
-                </span>
-              </button>
+                  <span className="mt-2 block text-sm font-semibold">
+                    Ajustes
+                  </span>
+                </button>
+
+                {settingsOpen ? (
+                  <div className="absolute bottom-full right-0 z-50 mb-3 w-[360px] rounded-3xl border border-cyan-500/30 bg-[#0B1220] p-5 text-left shadow-2xl">
+                    <h3 className="font-black text-white">
+                      Dispositivos VYRO LIVE
+                    </h3>
+
+                    <p className="mt-1 text-xs text-gray-400">
+                      Controla qué cámara y micrófono usa tu Studio.
+                    </p>
+
+                    <label className="mt-5 block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
+                        Cámara
+                      </span>
+
+                      <select
+                        value={selectedCameraId}
+                        onChange={(event) => {
+                          setSelectedCameraId(
+                            event.target.value,
+                          );
+                        }}
+                        className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
+                      >
+                        {availableCameras.map(
+                          (device, index) => (
+                            <option
+                              key={device.deviceId}
+                              value={device.deviceId}
+                            >
+                              {device.label ||
+                                `Cámara ${index + 1}`}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+
+                    <label className="mt-4 block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
+                        Micrófono
+                      </span>
+
+                      <select
+                        value={selectedMicrophoneId}
+                        onChange={(event) => {
+                          setSelectedMicrophoneId(
+                            event.target.value,
+                          );
+                        }}
+                        className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
+                      >
+                        {availableMicrophones.map(
+                          (device, index) => (
+                            <option
+                              key={device.deviceId}
+                              value={device.deviceId}
+                            >
+                              {device.label ||
+                                `Micrófono ${index + 1}`}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void startDevices(
+                          selectedCameraId,
+                          selectedMicrophoneId,
+                        );
+
+                        setSettingsOpen(false);
+                      }}
+                      className="mt-5 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-black transition hover:bg-cyan-400"
+                    >
+                      Aplicar dispositivos
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </section>
 
           <aside className="space-y-6">
+            <LiveProductionPanel
+              room={liveKitRoom}
+              isLive={isLive}
+            />
             <div className="rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
               <div className="flex items-center gap-3">
                 <Radio className="text-cyan-400" />
@@ -729,8 +1240,7 @@ export default function LiveStudioPage() {
                     onChange={(event) => {
                       setTitle(event.target.value);
                     }}
-                    disabled={isLive}
-                    placeholder="Ejemplo: Lanzamiento VYRO"
+                        placeholder="Ejemplo: Lanzamiento VYRO"
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </label>
@@ -745,8 +1255,7 @@ export default function LiveStudioPage() {
                     onChange={(event) => {
                       setCategory(event.target.value);
                     }}
-                    disabled={isLive}
-                    className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-white outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option>Creator</option>
                     <option>Educación</option>
@@ -769,13 +1278,10 @@ export default function LiveStudioPage() {
                 LIVE.
               </p>
 
-              <button
-                type="button"
-                disabled={isLive}
-                className="mt-5 w-full rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Añadir invitado
-              </button>
+              <LiveGuestControlCenter
+                roomId={session?.id ?? null}
+                disabled={!session}
+              />
             </div>
 
             {isLive ? (

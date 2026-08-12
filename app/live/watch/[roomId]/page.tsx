@@ -78,6 +78,9 @@ import {
   LiveBattleEngine,
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
+import { LiveGuestMedia } from "@/components/live/guest";
+import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
+import { LiveViewerMedia } from "@/components/live/media/LiveViewerMedia";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
 import { LiveRankingPanel } from "@/components/live/ranking";
 import {
@@ -152,6 +155,103 @@ import type { PresentationEvent } from "@/components/live/presentationdirector/t
 export default function LiveWatchPage() {
   const params = useParams<{ roomId: string }>();
   const roomId = params.roomId;
+  const {
+    received: guestInvitations,
+    loading: guestInvitationsLoading,
+    acceptInvitation: acceptGuestInvitation,
+    declineInvitation: declineGuestInvitation,
+  } = useLiveGuestInvitations();
+
+  const [
+    guestActionId,
+    setGuestActionId,
+  ] = useState<string | null>(null);
+
+  const [
+    guestActionError,
+    setGuestActionError,
+  ] = useState("");
+
+  const activeGuestInvitation =
+    useMemo(
+      () =>
+        guestInvitations.find(
+          (invitation) =>
+            invitation.roomId === roomId &&
+            (
+              invitation.status === "pending" ||
+              invitation.status === "accepted"
+            ),
+        ) ?? null,
+      [
+        guestInvitations,
+        roomId,
+      ],
+    );
+
+  const isActiveGuest =
+    activeGuestInvitation?.status ===
+      "accepted";
+
+  async function handleAcceptGuest() {
+    if (
+      !activeGuestInvitation ||
+      activeGuestInvitation.status !==
+        "pending"
+    ) {
+      return;
+    }
+
+    setGuestActionId(
+      activeGuestInvitation.id,
+    );
+
+    setGuestActionError("");
+
+    try {
+      await acceptGuestInvitation(
+        activeGuestInvitation.id,
+      );
+    } catch (guestError) {
+      setGuestActionError(
+        guestError instanceof Error
+          ? guestError.message
+          : "No fue posible aceptar la invitación.",
+      );
+    } finally {
+      setGuestActionId(null);
+    }
+  }
+
+  async function handleDeclineGuest() {
+    if (
+      !activeGuestInvitation ||
+      activeGuestInvitation.status !==
+        "pending"
+    ) {
+      return;
+    }
+
+    setGuestActionId(
+      activeGuestInvitation.id,
+    );
+
+    setGuestActionError("");
+
+    try {
+      await declineGuestInvitation(
+        activeGuestInvitation.id,
+      );
+    } catch (guestError) {
+      setGuestActionError(
+        guestError instanceof Error
+          ? guestError.message
+          : "No fue posible rechazar la invitación.",
+      );
+    } finally {
+      setGuestActionId(null);
+    }
+  }
 
   const [room, setRoom] =
     useState<LiveRoomDetails | null>(null);
@@ -1025,7 +1125,7 @@ export default function LiveWatchPage() {
           />
 
           <p className="mt-4 text-gray-400">
-            Cargando sala VYRO LIVE...
+            Conectando con VYRO LIVE...
           </p>
         </div>
       </main>
@@ -1037,7 +1137,7 @@ export default function LiveWatchPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
         <section className="max-w-xl rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-center">
           <h1 className="text-2xl font-black">
-            No se pudo abrir esta sala
+            No se pudo abrir este LIVE
           </h1>
 
           <p className="mt-4 text-red-200">
@@ -1061,11 +1161,11 @@ export default function LiveWatchPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#05070A] px-6 text-white">
         <section className="max-w-xl rounded-3xl border border-white/10 bg-[#0B1220] p-8 text-center">
           <h1 className="text-2xl font-black">
-            Esta sala LIVE no existe
+            Este LIVE no existe
           </h1>
 
           <p className="mt-4 text-gray-400">
-            El enlace puede ser incorrecto o la sala fue eliminada.
+            El enlace puede ser incorrecto o este LIVE ya no está disponible.
           </p>
 
           <Link
@@ -1387,7 +1487,7 @@ export default function LiveWatchPage() {
               <Radio className="text-cyan-400" />
 
               <p className="font-bold uppercase tracking-[0.3em] text-cyan-400">
-                VYRO LIVE ROOM
+                VYRO LIVE
               </p>
             </div>
 
@@ -1446,6 +1546,114 @@ export default function LiveWatchPage() {
           </div>
         </header>
 
+        <section className="relative mt-8">
+          {activeGuestInvitation?.status ===
+          "pending" ? (
+            <div className="mb-5 overflow-hidden rounded-[2rem] border border-cyan-400/25 bg-gradient-to-br from-cyan-500/10 via-[#08111C] to-black p-6 shadow-2xl">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                    Invitación VYRO LIVE
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black text-white">
+                    El creador te invitó al LIVE
+                  </h2>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+                    Puedes entrar como participante con los permisos multimedia autorizados.
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {activeGuestInvitation
+                      .permissions
+                      .canPublishCamera ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/70">
+                        Cámara
+                      </span>
+                    ) : null}
+
+                    {activeGuestInvitation
+                      .permissions
+                      .canPublishMicrophone ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/70">
+                        Micrófono
+                      </span>
+                    ) : null}
+
+                    {activeGuestInvitation
+                      .permissions
+                      .canShareScreen ? (
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/70">
+                        Compartir pantalla
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={
+                      guestActionId ===
+                      activeGuestInvitation.id
+                    }
+                    onClick={() => {
+                      void handleDeclineGuest();
+                    }}
+                    className="rounded-xl border border-white/15 bg-white/[0.04] px-5 py-3 font-black text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Rechazar
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      guestActionId ===
+                      activeGuestInvitation.id
+                    }
+                    onClick={() => {
+                      void handleAcceptGuest();
+                    }}
+                    className="rounded-xl bg-cyan-400 px-6 py-3 font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {guestActionId ===
+                    activeGuestInvitation.id
+                      ? "Entrando..."
+                      : "Aceptar y entrar"}
+                  </button>
+                </div>
+              </div>
+
+              {guestActionError ? (
+                <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
+                  {guestActionError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {guestInvitationsLoading &&
+          !activeGuestInvitation ? (
+            <div className="mb-4 flex items-center gap-2 text-sm text-white/40">
+              <LoaderCircle
+                size={16}
+                className="animate-spin"
+              />
+              Comprobando acceso LIVE...
+            </div>
+          ) : null}
+
+          {isActiveGuest ? (
+            <LiveGuestMedia
+              roomId={roomId}
+            />
+          ) : (
+            <LiveViewerMedia
+              roomId={roomId}
+            />
+          )}
+        </section>
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <MetricCard
             title="Espectadores"
@@ -1865,7 +2073,7 @@ export default function LiveWatchPage() {
             </div>
           ) : (
             <p className="mt-4 text-gray-400">
-              Esperando la primera actividad de esta sala.
+              Esperando la primera actividad de este LIVE.
             </p>
           )}
         </section>
