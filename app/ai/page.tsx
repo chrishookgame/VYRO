@@ -96,6 +96,15 @@ export default function AIPage() {
   const [error, setError] =
     useState("");
 
+  const [thumbnailImage, setThumbnailImage] =
+    useState("");
+
+  const [thumbnailError, setThumbnailError] =
+    useState("");
+
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] =
+    useState(false);
+
   async function handleGenerate(
     prompt: string,
   ) {
@@ -175,6 +184,85 @@ Reglas:
     }
   }
 
+  async function handleGenerateThumbnail() {
+    if (
+      !project.title.trim() ||
+      isGeneratingThumbnail
+    ) {
+      return;
+    }
+
+    setIsGeneratingThumbnail(true);
+    setThumbnailError("");
+
+    try {
+      const prompt = `
+Create a premium cinematic thumbnail for this VYRO AI project.
+
+Project title:
+${project.title}
+
+Visual direction:
+- Futuristic cinematic composition
+- Strong focal point
+- Premium high-end visual identity
+- Dramatic lighting
+- High contrast
+- Professional composition
+- No watermark
+- No UI elements
+- No random text
+- Designed as a video thumbnail
+- 16:9 composition
+      `.trim();
+
+      const response = await fetch(
+        "/api/ai/image",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt,
+          }),
+        },
+      );
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        image?: string;
+        error?: string;
+      };
+
+      if (
+        !response.ok ||
+        !result.success ||
+        !result.image
+      ) {
+        throw new Error(
+          result.error ||
+            "VYRO Image AI no pudo generar la miniatura.",
+        );
+      }
+
+      setThumbnailImage(result.image);
+    } catch (thumbnailGenerationError) {
+      console.error(
+        "VYRO Thumbnail generation failed:",
+        thumbnailGenerationError,
+      );
+
+      setThumbnailError(
+        thumbnailGenerationError instanceof Error
+          ? thumbnailGenerationError.message
+          : "No fue posible generar la miniatura.",
+      );
+    } finally {
+      setIsGeneratingThumbnail(false);
+    }
+  }
+
   const seo = generateSEO(
     project.title || "AI Video",
   );
@@ -239,7 +327,16 @@ Reglas:
           />
 
           <ThumbnailPreview
-            image="https://placehold.co/1200x675"
+            image={thumbnailImage}
+            isGenerating={isGeneratingThumbnail}
+            error={thumbnailError}
+            onGenerate={
+              project.title
+                ? () => {
+                    void handleGenerateThumbnail();
+                  }
+                : undefined
+            }
           />
 
           <ExportPanel />
