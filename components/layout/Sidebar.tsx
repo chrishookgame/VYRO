@@ -1,24 +1,20 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import {
-  BarChart3,
+  Bell,
   Bot,
-  DollarSign,
   GraduationCap,
   LayoutDashboard,
-  Library,
   LogOut,
+  MessageCircle,
   Radio,
   Settings,
   Shield,
   Upload,
   UserRound,
   Video,
-  WalletCards,
-  MessageCircle,
 } from "lucide-react";
-
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -31,8 +27,8 @@ const baseMenu = [
     icon: LayoutDashboard,
   },
   {
-    name: "Studio",
-    href: "/upload",
+    name: "VYRO Creator",
+    href: "/creator",
     icon: Upload,
   },
   {
@@ -41,29 +37,9 @@ const baseMenu = [
     icon: Video,
   },
   {
-    name: "Library",
-    href: "/library",
-    icon: Library,
-  },
-  {
-    name: "AI Studio",
+    name: "VYRO AI",
     href: "/ai",
     icon: Bot,
-  },
-  {
-    name: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    name: "Wallet",
-    href: "/wallet",
-    icon: WalletCards,
-  },
-  {
-    name: "Monetize",
-    href: "/monetize",
-    icon: DollarSign,
   },
   {
     name: "Live Hub",
@@ -76,9 +52,19 @@ const baseMenu = [
     icon: GraduationCap,
   },
   {
-    name: "Soporte",
-    href: "/support",
+    name: "Mensajes",
+    href: "/messages",
     icon: MessageCircle,
+  },
+  {
+    name: "Notificaciones",
+    href: "/notifications",
+    icon: Bell,
+  },
+  {
+    name: "Workspace",
+    href: "/workspace",
+    icon: LayoutDashboard,
   },
   {
     name: "Perfil",
@@ -86,9 +72,19 @@ const baseMenu = [
     icon: UserRound,
   },
   {
+    name: "Cuenta",
+    href: "/account",
+    icon: Shield,
+  },
+  {
     name: "Settings",
     href: "/settings",
     icon: Settings,
+  },
+  {
+    name: "Soporte",
+    href: "/support",
+    icon: MessageCircle,
   },
 ];
 
@@ -112,27 +108,25 @@ export default function Sidebar() {
     setSigningOut,
   ] = useState(false);
 
-  const role =
-    String(
-      user?.app_metadata?.role ??
+  const role = String(
+    user?.app_metadata?.role ??
       user?.user_metadata?.role ??
       "user",
-    );
+  );
 
   const canAccessAdmin =
     allowedAdminRoles.includes(role);
 
-  const menu =
-    canAccessAdmin
-      ? [
-          ...baseMenu,
-          {
-            name: "Admin Maestro",
-            href: "/admin",
-            icon: Shield,
-          },
-        ]
-      : baseMenu;
+  const menu = canAccessAdmin
+    ? [
+        ...baseMenu,
+        {
+          name: "Admin Maestro",
+          href: "/admin",
+          icon: Shield,
+        },
+      ]
+    : baseMenu;
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -148,7 +142,7 @@ export default function Sidebar() {
 
   return (
     <aside className="flex h-screen w-72 shrink-0 flex-col border-r border-cyan-500/20 bg-[#070B14] p-6">
-      <div className="mb-10">
+      <div className="mb-8">
         <h1 className="text-4xl font-black text-cyan-400">
           VYRO
         </h1>
@@ -160,8 +154,7 @@ export default function Sidebar() {
 
       <nav className="flex-1 space-y-2 overflow-y-auto pr-1">
         {menu.map((item) => {
-          const Icon =
-            item.icon;
+          const Icon = item.icon;
 
           return (
             <Link

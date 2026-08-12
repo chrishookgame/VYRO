@@ -15,13 +15,17 @@ export default function CreatorInfo({
 }: CreatorInfoProps) {
   return (
     <div className="max-w-[75%] pb-8 text-white">
-      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-3 py-1 backdrop-blur-md">
+      <Link
+        href="/creator"
+        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/20 px-3 py-1 backdrop-blur-md transition hover:bg-cyan-400/30"
+        aria-label="Abrir VYRO Creator Studio"
+      >
         <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
 
         <span className="text-xs font-semibold tracking-widest text-cyan-300">
           VYRO CREATOR
         </span>
-      </div>
+      </Link>
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
         <Link
