@@ -51,3 +51,5 @@ OPENAI.txt
 .env.local
 
 !.env.example
+.vercel
+.env*
