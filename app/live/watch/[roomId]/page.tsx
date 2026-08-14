@@ -48,6 +48,7 @@ import {
   Gift,
   LoaderCircle,
   Radio,
+  Share2,
   ShieldCheck,
   Trophy,
   UserRound,
@@ -324,6 +325,56 @@ export default function LiveWatchPage() {
     setReactionError,
   ] = useState("");
 
+  const [
+    shareFeedback,
+    setShareFeedback,
+  ] = useState("");
+
+  async function handleShareLive() {
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: room?.title ?? "VYRO LIVE",
+          text: "Mira este LIVE en VYRO.",
+          url: shareUrl,
+        });
+
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        shareUrl,
+      );
+
+      setShareFeedback("Enlace copiado");
+
+      window.setTimeout(() => {
+        setShareFeedback("");
+      }, 2200);
+    } catch (shareError) {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(
+        "VYRO share LIVE error:",
+        shareError,
+      );
+
+      setShareFeedback(
+        "No se pudo compartir",
+      );
+
+      window.setTimeout(() => {
+        setShareFeedback("");
+      }, 2200);
+    }
+  }
   type LiveFloatingReaction = {
     id: string;
     emoji: string;
@@ -2251,6 +2302,21 @@ export default function LiveWatchPage() {
 
                     <span className="hidden sm:inline">
                       Regalo
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Compartir LIVE"
+                    onClick={() => {
+                      void handleShareLive();
+                    }}
+                    className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition hover:bg-white/10"
+                  >
+                    <Share2 size={16} />
+
+                    <span className="hidden sm:inline">
+                      {shareFeedback ||
+                        "Compartir"}
                     </span>
                   </button>
 
