@@ -1,10 +1,14 @@
-﻿export type LiveGuestInvitationStatus =
+export type LiveGuestInvitationStatus =
   | "pending"
   | "accepted"
   | "declined"
   | "expired"
   | "cancelled"
   | "revoked";
+
+export type LiveGuestStageStatus =
+  | "waiting"
+  | "on_stage";
 
 export interface LiveGuestPermissions {
   canPublishCamera: boolean;
@@ -18,6 +22,7 @@ export interface LiveGuestInvitationRow {
   inviter_id: string;
   guest_id: string;
   status: LiveGuestInvitationStatus;
+  stage_status: LiveGuestStageStatus;
   message: string | null;
   permissions: LiveGuestPermissions;
   expires_at: string;
@@ -26,6 +31,8 @@ export interface LiveGuestInvitationRow {
   declined_at: string | null;
   cancelled_at: string | null;
   revoked_at: string | null;
+  staged_at: string | null;
+  unstaged_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +50,7 @@ export interface LiveGuestInvitation {
   inviterId: string;
   guestId: string;
   status: LiveGuestInvitationStatus;
+  stageStatus: LiveGuestStageStatus;
   message: string | null;
   permissions: LiveGuestPermissions;
   expiresAt: string;
@@ -51,6 +59,8 @@ export interface LiveGuestInvitation {
   declinedAt: string | null;
   cancelledAt: string | null;
   revokedAt: string | null;
+  stagedAt: string | null;
+  unstagedAt: string | null;
   createdAt: string;
   updatedAt: string;
   inviter: LiveGuestInvitationProfile | null;

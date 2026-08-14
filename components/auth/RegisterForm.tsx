@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,27 @@ import {
 
 export default function RegisterForm() {
   const router = useRouter();
+
+  const requestedReturnTo =
+    typeof window !== "undefined"
+      ? new URLSearchParams(
+          window.location.search,
+        ).get("returnTo")
+      : null;
+
+  const returnTo =
+    requestedReturnTo?.startsWith("/") &&
+    !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/dashboard";
+
+  const loginReturnTo =
+    requestedReturnTo?.startsWith("/") &&
+    !requestedReturnTo.startsWith("//")
+      ? `/login?returnTo=${encodeURIComponent(
+          requestedReturnTo,
+        )}`
+      : "/login";
 
   const [username, setUsername] =
     useState("");
@@ -134,7 +155,7 @@ export default function RegisterForm() {
         );
 
         setTimeout(() => {
-          router.replace("/login");
+          router.replace(loginReturnTo);
         }, 2500);
 
         return;
@@ -144,7 +165,7 @@ export default function RegisterForm() {
         "Cuenta creada correctamente.",
       );
 
-      router.replace("/dashboard");
+      router.replace(returnTo);
       router.refresh();
     } catch (error) {
       console.error(

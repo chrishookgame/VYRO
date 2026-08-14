@@ -38,7 +38,19 @@ export default function LoginForm() {
       alert("NO SE CREÓ LA SESIÓN");
     }
 
-    router.push("/feed");
+    const requestedReturnTo =
+      new URLSearchParams(
+        window.location.search,
+      ).get("returnTo");
+
+    const returnTo =
+      requestedReturnTo?.startsWith("/") &&
+      !requestedReturnTo.startsWith("//")
+        ? requestedReturnTo
+        : "/feed";
+
+    router.replace(returnTo);
+    router.refresh();
   }
 
   return (

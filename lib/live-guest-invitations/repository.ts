@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import type {
   CreateLiveGuestInvitationInput,
@@ -60,6 +60,8 @@ async function mapInvitation(
     inviterId: row.inviter_id,
     guestId: row.guest_id,
     status: getEffectiveStatus(row),
+    stageStatus:
+      row.stage_status ?? "waiting",
     message: row.message,
     permissions: row.permissions,
     expiresAt: row.expires_at,
@@ -68,6 +70,10 @@ async function mapInvitation(
     declinedAt: row.declined_at,
     cancelledAt: row.cancelled_at,
     revokedAt: row.revoked_at,
+    stagedAt:
+      row.staged_at ?? null,
+    unstagedAt:
+      row.unstaged_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     inviter,
@@ -280,6 +286,63 @@ export async function revokeLiveGuestInvitation(
   if (error) {
     throw new Error(
       `No se pudo revocar el acceso Guest: ${error.message}`,
+    );
+  }
+
+  return mapInvitation(
+    data as LiveGuestInvitationRow,
+  );
+}
+export async function putLiveGuestOnStage(
+  invitationId: string,
+): Promise<LiveGuestInvitation> {
+  const { data, error } =
+    await supabase.rpc(
+      "put_live_guest_on_stage",
+      {
+        target_invitation_id:
+          invitationId,
+      },
+    );
+
+  if (error) {
+    throw new Error(
+      `No se pudo subir el Guest al Stage: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "VYRO no recibió el Guest actualizado.",
+    );
+  }
+
+  return mapInvitation(
+    data as LiveGuestInvitationRow,
+  );
+}
+
+export async function returnLiveGuestToWaiting(
+  invitationId: string,
+): Promise<LiveGuestInvitation> {
+  const { data, error } =
+    await supabase.rpc(
+      "return_live_guest_to_waiting",
+      {
+        target_invitation_id:
+          invitationId,
+      },
+    );
+
+  if (error) {
+    throw new Error(
+      `No se pudo bajar el Guest del Stage: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "VYRO no recibió el Guest actualizado.",
     );
   }
 

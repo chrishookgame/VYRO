@@ -169,18 +169,80 @@ export function LiveViewerMedia({
       const grid =
         document.createElement("div");
 
-      grid.className =
-        nextTracks.length === 1
-          ? "grid h-full w-full grid-cols-1"
-          : "grid h-full w-full grid-cols-1 gap-1 md:grid-cols-2";
+      const scene =
+        presentationState.scene;
+
+      const participantCount =
+        nextTracks.length;
+
+      grid.dataset.vyroScene =
+        scene;
+
+      grid.dataset.vyroParticipants =
+        participantCount.toString();
+
+      if (participantCount === 1) {
+        grid.className =
+          scene === "portrait"
+            ? "grid h-full w-full place-items-center bg-black px-4 md:px-10"
+            : "grid h-full w-full grid-cols-1";
+      }
+      else if (scene === "cinema") {
+        grid.className =
+          "grid h-full w-full grid-cols-1 gap-1 bg-black md:grid-cols-2";
+      }
+      else if (scene === "portrait") {
+        grid.className =
+          "grid h-full w-full grid-cols-2 gap-2 bg-black p-2";
+      }
+      else if (scene === "spotlight") {
+        grid.className =
+          "grid h-full w-full grid-cols-2 grid-rows-2 gap-1 bg-black";
+      }
+      else {
+        grid.className =
+          "grid h-full w-full grid-cols-1 gap-1 bg-black md:grid-cols-2";
+      }
 
       nextTracks.forEach(
         (track, index) => {
           const frame =
             document.createElement("div");
 
-          frame.className =
-            "relative min-h-0 overflow-hidden bg-black";
+          const isHost =
+            index === 0 &&
+            Boolean(hostTrack);
+
+          const scene =
+            presentationState.scene;
+
+          if (
+            scene === "portrait" &&
+            nextTracks.length === 1
+          ) {
+            frame.className =
+              "relative h-full w-full max-w-[560px] overflow-hidden bg-black";
+          }
+          else if (
+            scene === "spotlight" &&
+            isHost &&
+            nextTracks.length > 1
+          ) {
+            frame.className =
+              "relative row-span-2 min-h-0 overflow-hidden bg-black";
+          }
+          else if (
+            scene === "focus" &&
+            isHost &&
+            nextTracks.length > 1
+          ) {
+            frame.className =
+              "relative min-h-0 overflow-hidden bg-black md:col-span-2";
+          }
+          else {
+            frame.className =
+              "relative min-h-0 overflow-hidden bg-black";
+          }
 
           const element =
             track.attach();
@@ -192,7 +254,22 @@ export function LiveViewerMedia({
           );
 
           element.className =
-            "h-full w-full object-cover";
+            "h-full w-full object-cover transition-transform duration-300 ease-out";
+
+          if (
+            isHost &&
+            presentationState.freeCamera.enabled
+          ) {
+            element.style.transformOrigin =
+              "center center";
+
+            element.style.transform =
+              `translate3d(${presentationState.freeCamera.x}%, ${presentationState.freeCamera.y}%, 0) scale(${presentationState.freeCamera.zoom})`;
+          }
+          else {
+            element.style.transform = "";
+            element.style.transformOrigin = "";
+          }
 
           const badge =
             document.createElement("div");
@@ -201,9 +278,9 @@ export function LiveViewerMedia({
             "pointer-events-none absolute left-3 top-3 rounded-full border border-white/15 bg-black/65 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-xl";
 
           badge.textContent =
-            index === 0 && hostTrack
+            isHost
               ? "HOST"
-              : "GUEST";
+              : `GUEST ${index}`;
 
           frame.appendChild(element);
           frame.appendChild(badge);
@@ -215,7 +292,13 @@ export function LiveViewerMedia({
 
       setHasVideo(true);
       setScreenSharing(false);
-    }, []);
+    }, [
+      presentationState.freeCamera.enabled,
+      presentationState.freeCamera.x,
+      presentationState.freeCamera.y,
+      presentationState.freeCamera.zoom,
+      presentationState.scene,
+    ]);
 
   const attachTrack =
     useCallback(
@@ -660,47 +743,70 @@ export function LiveViewerMedia({
         ) : null}
 
         {presentationState.overlay.visible ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 p-5 md:p-8">
-            <div className="max-w-3xl rounded-[1.75rem] border border-white/15 bg-black/70 p-5 shadow-2xl backdrop-blur-2xl md:p-6">
-              {presentationState.overlay.eyebrow ? (
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                  {
-                    presentationState
-                      .overlay
-                      .eyebrow
-                  }
-                </p>
-              ) : null}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+            <div className="border-t border-cyan-300/25 bg-[#05080D]/95 shadow-[0_-14px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+              <div className="flex min-h-[58px] items-stretch">
+                <div className="flex shrink-0 items-center bg-cyan-300 px-4 md:px-6">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-black md:text-xs">
+                    {presentationState.overlay.eyebrow ||
+                      "VYRO LIVE"}
+                  </span>
+                </div>
 
-              {presentationState.overlay.title ? (
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-white md:text-3xl">
-                  {
-                    presentationState
-                      .overlay
-                      .title
-                  }
-                </h2>
-              ) : null}
+                <div className="relative flex min-w-0 flex-1 items-center overflow-hidden">
+                  <div className="vyro-tv-ticker-track flex w-max shrink-0 items-center whitespace-nowrap">
+                    {[0, 1].map((copyIndex) => (
+                      <div
+                        key={copyIndex}
+                        className="flex shrink-0 items-center gap-5 px-7 md:gap-7 md:px-10"
+                      >
+                        {presentationState.overlay.title ? (
+                          <span className="text-sm font-black uppercase tracking-[0.08em] text-white md:text-base">
+                            {presentationState.overlay.title}
+                          </span>
+                        ) : null}
 
-              {presentationState.overlay.message ? (
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70 md:text-base">
-                  {
-                    presentationState
-                      .overlay
-                      .message
-                  }
-                </p>
-              ) : null}
+                        {presentationState.overlay.title &&
+                        presentationState.overlay.message ? (
+                          <span className="text-cyan-300">
+                            •
+                          </span>
+                        ) : null}
 
-              {presentationState.overlay.cta ? (
-                <span className="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-wide text-black">
-                  {
-                    presentationState
-                      .overlay
-                      .cta
-                  }
-                </span>
-              ) : null}
+                        {presentationState.overlay.message ? (
+                          <span className="text-xs font-semibold uppercase tracking-wide text-white/70 md:text-sm">
+                            {presentationState.overlay.message}
+                          </span>
+                        ) : null}
+
+                        <span className="text-cyan-300">
+                          •
+                        </span>
+
+                        <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300 md:text-sm">
+                          VYRO LIVE
+                        </span>
+
+                        <span className="text-cyan-300">
+                          •
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {presentationState.overlay.cta ? (
+                  <div className="hidden shrink-0 items-center border-l border-white/10 px-5 sm:flex">
+                    <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
+                      {presentationState.overlay.cta}
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="flex shrink-0 items-center border-l border-white/10 px-3 md:px-4">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
@@ -727,6 +833,34 @@ export function LiveViewerMedia({
             </span>
           ) : null}
         </div>
+
+        <style>{`
+          @keyframes vyro-tv-ticker-motion {
+            from {
+              transform: translate3d(0, 0, 0);
+            }
+
+            to {
+              transform: translate3d(-50%, 0, 0);
+            }
+          }
+
+          .vyro-tv-ticker-track {
+            animation:
+              vyro-tv-ticker-motion
+              24s
+              linear
+              infinite;
+            will-change: transform;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .vyro-tv-ticker-track {
+              animation: none;
+              transform: none;
+            }
+          }
+        `}</style>
       </div>
     </section>
   );

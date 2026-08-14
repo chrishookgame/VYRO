@@ -73,13 +73,13 @@ begin
     if previous_room_id is not null
        and previous_room_id <> target_room_id then
 
-        update public.live_room_counters
+        update public.live_room_counters as counters
         set active_viewers =
             greatest(
-                active_viewers - 1,
+                counters.active_viewers - 1,
                 0
             )
-        where live_room_counters.room_id =
+        where counters.room_id =
             previous_room_id;
 
         insert into public.live_presence_events (
@@ -167,7 +167,7 @@ begin
             1,
             1
         )
-        on conflict (room_id)
+        on conflict on constraint live_room_counters_pkey
         do update set
             active_viewers =
                 public.live_room_counters.active_viewers + 1,
@@ -293,13 +293,13 @@ begin
             )
     where user_id = current_user_id;
 
-    update public.live_room_counters
+    update public.live_room_counters as counters
     set active_viewers =
         greatest(
-            active_viewers - 1,
+            counters.active_viewers - 1,
             0
         )
-    where live_room_counters.room_id =
+    where counters.room_id =
         target_room_id;
 
     insert into public.live_presence_events (

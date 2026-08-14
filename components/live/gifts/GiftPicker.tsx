@@ -92,7 +92,7 @@ export default function GiftPicker({
   }
 
   return (
-    <section className="rounded-[2rem] border border-cyan-400/15 bg-[#07111D] p-6">
+    <section className="rounded-[2rem] border border-cyan-300/20 bg-[#07111D]/25 p-6 shadow-[0_16px_50px_rgba(0,0,0,0.18)] backdrop-blur-[3px]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">

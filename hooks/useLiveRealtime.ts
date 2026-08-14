@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -11,6 +11,7 @@ import {
 export interface UseLiveRealtimeResult {
   connected: boolean;
   lastUpdate: LiveRealtimeUpdate | null;
+  lastReactionUpdate: LiveRealtimeUpdate | null;
   counterVersion: number;
   reactionVersion: number;
   giftVersion: number;
@@ -24,6 +25,9 @@ export function useLiveRealtime(
   const [connected, setConnected] = useState(false);
 
   const [lastUpdate, setLastUpdate] =
+    useState<LiveRealtimeUpdate | null>(null);
+
+  const [lastReactionUpdate, setLastReactionUpdate] =
     useState<LiveRealtimeUpdate | null>(null);
 
   const [counterVersion, setCounterVersion] = useState(0);
@@ -48,6 +52,7 @@ export function useLiveRealtime(
         }
 
         if (update.type === "reaction") {
+          setLastReactionUpdate(update);
           setReactionVersion((value) => value + 1);
         }
 
@@ -76,6 +81,7 @@ export function useLiveRealtime(
   return {
     connected,
     lastUpdate,
+    lastReactionUpdate,
     counterVersion,
     reactionVersion,
     giftVersion,

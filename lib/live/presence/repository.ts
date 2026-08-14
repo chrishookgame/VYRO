@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import type {
   LivePresenceCounterResult,
@@ -33,8 +33,34 @@ export async function joinLiveRoom(
   );
 
   if (error) {
+    console.error(
+      "VYRO join_live_room error:",
+      {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        roomId,
+      },
+    );
+
+    const errorParts = [
+      error.code
+        ? `[${error.code}]`
+        : "",
+      error.message,
+      error.details
+        ? `Details: ${error.details}`
+        : "",
+      error.hint
+        ? `Hint: ${error.hint}`
+        : "",
+    ].filter(Boolean);
+
     throw new Error(
-      `No se pudo registrar la entrada al LIVE: ${error.message}`,
+      `No se pudo registrar la entrada al LIVE: ${errorParts.join(
+        " ",
+      )}`,
     );
   }
 

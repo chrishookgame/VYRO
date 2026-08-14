@@ -79,6 +79,7 @@ import {
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveGuestMedia } from "@/components/live/guest";
+import { LiveGuestWaitingPreview } from "@/components/live/guest/LiveGuestWaitingPreview";
 import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
 import { LiveViewerMedia } from "@/components/live/media/LiveViewerMedia";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
@@ -119,6 +120,11 @@ import {
   getLiveRoomDetails,
   type LiveRoomDetails,
 } from "@/lib/live";
+import { supabase } from "@/lib/supabase";
+import {
+  sendLiveReaction,
+  type LiveReactionType,
+} from "@/lib/live/reactions.repository";
 
 import { useCompetitiveOrchestrator } from "@/hooks/useCompetitiveOrchestrator";
 import { useCompetitiveVisuals } from "@/hooks/useCompetitiveVisuals";
@@ -193,6 +199,16 @@ export default function LiveWatchPage() {
     activeGuestInvitation?.status ===
       "accepted";
 
+  const isGuestOnStage =
+    isActiveGuest &&
+    activeGuestInvitation?.stageStatus ===
+      "on_stage";
+
+  const isGuestWaiting =
+    isActiveGuest &&
+    activeGuestInvitation?.stageStatus ===
+      "waiting";
+
   async function handleAcceptGuest() {
     if (
       !activeGuestInvitation ||
@@ -256,6 +272,171 @@ export default function LiveWatchPage() {
   const [room, setRoom] =
     useState<LiveRoomDetails | null>(null);
 
+  const [
+    reactionPickerOpen,
+    setReactionPickerOpen,
+  ] = useState(false);
+
+  const [viewerPanel, setViewerPanel] =
+    useState<"chat" | "gifts" | null>(null);
+
+  const [
+    viewerAuthGateOpen,
+    setViewerAuthGateOpen,
+  ] = useState(false);
+
+  const [
+    viewerAuthAction,
+    setViewerAuthAction,
+  ] = useState<
+    "reaction" | "chat" | "gifts" | null
+  >(null);
+
+  async function requireViewerAuth(
+    action: "reaction" | "chat" | "gifts",
+  ) {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      setViewerAuthAction(action);
+      setViewerAuthGateOpen(true);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  const [
+    sendingReaction,
+    setSendingReaction,
+  ] = useState<LiveReactionType | null>(
+    null,
+  );
+
+  const [
+    reactionError,
+    setReactionError,
+  ] = useState("");
+
+  type LiveFloatingReaction = {
+    id: string;
+    emoji: string;
+    x: number;
+    drift: number;
+    scale: number;
+  };
+
+  const [
+    floatingReactions,
+    setFloatingReactions,
+  ] = useState<LiveFloatingReaction[]>([]);
+
+  const reactionOptions: Array<{
+    type: LiveReactionType;
+    emoji: string;
+    label: string;
+  }> = [
+    {
+      type: "like",
+      emoji: "👍",
+      label: "Me gusta",
+    },
+    {
+      type: "love",
+      emoji: "❤️",
+      label: "Me encanta",
+    },
+    {
+      type: "fire",
+      emoji: "🔥",
+      label: "Fuego",
+    },
+    {
+      type: "wow",
+      emoji: "😮",
+      label: "Wow",
+    },
+    {
+      type: "celebrate",
+      emoji: "🎉",
+      label: "Celebrar",
+    },
+    {
+      type: "support",
+      emoji: "👏",
+      label: "Apoyar",
+    },
+    {
+      type: "vyro_energy",
+      emoji: "⚡",
+      label: "VYRO Energy",
+    },
+  ];
+
+  async function handleSendReaction(
+    reactionType: LiveReactionType,
+  ) {
+    if (sendingReaction) {
+      return;
+    }
+
+    setSendingReaction(
+      reactionType,
+    );
+
+    setReactionError("");
+
+    try {
+      await sendLiveReaction({
+        roomId,
+        reactionType,
+      });
+
+      const localReaction =
+        reactionOptions.find(
+          (option) =>
+            option.type === reactionType,
+        );
+
+      if (localReaction) {
+        const visualReaction: LiveFloatingReaction = {
+          id: crypto.randomUUID(),
+          emoji: localReaction.emoji,
+          x: 82,
+          drift: -18,
+          scale: 1.15,
+        };
+
+        setFloatingReactions((current) => [
+          ...current.slice(-18),
+          visualReaction,
+        ]);
+
+        window.setTimeout(() => {
+          setFloatingReactions((current) =>
+            current.filter(
+              (item) =>
+                item.id !== visualReaction.id,
+            ),
+          );
+        }, 2600);
+      }
+
+    } catch (sendError) {
+      setReactionError(
+        sendError instanceof Error
+          ? sendError.message
+          : "No se pudo enviar la reacción.",
+      );
+    } finally {
+      setSendingReaction(null);
+    }
+  }
+
   const [loading, setLoading] =
     useState(true);
 
@@ -265,12 +446,81 @@ export default function LiveWatchPage() {
   const {
     connected,
     lastUpdate,
+    lastReactionUpdate,
     counterVersion,
     reactionVersion,
     giftVersion,
     rankingVersion,
     eventVersion,
   } = useLiveRealtime(roomId);
+
+  useEffect(() => {
+    if (!lastReactionUpdate) {
+      return;
+    }
+
+    const payload =
+      lastReactionUpdate.payload as {
+        new?: {
+          id?: string;
+          reaction_type?: LiveReactionType;
+        };
+      };
+
+    const reactionType =
+      payload.new?.reaction_type;
+
+    if (!reactionType) {
+      return;
+    }
+
+    const reactionEmojiByType: Record<
+      LiveReactionType,
+      string
+    > = {
+      like: "👍",
+      love: "❤️",
+      fire: "🔥",
+      wow: "😮",
+      celebrate: "🎉",
+      support: "👏",
+      vyro_energy: "⚡",
+    };
+
+    const reactionEmoji =
+      reactionEmojiByType[reactionType];
+
+
+    const visualId =
+      payload.new?.id ??
+      `${reactionType}-${Date.now()}-${Math.random()}`;
+
+    const visualReaction: LiveFloatingReaction = {
+      id: visualId,
+      emoji: reactionEmoji,
+      x: 68 + Math.random() * 25,
+      drift: -30 + Math.random() * 60,
+      scale: 0.9 + Math.random() * 0.45,
+    };
+
+    setFloatingReactions((current) => [
+      ...current.slice(-18),
+      visualReaction,
+    ]);
+
+    const timeout = window.setTimeout(() => {
+      setFloatingReactions((current) =>
+        current.filter(
+          (item) =>
+            item.id !== visualId,
+        ),
+      );
+    }, 2600);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [lastReactionUpdate]);
 
   const {
     battle: liveBattle,
@@ -1473,8 +1723,10 @@ export default function LiveWatchPage() {
               }`}
             />
 
-            {connected && presenceJoined
-              ? "Realtime y presencia conectados"
+            {connected
+              ? presenceJoined
+                ? "Realtime y presencia conectados"
+                : "Realtime conectado"
               : presenceLoading
                 ? "Registrando presencia"
                 : "Conectando Realtime"}
@@ -1644,16 +1896,372 @@ export default function LiveWatchPage() {
             </div>
           ) : null}
 
-          {isActiveGuest ? (
+          {isGuestWaiting ? (
+            <LiveGuestWaitingPreview
+              canUseCamera={
+                activeGuestInvitation
+                  ?.permissions
+                  .canPublishCamera ??
+                false
+              }
+              canUseMicrophone={
+                activeGuestInvitation
+                  ?.permissions
+                  .canPublishMicrophone ??
+                false
+              }
+            />
+          ) : null}
+
+          {isGuestOnStage ? (
             <LiveGuestMedia
               roomId={roomId}
             />
           ) : (
-            <LiveViewerMedia
-              roomId={roomId}
-            />
+            <div className="relative">
+              <LiveViewerMedia
+                roomId={roomId}
+              />
+
+              <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]">
+                {floatingReactions.map(
+                  (reaction) => (
+                    <span
+                      key={reaction.id}
+                      aria-hidden="true"
+                      className="vyro-live-floating-reaction absolute bottom-[12%] text-4xl drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] sm:text-5xl"
+                      style={{
+                        left: `${reaction.x}%`,
+                        transform: `translateX(-50%) scale(${reaction.scale})`,
+                        ["--vyro-reaction-drift" as string]:
+                          `${reaction.drift}px`,
+                      }}
+                    >
+                      {reaction.emoji}
+                    </span>
+                  ),
+                )}
+              </div>
+
+              <style>{`
+                @keyframes vyro-live-reaction-float {
+                  0% {
+                    opacity: 0;
+                    transform:
+                      translate3d(-50%, 20px, 0)
+                      scale(0.65);
+                  }
+
+                  12% {
+                    opacity: 1;
+                  }
+
+                  55% {
+                    opacity: 1;
+                  }
+
+                  100% {
+                    opacity: 0;
+                    transform:
+                      translate3d(
+                        calc(
+                          -50% +
+                          var(--vyro-reaction-drift)
+                        ),
+                        -260px,
+                        0
+                      )
+                      scale(1.35);
+                  }
+                }
+
+                .vyro-live-floating-reaction {
+                  animation:
+                    vyro-live-reaction-float
+                    2.6s
+                    cubic-bezier(
+                      0.22,
+                      0.75,
+                      0.2,
+                      1
+                    )
+                    forwards;
+                  will-change:
+                    transform,
+                    opacity;
+                }
+
+                @media (
+                  prefers-reduced-motion: reduce
+                ) {
+                  .vyro-live-floating-reaction {
+                    animation-duration: 0.8s;
+                  }
+                }
+              `}</style>
+
+              <div className="pointer-events-none absolute right-4 top-16 z-30 flex justify-end sm:right-5 sm:top-20">
+                <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/[0.04] bg-black/[0.03] p-1 shadow-none backdrop-blur-[1px]">
+                  <div className="relative">
+                    {reactionPickerOpen ? (
+                      <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 w-max max-w-[calc(100vw-2rem)]">
+                        <div className="rounded-2xl border border-white/10 bg-black/90 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.65)] backdrop-blur-2xl">
+                          <div className="mb-1 px-2 pt-1">
+                            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
+                              Reaccionar
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {reactionOptions.map(
+                              (reaction) => (
+                                <button
+                                  key={
+                                    reaction.type
+                                  }
+                                  type="button"
+                                  title={
+                                    reaction.label
+                                  }
+                                  aria-label={
+                                    reaction.label
+                                  }
+                                  disabled={
+                                    sendingReaction !==
+                                    null
+                                  }
+                                  onClick={() => {
+                                    void handleSendReaction(
+                                      reaction.type,
+                                    );
+                                  }}
+                                  className="group flex h-11 w-11 items-center justify-center rounded-xl text-2xl transition hover:-translate-y-1 hover:bg-white/10 disabled:cursor-wait disabled:opacity-40 sm:h-12 sm:w-12 sm:text-3xl"
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    className="transition-transform duration-200 group-hover:scale-125"
+                                  >
+                                    {
+                                      reaction.emoji
+                                    }
+                                  </span>
+                                </button>
+                              ),
+                            )}
+                          </div>
+
+                          {reactionError ? (
+                            <p className="max-w-xs px-2 pb-1 pt-2 text-xs font-bold text-red-300">
+                              {reactionError}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      aria-label="Reaccionar al LIVE"
+                      aria-expanded={
+                        reactionPickerOpen
+                      }
+                      onClick={async () => {
+                        setReactionError("");
+
+                        const allowed =
+                          await requireViewerAuth(
+                            "reaction",
+                          );
+
+                        if (!allowed) {
+                          return;
+                        }
+
+                        setReactionPickerOpen(
+                          (current) =>
+                            !current,
+                        );
+                      }}
+                      className={[
+                        "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition",
+                        reactionPickerOpen
+                          ? "bg-white/[0.06]"
+                          : "hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      <span aria-hidden="true">
+                        ❤️
+                      </span>
+
+                      <span className="hidden sm:inline">
+                        Reaccionar
+                      </span>
+
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          "text-[10px] text-white/45 transition-transform",
+                          reactionPickerOpen
+                            ? "rotate-180"
+                            : "",
+                        ].join(" ")}
+                      >
+                        ▾
+                      </span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Abrir comentarios"
+                    aria-expanded={viewerPanel === "chat"}
+                    onClick={async () => {
+                      setReactionPickerOpen(false);
+
+                      const allowed =
+                        await requireViewerAuth(
+                          "chat",
+                        );
+
+                      if (!allowed) {
+                        return;
+                      }
+
+                      setViewerPanel((current) =>
+                        current === "chat"
+                          ? null
+                          : "chat",
+                      );
+                    }}
+                    className={[
+                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition",
+                      viewerPanel === "chat"
+                        ? "bg-white/[0.06]"
+                        : "hover:bg-white/10",
+                    ].join(" ")}
+                  >
+                    <span aria-hidden="true">
+                      💬
+                    </span>
+
+                    <span className="hidden sm:inline">
+                      Comentar
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    aria-label="Enviar regalo"
+                    aria-expanded={viewerPanel === "gifts"}
+                    onClick={async () => {
+                      setReactionPickerOpen(false);
+
+                      const allowed =
+                        await requireViewerAuth(
+                          "gifts",
+                        );
+
+                      if (!allowed) {
+                        return;
+                      }
+
+                      setViewerPanel((current) =>
+                        current === "gifts"
+                          ? null
+                          : "gifts",
+                      );
+                    }}
+                    className={[
+                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black transition",
+                      viewerPanel === "gifts"
+                        ? "bg-white/[0.07] text-white"
+                        : "bg-transparent text-cyan-200 hover:bg-white/[0.05]",
+                    ].join(" ")}
+                  >
+                    <span aria-hidden="true">
+                      🎁
+                    </span>
+
+                    <span className="hidden sm:inline">
+                      Regalo
+                    </span>
+                  </button>
+
+                  <div className="mx-0.5 h-5 w-px bg-white/10" />
+
+                  <div className="flex h-9 items-center gap-1 rounded-full px-2 text-[11px] font-black text-white/70">
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 animate-pulse rounded-full bg-red-500"
+                    />
+
+                    <span>
+                      {presenceCounters?.activeViewers ??
+                        room.counters.activeViewers}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </section>
+        {viewerAuthGateOpen ? (
+          <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/15 p-4 backdrop-blur-[1px]">
+            <div className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-[#07111D]/80 p-7 shadow-2xl backdrop-blur-xl">
+              <button
+                type="button"
+                aria-label="Cerrar"
+                onClick={() => {
+                  setViewerAuthGateOpen(false);
+                  setViewerAuthAction(null);
+                }}
+                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/20 text-lg font-black text-white transition hover:bg-white/10"
+              >
+                ×
+              </button>
+
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                VYRO LIVE
+              </p>
+
+              <h2 className="mt-3 text-2xl font-black text-white">
+                Participa en este LIVE
+              </h2>
+
+              <p className="mt-3 text-sm leading-6 text-white/60">
+                {viewerAuthAction === "reaction"
+                  ? "Inicia sesión para reaccionar en tiempo real."
+                  : viewerAuthAction === "chat"
+                    ? "Inicia sesión para comentar en este LIVE."
+                    : "Inicia sesión para enviar regalos al creador."}
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Link
+                  href={`/login?returnTo=${encodeURIComponent(
+                    `/live/watch/${roomId}`,
+                  )}`}
+                  className="flex h-12 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-black text-black transition hover:bg-cyan-200"
+                >
+                  Iniciar sesión
+                </Link>
+
+                <Link
+                  href={`/register?returnTo=${encodeURIComponent(
+                    `/live/watch/${roomId}`,
+                  )}`}
+                  className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-5 text-sm font-black text-white transition hover:bg-white/10"
+                >
+                  Crear cuenta
+                </Link>
+              </div>
+
+              <p className="mt-5 text-center text-[11px] font-bold text-white/35">
+                Puedes seguir viendo el LIVE sin iniciar sesión.
+              </p>
+            </div>
+          </div>
+        ) : null}
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <MetricCard
             title="Espectadores"
@@ -2039,18 +2647,74 @@ export default function LiveWatchPage() {
             rankingVersion={rankingVersion}
           />
         </section>
-        <section className="mt-8">
-          <GiftPicker roomId={roomId} />
+                {/* VYRO VIEWER FLOATING GIFTS */}
+        <section
+          className={
+            viewerPanel === "gifts"
+              ? "fixed inset-0 z-[90] flex items-center justify-center bg-black/[0.10] p-3 backdrop-blur-[1px] sm:p-6"
+              : "mt-8"
+          }
+        >
+          <div
+            className={
+              viewerPanel === "gifts"
+                ? "relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] shadow-[0_18px_55px_rgba(0,0,0,0.22)]"
+                : ""
+            }
+          >
+            {viewerPanel === "gifts" ? (
+              <button
+                type="button"
+                aria-label="Cerrar regalos"
+                onClick={() => {
+                  setViewerPanel(null);
+                }}
+                className="absolute right-4 top-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/80 text-xl font-black text-white shadow-xl backdrop-blur-xl transition hover:bg-white/15"
+              >
+                ×
+              </button>
+            ) : null}
+
+            <GiftPicker roomId={roomId} />
+          </div>
         </section>
-        <section className="mt-8">
-          <LiveChatPanel
-            messages={messages}
-            loading={chatLoading}
-            sending={chatSending}
-            connected={chatConnected}
-            error={chatError}
-            onSendMessage={sendMessage}
-          />
+                {/* VYRO VIEWER FLOATING CHAT */}
+        <section
+          className={
+            viewerPanel === "chat"
+              ? "fixed inset-0 z-[90] flex items-center justify-center bg-black/[0.10] p-3 backdrop-blur-[1px] sm:p-6"
+              : "mt-8"
+          }
+        >
+          <div
+            className={
+              viewerPanel === "chat"
+                ? "relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] shadow-[0_18px_55px_rgba(0,0,0,0.22)]"
+                : ""
+            }
+          >
+            {viewerPanel === "chat" ? (
+              <button
+                type="button"
+                aria-label="Cerrar comentarios"
+                onClick={() => {
+                  setViewerPanel(null);
+                }}
+                className="absolute right-4 top-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/80 text-xl font-black text-white shadow-xl backdrop-blur-xl transition hover:bg-white/15"
+              >
+                ×
+              </button>
+            ) : null}
+
+            <LiveChatPanel
+              messages={messages}
+              loading={chatLoading}
+              sending={chatSending}
+              connected={chatConnected}
+              error={chatError}
+              onSendMessage={sendMessage}
+            />
+          </div>
         </section>
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#0B1220] p-6">
           <h2 className="text-xl font-black">

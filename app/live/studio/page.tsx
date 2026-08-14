@@ -31,6 +31,7 @@ import {
 import { LiveCommandCenter } from "@/components/live/command-center";
 import { LiveGuestControlCenter } from "@/components/live/guest";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
+import { VyroCreatorControlStrip } from "@/components/live/studio/VyroCreatorControlStrip";
 import {
   useBattleCountdown,
   useBattleInvitations,
@@ -46,6 +47,14 @@ import {
   startLiveBattleRound,
 } from "@/lib/live-battle-series";
 
+type CreatorOnAirOverlay = {
+  visible: boolean;
+  eyebrow: string;
+  title: string;
+  message: string;
+  cta: string;
+};
+
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -57,6 +66,17 @@ function formatDuration(totalSeconds: number) {
 }
 
 export default function LiveStudioPage() {
+  const [
+    creatorOnAirOverlay,
+    setCreatorOnAirOverlay,
+  ] = useState<CreatorOnAirOverlay>({
+    visible: false,
+    eyebrow: "",
+    title: "",
+    message: "",
+    cta: "",
+  });
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const liveKitRoomRef = useRef<Room | null>(null);
@@ -944,7 +964,7 @@ export default function LiveStudioPage() {
   }
   return (
     <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
-      <section className="mx-auto max-w-7xl">
+      <section className="mx-auto w-full max-w-[1440px]">
         <div className="mb-6 flex items-center justify-between gap-4">
           <Link
             href="/live"
@@ -1020,20 +1040,142 @@ export default function LiveStudioPage() {
           </div>
         ) : null}
 
-        <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-3">
-          <section className="xl:col-span-2">
-            <div className="relative flex min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-cyan-500/20 bg-black">
+        <div className="mx-auto mt-8 grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-7">
+          <section className="min-w-0">
+            <div className="relative flex min-h-[500px] xl:min-h-[560px] items-center justify-center overflow-hidden rounded-3xl border border-cyan-500/20 bg-black">
               <video
                 ref={videoRef}
                 autoPlay
                 muted
                 playsInline
-                className="h-full min-h-[520px] w-full object-cover"
+                className="h-full min-h-[500px] xl:min-h-[560px] w-full object-cover"
               />
 
+              {isLive &&
+              creatorOnAirOverlay.visible ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+                  <div className="flex min-h-14 items-stretch border-t border-cyan-300/20 bg-black/55 shadow-[0_-10px_35px_rgba(0,0,0,0.20)] backdrop-blur-sm">
+                    <div className="flex shrink-0 items-center bg-cyan-300 px-4 text-[10px] font-black uppercase tracking-[0.16em] text-black">
+                      {creatorOnAirOverlay.eyebrow ||
+                        "VYRO LIVE"}
+                    </div>
+
+                    <div className="relative flex min-w-0 flex-1 items-center overflow-hidden">
+                      <div className="vyro-creator-tv-ticker-track flex w-max shrink-0 items-center whitespace-nowrap">
+                        {[0, 1].map((copyIndex) => (
+                          <div
+                            key={copyIndex}
+                            className="flex shrink-0 items-center gap-5 px-7 md:gap-7 md:px-10"
+                          >
+                            <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-200">
+                              VISTA AL AIRE
+                            </span>
+
+                            {creatorOnAirOverlay.title ? (
+                              <span className="shrink-0 text-sm font-black uppercase tracking-[0.08em] text-white">
+                                {creatorOnAirOverlay.title}
+                              </span>
+                            ) : null}
+
+                            {creatorOnAirOverlay.title &&
+                            creatorOnAirOverlay.message ? (
+                              <span className="text-cyan-300">
+                                •
+                              </span>
+                            ) : null}
+
+                            {creatorOnAirOverlay.message ? (
+                              <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-white/70">
+                                {creatorOnAirOverlay.message}
+                              </span>
+                            ) : null}
+
+                            <span className="text-cyan-300">
+                              •
+                            </span>
+
+                            <span className="shrink-0 text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                              VYRO LIVE
+                            </span>
+
+                            <span className="text-cyan-300">
+                              •
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {creatorOnAirOverlay.cta ? (
+                      <div className="flex shrink-0 items-center border-l border-white/10 px-4">
+                        <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
+                          {creatorOnAirOverlay.cta}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <div className="flex w-10 shrink-0 items-center justify-center border-l border-white/10">
+                      <span className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.85)]" />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <style>{`
+                @keyframes vyro-creator-tv-ticker-motion {
+                  from {
+                    transform: translate3d(0, 0, 0);
+                  }
+
+                  to {
+                    transform: translate3d(-50%, 0, 0);
+                  }
+                }
+
+                .vyro-creator-tv-ticker-track {
+                  animation:
+                    vyro-creator-tv-ticker-motion
+                    24s
+                    linear
+                    infinite;
+                  will-change: transform;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                  .vyro-creator-tv-ticker-track {
+                    animation: none;
+                    transform: none;
+                  }
+                }
+              `}</style>
+
               {isLive ? (
-                <div className="absolute left-5 top-5 rounded-full bg-red-500 px-4 py-2 text-sm font-black text-white shadow-lg">
-                  VYRO LIVE
+                <div className="absolute left-4 right-4 top-4 z-20">
+                  <VyroCreatorControlStrip
+                    activeViewers={
+                      dashboard.activeViewers
+                    }
+                    peakViewers={
+                      dashboard.peakViewers
+                    }
+                    totalJoins={
+                      dashboard.totalJoins
+                    }
+                    reactions={
+                      dashboard.reactions
+                    }
+                    messages={
+                      dashboard.messages
+                    }
+                    gifts={
+                      dashboard.gifts
+                    }
+                    duration={
+                      formatDuration(
+                        liveDuration,
+                      )
+                    }
+                  />
                 </div>
               ) : null}
 
@@ -1215,14 +1357,9 @@ export default function LiveStudioPage() {
                 ) : null}
               </div>
             </div>
-          </section>
 
-          <aside className="space-y-6">
-            <LiveProductionPanel
-              room={liveKitRoom}
-              isLive={isLive}
-            />
-            <div className="rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
+            <div className="mx-auto mt-6 grid w-full gap-5 md:grid-cols-2">
+<div className="min-w-0 rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
               <div className="flex items-center gap-3">
                 <Radio className="text-cyan-400" />
                 <h2 className="text-xl font-bold">Detalles del Live</h2>
@@ -1267,7 +1404,7 @@ export default function LiveStudioPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
+            <div className="min-w-0 rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
               <div className="flex items-center gap-3">
                 <Users className="text-cyan-400" />
                 <h2 className="text-xl font-bold">Invitados</h2>
@@ -1288,7 +1425,7 @@ export default function LiveStudioPage() {
               <button
                 type="button"
                 onClick={stopLive}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 font-black text-black transition hover:bg-gray-200"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 font-black text-black transition hover:bg-gray-200 md:col-span-2"
               >
                 <Square size={20} fill="currentColor" />
                 Finalizar VYRO LIVE
@@ -1298,14 +1435,44 @@ export default function LiveStudioPage() {
                 type="button"
                 onClick={startLive}
                 disabled={!devicesReady || !cameraEnabled}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-red-500 py-4 font-black text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-red-500 py-4 font-black text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50 md:col-span-2"
               >
                 <Radio />
                 Iniciar VYRO LIVE
               </button>
             )}
+            </div>
+
+
+          </section>
+
+          <aside className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:w-[420px] xl:justify-self-center xl:self-start xl:overflow-y-auto xl:overscroll-contain">
+            <LiveProductionPanel
+              room={liveKitRoom}
+              isLive={isLive}
+              onPublishedOverlayChange={
+                setCreatorOnAirOverlay
+              }
+            />
           </aside>
         </div>
+
+        <div className="mt-8 w-full">
+          <BattleStudio
+            disabled={
+              !session ||
+              battleInvitationsLoading ||
+              creatingBattleSeries ||
+              battleSeriesProcessing
+            }
+            onCreateSeries={(config) => {
+              void handleCreateBattleSeries(
+                config,
+              );
+            }}
+          />
+        </div>
+
         {activeBattleSeries ? (
           <section className="mt-10 overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-[#07111D] text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 p-6 md:p-8">
@@ -1420,23 +1587,9 @@ export default function LiveStudioPage() {
           </section>
         ) : null}
 
-        <div className="mt-10">
-          <BattleStudio
-            disabled={
-              !session ||
-              battleInvitationsLoading ||
-              creatingBattleSeries ||
-              battleSeriesProcessing
-            }
-            onCreateSeries={(config) => {
-              void handleCreateBattleSeries(
-                config,
-              );
-            }}
-          />
-        </div>
 
-        <div className="mt-10">
+
+        <div className="mt-8">
           <LiveCommandCenter
             activeViewers={
               dashboard.activeViewers

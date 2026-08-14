@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export type LiveRealtimeEventType =
   | "counter"
@@ -44,6 +44,7 @@ export function subscribeToLiveRoom(
         filter: `room_id=eq.${roomId}`,
       },
       (payload) => {
+
         onUpdate({
           type: "reaction",
           payload,
@@ -98,6 +99,7 @@ export function subscribeToLiveRoom(
         });
       },
     )
+
 
     .subscribe();
 

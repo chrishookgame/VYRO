@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -12,6 +12,7 @@ import {
   leaveLiveRoom,
   type LivePresenceCounterResult,
 } from "@/lib/live";
+import { supabase } from "@/lib/supabase";
 
 export interface UseLivePresenceResult {
   joined: boolean;
@@ -60,6 +61,18 @@ export function useLivePresence(
     setError("");
 
     try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        joinedRoomIdRef.current = null;
+        setJoined(false);
+        setCounters(null);
+        return;
+      }
+
       const result =
         await joinLiveRoom(roomId);
 

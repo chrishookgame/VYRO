@@ -68,7 +68,7 @@ export default function LiveChatPanel({
   }
 
   return (
-    <section className="flex min-h-[620px] flex-col overflow-hidden rounded-[2rem] border border-cyan-400/15 bg-[#07111D] shadow-[0_25px_90px_rgba(0,0,0,0.35)]">
+    <section className="flex min-h-[620px] flex-col overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[#07111D]/25 shadow-[0_16px_50px_rgba(0,0,0,0.18)] backdrop-blur-[3px]">
       <header className="border-b border-white/10 p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">

@@ -17,6 +17,7 @@ type LiveRoomRow = {
   id: string;
   host_id: string;
   status: string;
+  visibility: "public" | "private";
 };
 
 type LiveGuestPermissions = {
@@ -29,6 +30,7 @@ type LiveGuestInvitationRow = {
   id: string;
   guest_id: string;
   status: string;
+  stage_status: string;
   permissions: unknown;
 };
 
@@ -75,20 +77,6 @@ export async function POST(
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json(
-        {
-          success: false,
-          token: "",
-          url: "",
-          error:
-            "Debes iniciar sesión para utilizar VYRO LIVE.",
-        },
-        {
-          status: 401,
-        },
-      );
-    }
 
     const body =
       (await request.json()) as
@@ -121,13 +109,37 @@ export async function POST(
       );
     }
 
+    if (
+      (
+        role === "host" ||
+        role === "guest"
+      ) &&
+      (
+        authError ||
+        !user
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          token: "",
+          url: "",
+          error:
+            "Debes iniciar sesión para transmitir o participar como Guest.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
     const {
       data: roomData,
       error: roomError,
     } = await supabase
       .from("live_rooms")
       .select(
-        "id,host_id,status",
+        "id,host_id,status,visibility",
       )
       .eq(
         "id",
@@ -175,7 +187,7 @@ export async function POST(
 
     if (
       role === "host" &&
-      room.host_id !== user.id
+      room.host_id !== user!.id
     ) {
       return NextResponse.json(
         {
@@ -184,6 +196,24 @@ export async function POST(
           url: "",
           error:
             "No tienes permiso para transmitir este LIVE.",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
+    if (
+      role === "viewer" &&
+      room.visibility !== "public"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          token: "",
+          url: "",
+          error:
+            "Este VYRO LIVE es privado.",
         },
         {
           status: 403,
@@ -224,6 +254,10 @@ export async function POST(
       string | null =
       null;
 
+    let guestStageStatus:
+      string | null =
+      null;
+
     if (role === "guest") {
       const {
         data: invitationData,
@@ -233,7 +267,7 @@ export async function POST(
           "live_guest_invitations",
         )
         .select(
-          "id,guest_id,status,permissions",
+          "id,guest_id,status,stage_status,permissions",
         )
         .eq(
           "room_id",
@@ -241,7 +275,7 @@ export async function POST(
         )
         .eq(
           "guest_id",
-          user.id,
+          user!.id,
         )
         .eq(
           "status",
@@ -286,7 +320,7 @@ export async function POST(
       if (
         !guestInvitation ||
         guestInvitation.guest_id !==
-          user.id ||
+          user!.id ||
         guestInvitation.status !==
           "accepted"
       ) {
@@ -306,6 +340,9 @@ export async function POST(
 
       guestInvitationId =
         guestInvitation.id;
+
+      guestStageStatus =
+        guestInvitation.stage_status;
 
       guestPermissions =
         parseGuestPermissions(
@@ -365,12 +402,16 @@ export async function POST(
       );
     }
 
+    const viewerId =
+      user?.id ??
+      crypto.randomUUID();
+
     const identity =
       role === "host"
-        ? `host:${user.id}`
+        ? `host:${user!.id}`
         : role === "guest"
-          ? `guest:${user.id}`
-          : `viewer:${user.id}`;
+          ? `guest:${user!.id}`
+          : `viewer:${viewerId}`;
 
     const participantName =
       role === "host"
@@ -381,10 +422,14 @@ export async function POST(
 
     const canPublish =
       role === "host" ||
-      role === "guest";
+      (
+        role === "guest" &&
+        guestStageStatus === "on_stage"
+      );
 
     const guestPublishSources =
       role === "guest" &&
+      guestStageStatus === "on_stage" &&
       guestPermissions
         ? [
             ...(guestPermissions.canPublishCamera
@@ -414,7 +459,7 @@ export async function POST(
           metadata:
             JSON.stringify({
               vyroUserId:
-                user.id,
+                user?.id ?? null,
               role,
               roomId,
               guestInvitationId,
