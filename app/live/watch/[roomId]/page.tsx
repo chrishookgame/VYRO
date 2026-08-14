@@ -79,6 +79,7 @@ import {
   LiveBattleEngine,
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
+import FollowButton from "@/components/feed/FollowButton";
 import { LiveGuestMedia } from "@/components/live/guest";
 import { LiveGuestWaitingPreview } from "@/components/live/guest/LiveGuestWaitingPreview";
 import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
@@ -290,7 +291,7 @@ export default function LiveWatchPage() {
     viewerAuthAction,
     setViewerAuthAction,
   ] = useState<
-    "reaction" | "chat" | "gifts" | null
+    "reaction" | "chat" | "gifts" | "follow" | null
   >(null);
 
   async function requireViewerAuth(
@@ -1831,6 +1832,14 @@ export default function LiveWatchPage() {
                   className="text-cyan-400"
                 />
               ) : null}
+              <FollowButton
+                creatorId={room.hostId}
+                ownLabel={null}
+                onAuthRequired={() => {
+                  setViewerAuthAction("follow");
+                  setViewerAuthGateOpen(true);
+                }}
+              />
             </div>
 
             <div className="inline-flex items-center gap-2">
@@ -2291,7 +2300,9 @@ export default function LiveWatchPage() {
                   ? "Inicia sesión para reaccionar en tiempo real."
                   : viewerAuthAction === "chat"
                     ? "Inicia sesión para comentar en este LIVE."
-                    : "Inicia sesión para enviar regalos al creador."}
+                    : viewerAuthAction === "follow"
+                      ? "Inicia sesión para seguir a este creador."
+                      : "Inicia sesión para enviar regalos al creador."}
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">

@@ -14,10 +14,14 @@ import { supabase } from "@/lib/supabase";
 
 type FollowButtonProps = {
   creatorId: string;
+  onAuthRequired?: () => void;
+  ownLabel?: string | null;
 };
 
 export default function FollowButton({
   creatorId,
+  onAuthRequired,
+  ownLabel = "Tu publicación",
 }: FollowButtonProps) {
   const [currentUserId, setCurrentUserId] =
     useState<string | null>(null);
@@ -98,9 +102,13 @@ export default function FollowButton({
 
   async function toggleFollow() {
     if (!currentUserId) {
-      window.alert(
-        "Debes iniciar sesión para seguir creadores.",
-      );
+      if (onAuthRequired) {
+        onAuthRequired();
+      } else {
+        window.alert(
+          "Debes iniciar sesión para seguir creadores.",
+        );
+      }
 
       return;
     }
@@ -183,9 +191,13 @@ export default function FollowButton({
   if (
     currentUserId === creatorId
   ) {
+    if (!ownLabel) {
+      return null;
+    }
+
     return (
       <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-slate-300">
-        Tu publicación
+        {ownLabel}
       </span>
     );
   }
