@@ -2119,7 +2119,7 @@ export default function LiveWatchPage() {
               `}</style>
 
               <div className="pointer-events-none absolute right-4 top-16 z-30 flex justify-end sm:right-5 sm:top-20">
-                <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/[0.04] bg-black/[0.03] p-1 shadow-none backdrop-blur-[1px]">
+                <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/45 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md">
                   <div className="relative">
                     {reactionPickerOpen ? (
                       <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 w-max max-w-[calc(100vw-2rem)]">
@@ -2201,10 +2201,10 @@ export default function LiveWatchPage() {
                         );
                       }}
                       className={[
-                        "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition",
+                        "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                         reactionPickerOpen
-                          ? "bg-white/[0.06]"
-                          : "hover:bg-white/10",
+                          ? "bg-white/15 text-white shadow-sm"
+                          : "hover:bg-white/10 hover:text-white",
                       ].join(" ")}
                     >
                       <span aria-hidden="true">
@@ -2252,10 +2252,10 @@ export default function LiveWatchPage() {
                       );
                     }}
                     className={[
-                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition",
+                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                       viewerPanel === "chat"
-                        ? "bg-white/[0.06]"
-                        : "hover:bg-white/10",
+                        ? "bg-white/15 text-white shadow-sm"
+                        : "hover:bg-white/10 hover:text-white",
                     ].join(" ")}
                   >
                     <span aria-hidden="true">
@@ -2290,10 +2290,10 @@ export default function LiveWatchPage() {
                       );
                     }}
                     className={[
-                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black transition",
+                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                       viewerPanel === "gifts"
-                        ? "bg-white/[0.07] text-white"
-                        : "bg-transparent text-cyan-200 hover:bg-white/[0.05]",
+                        ? "bg-white/15 text-white shadow-sm"
+                        : "hover:bg-white/10 hover:text-white",
                     ].join(" ")}
                   >
                     <span aria-hidden="true">
@@ -2310,7 +2310,7 @@ export default function LiveWatchPage() {
                     onClick={() => {
                       void handleShareLive();
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white transition hover:bg-white/10"
+                    className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
                   >
                     <Share2 size={16} />
 
