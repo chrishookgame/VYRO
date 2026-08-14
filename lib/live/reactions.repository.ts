@@ -49,6 +49,7 @@ export async function sendLiveReaction({
     );
 
   const {
+    data,
     error,
   } = await supabase
     .from("live_reactions")
@@ -58,7 +59,9 @@ export async function sendLiveReaction({
       reaction_type: reactionType,
       intensity: safeIntensity,
       metadata,
-    });
+    })
+    .select("id")
+    .single();
 
   if (error) {
     console.error(
@@ -93,4 +96,11 @@ export async function sendLiveReaction({
       )}`,
     );
   }
+  if (!data?.id) {
+    throw new Error(
+      "La reacción fue enviada pero no devolvió un identificador.",
+    );
+  }
+
+  return data.id;
 }

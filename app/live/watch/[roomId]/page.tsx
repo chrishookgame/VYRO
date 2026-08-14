@@ -35,6 +35,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Link from "next/link";
@@ -330,6 +331,9 @@ export default function LiveWatchPage() {
     scale: number;
   };
 
+  const displayedReactionIdsRef =
+    useRef<Set<string>>(new Set());
+
   const [
     floatingReactions,
     setFloatingReactions,
@@ -391,10 +395,11 @@ export default function LiveWatchPage() {
     setReactionError("");
 
     try {
-      await sendLiveReaction({
-        roomId,
-        reactionType,
-      });
+      const reactionId =
+        await sendLiveReaction({
+          roomId,
+          reactionType,
+        });
 
       const localReaction =
         reactionOptions.find(
@@ -402,9 +407,18 @@ export default function LiveWatchPage() {
             option.type === reactionType,
         );
 
-      if (localReaction) {
+      if (
+        localReaction &&
+        !displayedReactionIdsRef.current.has(
+          reactionId,
+        )
+      ) {
+        displayedReactionIdsRef.current.add(
+          reactionId,
+        );
+
         const visualReaction: LiveFloatingReaction = {
-          id: crypto.randomUUID(),
+          id: reactionId,
           emoji: localReaction.emoji,
           x: 82,
           drift: -18,
@@ -420,10 +434,16 @@ export default function LiveWatchPage() {
           setFloatingReactions((current) =>
             current.filter(
               (item) =>
-                item.id !== visualReaction.id,
+                item.id !== reactionId,
             ),
           );
         }, 2600);
+
+        window.setTimeout(() => {
+          displayedReactionIdsRef.current.delete(
+            reactionId,
+          );
+        }, 10000);
       }
 
     } catch (sendError) {
@@ -470,9 +490,27 @@ export default function LiveWatchPage() {
     const reactionType =
       payload.new?.reaction_type;
 
-    if (!reactionType) {
+    const reactionId =
+      payload.new?.id;
+
+    if (
+      !reactionType ||
+      !reactionId
+    ) {
       return;
     }
+
+    if (
+      displayedReactionIdsRef.current.has(
+        reactionId,
+      )
+    ) {
+      return;
+    }
+
+    displayedReactionIdsRef.current.add(
+      reactionId,
+    );
 
     const reactionEmojiByType: Record<
       LiveReactionType,
@@ -491,16 +529,30 @@ export default function LiveWatchPage() {
       reactionEmojiByType[reactionType];
 
 
-    const visualId =
-      payload.new?.id ??
-      `${reactionType}-${Date.now()}-${Math.random()}`;
+    const visualId = reactionId;
+
+    const visualSeed =
+      visualId.split("").reduce(
+        (seed, character) =>
+          (
+            seed * 31 +
+            character.charCodeAt(0)
+          ) % 100000,
+        7,
+      );
 
     const visualReaction: LiveFloatingReaction = {
       id: visualId,
       emoji: reactionEmoji,
-      x: 68 + Math.random() * 25,
-      drift: -30 + Math.random() * 60,
-      scale: 0.9 + Math.random() * 0.45,
+      x:
+        68 +
+        (visualSeed % 2500) / 100,
+      drift:
+        -30 +
+        ((visualSeed * 7) % 6000) / 100,
+      scale:
+        0.9 +
+        ((visualSeed * 13) % 45) / 100,
     };
 
     setFloatingReactions((current) => [
@@ -516,6 +568,12 @@ export default function LiveWatchPage() {
         ),
       );
     }, 2600);
+
+    window.setTimeout(() => {
+      displayedReactionIdsRef.current.delete(
+        visualId,
+      );
+    }, 10000);
 
     return () => {
       window.clearTimeout(timeout);
@@ -2716,31 +2774,7 @@ export default function LiveWatchPage() {
             />
           </div>
         </section>
-        <section className="mt-8 rounded-3xl border border-white/10 bg-[#0B1220] p-6">
-          <h2 className="text-xl font-black">
-            Actividad en tiempo real
-          </h2>
 
-          {lastUpdate ? (
-            <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-black/30 p-5">
-              <p className="font-bold text-cyan-400">
-                Tipo: {lastUpdate.type}
-              </p>
-
-              <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-gray-300">
-                {JSON.stringify(
-                  lastUpdate.payload,
-                  null,
-                  2,
-                )}
-              </pre>
-            </div>
-          ) : (
-            <p className="mt-4 text-gray-400">
-              Esperando la primera actividad de este LIVE.
-            </p>
-          )}
-        </section>
       </section>
       </main>
     </>
