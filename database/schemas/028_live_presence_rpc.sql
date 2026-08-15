@@ -26,6 +26,7 @@ declare
     current_user_id uuid := auth.uid();
     previous_room_id uuid;
     already_joined boolean := false;
+    latest_room_event text;
 begin
     if current_user_id is null then
         raise exception
@@ -55,20 +56,24 @@ begin
     );
 
     select
-        current_room_id,
-        (
-            current_room_id = target_room_id
-            and status in (
-                'online',
-                'live'
-            )
-        )
+        presence.current_room_id
     into
-        previous_room_id,
-        already_joined
-    from public.live_presence
-    where user_id = current_user_id
+        previous_room_id
+    from public.live_presence as presence
+    where presence.user_id = current_user_id
     for update;
+
+    select events.event_type
+    into latest_room_event
+    from public.live_presence_events as events
+    where events.user_id = current_user_id
+      and events.room_id = target_room_id
+    order by events.created_at desc
+    limit 1;
+
+    already_joined :=
+        previous_room_id = target_room_id
+        and latest_room_event = 'joined_room';
 
     if previous_room_id is not null
        and previous_room_id <> target_room_id then
