@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -32,6 +32,9 @@ export function useLiveChat(
 ): UseLiveChatResult {
   const mountedRef = useRef(true);
 
+  const refreshVersionRef =
+    useRef(0);
+
   const [messages, setMessages] =
     useState<LiveChatMessage[]>([]);
 
@@ -53,9 +56,18 @@ export function useLiveChat(
 
   const refreshMessages =
     useCallback(async () => {
+      const refreshVersion =
+        ++refreshVersionRef.current;
+
       if (!roomId) {
-        setMessages([]);
-        setLoading(false);
+        if (
+          refreshVersion ===
+          refreshVersionRef.current
+        ) {
+          setMessages([]);
+          setLoading(false);
+        }
+
         return;
       }
 
@@ -65,12 +77,20 @@ export function useLiveChat(
         const loadedMessages =
           await loadLiveChat(roomId);
 
-        if (mountedRef.current) {
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
           setMessages(loadedMessages);
           setError("");
         }
       } catch (chatError) {
-        if (mountedRef.current) {
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
           setError(
             chatError instanceof Error
               ? chatError.message
@@ -78,7 +98,11 @@ export function useLiveChat(
           );
         }
       } finally {
-        if (mountedRef.current) {
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
           setLoading(false);
         }
       }

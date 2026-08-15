@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import type {
   LiveChatMessage,
@@ -71,8 +71,16 @@ export async function getLiveChatMessages(
       .in("id", userIds);
 
   if (profileError) {
-    throw new Error(
-      `No se pudieron cargar los perfiles del chat: ${profileError.message}`,
+    console.warn(
+      "VYRO LIVE chat profile enrichment failed:",
+      {
+        roomId,
+        message: profileError.message,
+      },
+    );
+
+    return rows.map((row) =>
+      mapMessage(row, null),
     );
   }
 
