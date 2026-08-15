@@ -12,9 +12,7 @@ import {
   useState,
 } from "react";
 
-import {
-  useLiveGuestInvitations,
-} from "@/hooks/useLiveGuestInvitations";
+import type { UseLiveGuestInvitationsResult } from "@/hooks/useLiveGuestInvitations";
 import {
   DEFAULT_VYRO_PRESENTATION_STATE,
   encodeVyroPresentation,
@@ -34,6 +32,7 @@ type CreatorOnAirOverlay = {
 type LiveProductionPanelProps = {
   room: Room | null;
   isLive: boolean;
+  guestInvitations: UseLiveGuestInvitationsResult;
   onPublishedOverlayChange?: (
     overlay: CreatorOnAirOverlay,
   ) => void;
@@ -161,6 +160,7 @@ function GuestVideoPreview({
 export function LiveProductionPanel({
   room,
   isLive,
+  guestInvitations,
   onPublishedOverlayChange,
 }: LiveProductionPanelProps) {
   const {
@@ -168,7 +168,7 @@ export function LiveProductionPanel({
     putGuestOnStage,
     returnGuestToWaiting,
     revokeInvitation,
-  } = useLiveGuestInvitations();
+  } = guestInvitations;
 
   const [
     guestStageBusyId,
@@ -201,8 +201,7 @@ export function LiveProductionPanel({
   const [stageEnabled, setStageEnabled] =
     useState(false);
 
-  const [stageMaxGuests, setStageMaxGuests] =
-    useState(1);
+  const [stageMaxGuests, setStageMaxGuests] = useState(10);
 
   const [stageLayout, setStageLayout] =
     useState<"auto" | "grid" | "spotlight">(
@@ -1315,7 +1314,7 @@ export function LiveProductionPanel({
                 </p>
 
                 <div className="mt-4 grid grid-cols-6 gap-2">
-                  {[1, 2, 3, 4, 5, 6].map(
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
                     (amount) => (
                       <button
                         key={amount}
