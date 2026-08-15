@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -36,6 +37,11 @@ export interface UseLiveDashboardResult {
 export function useLiveDashboard(
   roomId: string | null | undefined,
 ): UseLiveDashboardResult {
+  const mountedRef = useRef(true);
+
+  const refreshVersionRef =
+    useRef(0);
+
   const [dashboard, setDashboard] =
     useState<LiveDashboardData>(
       emptyDashboard,
@@ -52,9 +58,18 @@ export function useLiveDashboard(
 
   const refreshDashboard =
     useCallback(async () => {
+      const refreshVersion =
+        ++refreshVersionRef.current;
+
       if (!roomId) {
-        setDashboard(emptyDashboard);
-        setLoading(false);
+        if (
+          refreshVersion ===
+          refreshVersionRef.current
+        ) {
+          setDashboard(emptyDashboard);
+          setLoading(false);
+        }
+
         return;
       }
 
@@ -66,21 +81,45 @@ export function useLiveDashboard(
             roomId,
           );
 
-        setDashboard(data);
-        setError("");
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
+          setDashboard(data);
+          setError("");
+        }
       } catch (dashboardError) {
-        setError(
-          dashboardError instanceof Error
-            ? dashboardError.message
-            : "No se pudo cargar el Dashboard LIVE.",
-        );
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
+          setError(
+            dashboardError instanceof Error
+              ? dashboardError.message
+              : "No se pudo cargar el Dashboard LIVE.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (
+          mountedRef.current &&
+          refreshVersion ===
+            refreshVersionRef.current
+        ) {
+          setLoading(false);
+        }
       }
     }, [roomId]);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     void refreshDashboard();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [refreshDashboard]);
 
   useEffect(() => {
@@ -148,15 +187,73 @@ export function useLiveDashboard(
         },
       )
       .subscribe((status) => {
-        setConnected(
-          status === "SUBSCRIBED",
-        );
+        const isSubscribed =
+          status === "SUBSCRIBED";
+
+        setConnected(isSubscribed);
+
+        if (isSubscribed) {
+          void refreshDashboard();
+        }
       });
 
     return () => {
       setConnected(false);
       void supabase.removeChannel(
         channel,
+      );
+    };
+  }, [
+    refreshDashboard,
+    roomId,
+  ]);
+
+  useEffect(() => {
+    if (!roomId) {
+      return;
+    }
+
+    const refreshOnFocus = () => {
+      void refreshDashboard();
+    };
+
+    const refreshOnVisibility = () => {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        void refreshDashboard();
+      }
+    };
+
+    const fallbackInterval =
+      window.setInterval(() => {
+        void refreshDashboard();
+      }, 5000);
+
+    window.addEventListener(
+      "focus",
+      refreshOnFocus,
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      refreshOnVisibility,
+    );
+
+    return () => {
+      window.clearInterval(
+        fallbackInterval,
+      );
+
+      window.removeEventListener(
+        "focus",
+        refreshOnFocus,
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        refreshOnVisibility,
       );
     };
   }, [
