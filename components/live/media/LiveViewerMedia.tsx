@@ -82,6 +82,16 @@ export function LiveViewerMedia({
       DEFAULT_VYRO_PRESENTATION_STATE,
     );
 
+  const presentationStateRef =
+    useRef<VyroLivePresentationState>(
+      DEFAULT_VYRO_PRESENTATION_STATE,
+    );
+
+  const renderedPresentationRef =
+    useRef<VyroLivePresentationState | null>(
+      null,
+    );
+
   const renderPreferredVideo =
     useCallback(() => {
       const container =
@@ -93,6 +103,9 @@ export function LiveViewerMedia({
 
       const screenTrack =
         screenTrackRef.current;
+
+      const currentPresentation =
+        presentationStateRef.current;
 
       const hostTrack =
         hostCameraTrackRef.current;
@@ -123,11 +136,33 @@ export function LiveViewerMedia({
             track === nextTracks[index],
         );
 
-      if (sameTracks) {
+      const previousPresentation =
+        renderedPresentationRef.current;
+
+      const samePresentation =
+        previousPresentation !== null &&
+        previousPresentation.scene ===
+          currentPresentation.scene &&
+        previousPresentation.freeCamera.enabled ===
+          currentPresentation.freeCamera.enabled &&
+        previousPresentation.freeCamera.x ===
+          currentPresentation.freeCamera.x &&
+        previousPresentation.freeCamera.y ===
+          currentPresentation.freeCamera.y &&
+        previousPresentation.freeCamera.zoom ===
+          currentPresentation.freeCamera.zoom;
+
+      if (
+        sameTracks &&
+        samePresentation
+      ) {
         setHasVideo(nextTracks.length > 0);
         setScreenSharing(Boolean(screenTrack));
         return;
       }
+
+      renderedPresentationRef.current =
+        currentPresentation;
 
       previousTracks.forEach((track) => {
         track.detach().forEach(
@@ -170,7 +205,7 @@ export function LiveViewerMedia({
         document.createElement("div");
 
       const scene =
-        presentationState.scene;
+        currentPresentation.scene;
 
       const participantCount =
         nextTracks.length;
@@ -214,7 +249,7 @@ export function LiveViewerMedia({
             Boolean(hostTrack);
 
           const scene =
-            presentationState.scene;
+            currentPresentation.scene;
 
           if (
             scene === "portrait" &&
@@ -258,13 +293,13 @@ export function LiveViewerMedia({
 
           if (
             isHost &&
-            presentationState.freeCamera.enabled
+            currentPresentation.freeCamera.enabled
           ) {
             element.style.transformOrigin =
               "center center";
 
             element.style.transform =
-              `translate3d(${presentationState.freeCamera.x}%, ${presentationState.freeCamera.y}%, 0) scale(${presentationState.freeCamera.zoom})`;
+              `translate3d(${currentPresentation.freeCamera.x}%, ${currentPresentation.freeCamera.y}%, 0) scale(${currentPresentation.freeCamera.zoom})`;
           }
           else {
             element.style.transform = "";
@@ -292,13 +327,7 @@ export function LiveViewerMedia({
 
       setHasVideo(true);
       setScreenSharing(false);
-    }, [
-      presentationState.freeCamera.enabled,
-      presentationState.freeCamera.x,
-      presentationState.freeCamera.y,
-      presentationState.freeCamera.zoom,
-      presentationState.scene,
-    ]);
+    }, []);
 
   const attachTrack =
     useCallback(
@@ -506,9 +535,14 @@ export function LiveViewerMedia({
         return;
       }
 
+      presentationStateRef.current =
+        nextState;
+
       setPresentationState(
         nextState,
       );
+
+      renderPreferredVideo();
     };
     const connect = async () => {
       setConnecting(true);
@@ -696,6 +730,7 @@ export function LiveViewerMedia({
   }, [
     attachTrack,
     detachTrack,
+    renderPreferredVideo,
     roomId,
   ]);
 
