@@ -1,4 +1,6 @@
-﻿"use client";
+"use client";
+
+import Image from "next/image";
 
 import {
   Camera,
@@ -18,8 +20,9 @@ import {
   useState,
 } from "react";
 
-import {
-  useLiveGuestInvitations,
+import type {
+  UseLiveGuestInvitationsResult,
+  UseLiveGuestRequestsResult,
 } from "@/hooks";
 
 import {
@@ -36,6 +39,8 @@ type GuestSearchResult = {
 type LiveGuestControlCenterProps = {
   roomId: string | null;
   disabled?: boolean;
+  guestInvitations: UseLiveGuestInvitationsResult;
+  guestRequests: UseLiveGuestRequestsResult;
 };
 
 function getGuestName(
@@ -62,6 +67,8 @@ function getInvitationName(
 export function LiveGuestControlCenter({
   roomId,
   disabled = false,
+  guestInvitations,
+  guestRequests,
 }: LiveGuestControlCenterProps) {
   const {
     sent,
@@ -71,7 +78,18 @@ export function LiveGuestControlCenter({
     sendInvitation,
     cancelInvitation,
     revokeInvitation,
-  } = useLiveGuestInvitations();
+    putGuestOnStage,
+    returnGuestToWaiting,
+  } = guestInvitations;
+
+  const {
+    requests,
+    loading: requestsLoading,
+    connected: requestsConnected,
+    error: requestError,
+    approveRequest,
+    declineRequest,
+  } = guestRequests;
 
   const [
     open,
@@ -245,6 +263,19 @@ export function LiveGuestControlCenter({
     searchUsers,
   ]);
 
+  const pendingRequests =
+    useMemo(
+      () =>
+        requests.filter(
+          (request) =>
+            request.roomId === roomId &&
+            request.status === "pending",
+        ),
+      [
+        requests,
+        roomId,
+      ],
+    );
   const roomInvitations =
     useMemo(
       () =>
@@ -390,6 +421,59 @@ export function LiveGuestControlCenter({
     }
   }
 
+  async function resolveGuestRequest(
+    requestId: string,
+    action: "approve" | "decline",
+  ) {
+    setProcessingId(requestId);
+    setLocalError("");
+    setLocalMessage("");
+
+    try {
+      if (action === "approve") {
+        await approveRequest(requestId);
+
+        setLocalMessage(
+          "Solicitud Guest aprobada.",
+        );
+      } else {
+        await declineRequest(requestId);
+
+        setLocalMessage(
+          "Solicitud Guest rechazada.",
+        );
+      }
+    } catch (requestActionError) {
+      setLocalError(
+        requestActionError instanceof Error
+          ? requestActionError.message
+          : "No fue posible resolver la solicitud Guest.",
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  }
+  async function moveGuestFromControlToStage(
+    invitationId: string,
+    currentStageStatus: "waiting" | "on_stage",
+  ) {
+    setProcessingId(invitationId);
+
+    try {
+      if (currentStageStatus === "on_stage") {
+        await returnGuestToWaiting(invitationId);
+      } else {
+        await putGuestOnStage(invitationId);
+      }
+    } catch (stageError) {
+      console.error(
+        "VYRO Guest Control Stage error:",
+        stageError,
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  }
   return (
     <div className="mt-5">
       <button
@@ -699,6 +783,152 @@ export function LiveGuestControlCenter({
             ) : null}
 
             <div className="border-t border-white/10 pt-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                    Solicitudes para subir
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Personas que quieren participar como Guest.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className={
+                      requestsConnected
+                        ? "h-2.5 w-2.5 rounded-full bg-emerald-400"
+                        : "h-2.5 w-2.5 rounded-full bg-slate-600"
+                    }
+                    title={
+                      requestsConnected
+                        ? "Solicitudes Guest conectadas"
+                        : "Solicitudes Guest desconectadas"
+                    }
+                  />
+
+                  <span className="text-xs font-bold text-slate-400">
+                    {pendingRequests.length}
+                  </span>
+                </div>
+              </div>
+
+              {requestsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <LoaderCircle
+                    size={15}
+                    className="animate-spin"
+                  />
+                  Cargando solicitudes...
+                </div>
+              ) : pendingRequests.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No hay solicitudes pendientes.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingRequests.map((request) => {
+                    const requestName =
+                      request.requesterFullName?.trim() ||
+                      (
+                        request.requesterUsername
+                          ? `@${request.requesterUsername}`
+                          : "Miembro VYRO"
+                      );
+
+                    return (
+                      <div
+                        key={request.id}
+                        className="rounded-xl border border-cyan-400/15 bg-cyan-500/[0.05] p-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          {request.requesterAvatarUrl ? (
+                            <Image
+                              src={request.requesterAvatarUrl}
+                              alt={requestName}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="h-10 w-10 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-black text-cyan-200">
+                              {requestName
+                                .slice(0, 1)
+                                .toUpperCase()}
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold text-white">
+                              {requestName}
+                            </p>
+
+                            {request.requesterUsername ? (
+                              <p className="truncate text-xs text-cyan-300">
+                                @{request.requesterUsername}
+                              </p>
+                            ) : null}
+
+                            {request.message ? (
+                              <p className="mt-2 rounded-lg bg-black/20 px-3 py-2 text-sm leading-5 text-slate-300">
+                                {request.message}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={
+                              processingId === request.id
+                            }
+                            onClick={() => {
+                              void resolveGuestRequest(
+                                request.id,
+                                "decline",
+                              );
+                            }}
+                            className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-black text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {processingId === request.id
+                              ? "Procesando..."
+                              : "Rechazar"}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              processingId === request.id
+                            }
+                            onClick={() => {
+                              void resolveGuestRequest(
+                                request.id,
+                                "approve",
+                              );
+                            }}
+                            className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {processingId === request.id
+                              ? "Procesando..."
+                              : "Aprobar"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {requestError ? (
+                <p className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
+                  {requestError}
+                </p>
+              ) : null}
+            </div>
+            <div className="border-t border-white/10 pt-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
                   Invitados del LIVE
@@ -815,6 +1045,37 @@ export function LiveGuestControlCenter({
                             </span>
                           ) : null}
                         </div>
+
+                        {invitation.status ===
+                        "accepted" ? (
+                          <button
+                            type="button"
+                            disabled={
+                              processingId ===
+                              invitation.id
+                            }
+                            onClick={() => {
+                              void moveGuestFromControlToStage(
+                                invitation.id,
+                                invitation.stageStatus,
+                              );
+                            }}
+                            className={`mt-3 w-full rounded-xl border px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              invitation.stageStatus ===
+                              "on_stage"
+                                ? "border-amber-300/25 bg-amber-300/10 text-amber-200 hover:bg-amber-300/15"
+                                : "border-emerald-300/25 bg-emerald-300/10 text-emerald-200 hover:bg-emerald-300/15"
+                            }`}
+                          >
+                            {processingId ===
+                            invitation.id
+                              ? "Procesando..."
+                              : invitation.stageStatus ===
+                                  "on_stage"
+                                ? "Bajar a Waiting"
+                                : "Subir al Stage"}
+                          </button>
+                        ) : null}
                       </div>
                     ),
                   )}

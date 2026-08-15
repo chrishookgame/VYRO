@@ -1,0 +1,771 @@
+-- ============================================================
+-- VYRO 049 - LIVE GUEST REQUEST ENGINE
+-- Viewer -> Request to Join -> Host / Moderator decision
+-- ============================================================
+
+begin;
+
+-- ------------------------------------------------------------
+-- Estado de Guest Request
+-- ------------------------------------------------------------
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_type t
+        join pg_namespace n
+            on n.oid = t.typnamespace
+        where n.nspname = 'public'
+          and t.typname = 'live_guest_request_status'
+    ) then
+        create type public.live_guest_request_status as enum (
+            'pending',
+            'approved',
+            'declined',
+            'cancelled',
+            'expired'
+        );
+    end if;
+end
+$$;
+
+-- ------------------------------------------------------------
+-- Tabla principal
+-- ------------------------------------------------------------
+
+create table if not exists public.live_guest_requests (
+    id uuid primary key default gen_random_uuid(),
+
+    room_id uuid not null
+        references public.live_rooms(id)
+        on delete cascade,
+
+    requester_id uuid not null
+        references public.profiles(id)
+        on delete cascade,
+
+    status public.live_guest_request_status
+        not null default 'pending',
+
+    message text,
+
+    resolved_by uuid
+        references public.profiles(id)
+        on delete set null,
+
+    invitation_id uuid
+        references public.live_guest_invitations(id)
+        on delete set null,
+
+    expires_at timestamptz not null
+        default (now() + interval '5 minutes'),
+
+    resolved_at timestamptz,
+    cancelled_at timestamptz,
+    expired_at timestamptz,
+
+    created_at timestamptz not null
+        default now(),
+
+    updated_at timestamptz not null
+        default now(),
+
+    constraint live_guest_requests_valid_expiration
+        check (
+            expires_at > created_at
+        )
+);
+
+-- ------------------------------------------------------------
+-- Solo una solicitud pendiente por Viewer / sala
+-- ------------------------------------------------------------
+
+create unique index if not exists
+idx_live_guest_requests_unique_pending
+on public.live_guest_requests (
+    room_id,
+    requester_id
+)
+where status = 'pending';
+
+create index if not exists
+idx_live_guest_requests_room_status
+on public.live_guest_requests (
+    room_id,
+    status,
+    created_at desc
+);
+
+create index if not exists
+idx_live_guest_requests_requester_status
+on public.live_guest_requests (
+    requester_id,
+    status,
+    created_at desc
+);
+
+-- ------------------------------------------------------------
+-- Guard de transiciones
+-- ------------------------------------------------------------
+
+create or replace function
+public.guard_live_guest_request_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+    if new.id is distinct from old.id
+       or new.room_id is distinct from old.room_id
+       or new.requester_id is distinct from old.requester_id
+       or new.created_at is distinct from old.created_at
+       or new.expires_at is distinct from old.expires_at
+    then
+        raise exception
+            'Los datos protegidos del Guest Request no pueden modificarse.';
+    end if;
+
+    if new.status is distinct from old.status then
+        if old.status <> 'pending' then
+            raise exception
+                'Este Guest Request ya esta cerrado.';
+        end if;
+
+        if new.status not in (
+            'approved',
+            'declined',
+            'cancelled',
+            'expired'
+        ) then
+            raise exception
+                'Transicion de Guest Request no permitida.';
+        end if;
+
+        if new.status = 'approved' then
+            if old.expires_at <= now() then
+                raise exception
+                    'El Guest Request ha expirado.';
+            end if;
+
+            new.resolved_at = now();
+            new.cancelled_at = null;
+            new.expired_at = null;
+
+        elsif new.status = 'declined' then
+            new.resolved_at = now();
+            new.cancelled_at = null;
+            new.expired_at = null;
+
+        elsif new.status = 'cancelled' then
+            new.resolved_at = null;
+            new.resolved_by = null;
+            new.invitation_id = null;
+            new.cancelled_at = now();
+            new.expired_at = null;
+
+        elsif new.status = 'expired' then
+            new.resolved_at = null;
+            new.resolved_by = null;
+            new.invitation_id = null;
+            new.cancelled_at = null;
+            new.expired_at = now();
+        end if;
+    end if;
+
+    return new;
+end;
+$$;
+
+drop trigger if exists
+trg_live_guest_requests_guard
+on public.live_guest_requests;
+
+create trigger
+trg_live_guest_requests_guard
+before update on public.live_guest_requests
+for each row
+execute function
+public.guard_live_guest_request_update();
+
+-- ------------------------------------------------------------
+-- updated_at
+-- ------------------------------------------------------------
+
+drop trigger if exists
+trg_live_guest_requests_updated_at
+on public.live_guest_requests;
+
+create trigger
+trg_live_guest_requests_updated_at
+before update on public.live_guest_requests
+for each row
+execute function public.set_live_updated_at();
+
+-- ------------------------------------------------------------
+-- RLS
+-- ------------------------------------------------------------
+
+alter table public.live_guest_requests
+enable row level security;
+
+drop policy if exists
+"Guest request participants can view requests"
+on public.live_guest_requests;
+
+create policy
+"Guest request participants can view requests"
+on public.live_guest_requests
+for select
+to authenticated
+using (
+    auth.uid() = requester_id
+    or exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+    or exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (
+                  moderator.permissions
+                  ->> 'manage_guests'
+              )::boolean,
+              false
+          ) = true
+    )
+);
+
+drop policy if exists
+"Viewers can create guest requests"
+on public.live_guest_requests;
+
+create policy
+"Viewers can create guest requests"
+on public.live_guest_requests
+for insert
+to authenticated
+with check (
+    auth.uid() = requester_id
+    and status = 'pending'
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.status in (
+              'live',
+              'active'
+          )
+          and room.host_id <> auth.uid()
+    )
+);
+
+drop policy if exists
+"Viewers can cancel guest requests"
+on public.live_guest_requests;
+
+create policy
+"Viewers can cancel guest requests"
+on public.live_guest_requests
+for update
+to authenticated
+using (
+    auth.uid() = requester_id
+    and status = 'pending'
+)
+with check (
+    auth.uid() = requester_id
+    and status = 'cancelled'
+);
+
+drop policy if exists
+"Hosts can resolve guest requests"
+on public.live_guest_requests;
+
+create policy
+"Hosts can resolve guest requests"
+on public.live_guest_requests
+for update
+to authenticated
+using (
+    status = 'pending'
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+)
+with check (
+    status in (
+        'approved',
+        'declined'
+    )
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+);
+
+drop policy if exists
+"Moderators can resolve guest requests"
+on public.live_guest_requests;
+
+create policy
+"Moderators can resolve guest requests"
+on public.live_guest_requests
+for update
+to authenticated
+using (
+    status = 'pending'
+    and exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (
+                  moderator.permissions
+                  ->> 'manage_guests'
+              )::boolean,
+              false
+          ) = true
+    )
+)
+with check (
+    status in (
+        'approved',
+        'declined'
+    )
+    and exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (
+                  moderator.permissions
+                  ->> 'manage_guests'
+              )::boolean,
+              false
+          ) = true
+    )
+);
+
+-- ------------------------------------------------------------
+-- RPC: Viewer solicita subir
+-- ------------------------------------------------------------
+
+create or replace function
+public.request_live_guest_access(
+    target_room_id uuid,
+    request_message text default null
+)
+returns public.live_guest_requests
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    current_user_id uuid := auth.uid();
+    request_row public.live_guest_requests;
+begin
+    if current_user_id is null then
+        raise exception 'Debes iniciar sesion.';
+    end if;
+
+    -- Serializar solicitudes concurrentes del mismo Viewer / sala.
+    perform pg_advisory_xact_lock(
+        hashtext(current_user_id::text),
+        hashtext(target_room_id::text)
+    );
+
+    if exists (
+        select 1
+        from public.live_guest_requests request
+        where request.room_id = target_room_id
+          and request.requester_id = current_user_id
+          and request.status = 'pending'
+    ) then
+        raise exception
+            'Ya tienes una solicitud Guest pendiente para esta sala.';
+    end if;
+
+    if not exists (
+        select 1
+        from public.live_rooms room
+        where room.id = target_room_id
+          and room.status in (
+              'live',
+              'active'
+          )
+          and room.host_id <> current_user_id
+    ) then
+        raise exception
+            'La sala LIVE no esta disponible para Guest Request.';
+    end if;
+
+    if exists (
+        select 1
+        from public.live_guest_invitations invitation
+        where invitation.room_id = target_room_id
+          and invitation.guest_id = current_user_id
+          and invitation.status in (
+              'pending',
+              'accepted'
+          )
+    ) then
+        raise exception
+            'Ya tienes una invitacion Guest activa para esta sala.';
+    end if;
+
+    insert into public.live_guest_requests (
+        room_id,
+        requester_id,
+        message
+    )
+    values (
+        target_room_id,
+        current_user_id,
+        nullif(trim(request_message), '')
+    )
+    returning *
+    into request_row;
+
+    return request_row;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- RPC: Viewer cancela su solicitud
+-- ------------------------------------------------------------
+
+create or replace function
+public.cancel_live_guest_request(
+    target_request_id uuid
+)
+returns public.live_guest_requests
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    current_user_id uuid := auth.uid();
+    request_row public.live_guest_requests;
+begin
+    if current_user_id is null then
+        raise exception 'Debes iniciar sesion.';
+    end if;
+
+    select *
+    into request_row
+    from public.live_guest_requests
+    where id = target_request_id
+    for update;
+
+    if request_row.id is null then
+        raise exception 'Guest Request no encontrado.';
+    end if;
+
+    if request_row.requester_id <> current_user_id then
+        raise exception
+            'No puedes cancelar este Guest Request.';
+    end if;
+
+    if request_row.status <> 'pending' then
+        raise exception
+            'Este Guest Request ya esta cerrado.';
+    end if;
+
+    update public.live_guest_requests
+    set status = 'cancelled'
+    where id = target_request_id
+    returning *
+    into request_row;
+
+    return request_row;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- RPC: Host / Moderator aprueba
+-- Al aprobar crea invitacion Guest ya aceptada.
+-- ------------------------------------------------------------
+
+create or replace function
+public.approve_live_guest_request(
+    target_request_id uuid
+)
+returns public.live_guest_requests
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    current_user_id uuid := auth.uid();
+    request_row public.live_guest_requests;
+    room_row public.live_rooms;
+    invitation_row public.live_guest_invitations;
+    can_manage boolean := false;
+begin
+    if current_user_id is null then
+        raise exception 'Debes iniciar sesion.';
+    end if;
+
+    select *
+    into request_row
+    from public.live_guest_requests
+    where id = target_request_id
+    for update;
+
+    if request_row.id is null then
+        raise exception 'Guest Request no encontrado.';
+    end if;
+
+    if request_row.status <> 'pending' then
+        raise exception
+            'Este Guest Request ya esta cerrado.';
+    end if;
+
+    if request_row.expires_at <= now() then
+        update public.live_guest_requests
+        set status = 'expired'
+        where id = request_row.id;
+
+        raise exception
+            'El Guest Request ha expirado.';
+    end if;
+
+    select *
+    into room_row
+    from public.live_rooms
+    where id = request_row.room_id;
+
+    if room_row.id is null
+       or room_row.status not in (
+           'live',
+           'active'
+       ) then
+        raise exception
+            'La sala LIVE ya no esta disponible.';
+    end if;
+
+    can_manage :=
+        room_row.host_id = current_user_id
+        or exists (
+            select 1
+            from public.live_moderators moderator
+            where moderator.room_id = request_row.room_id
+              and moderator.user_id = current_user_id
+              and coalesce(
+                  (
+                      moderator.permissions
+                      ->> 'manage_guests'
+                  )::boolean,
+                  false
+              ) = true
+        );
+
+    if not can_manage then
+        raise exception
+            'No tienes permiso para aprobar Guest Requests.';
+    end if;
+
+    -- Serializar la creacion de acceso Guest para este Viewer / sala.
+    perform pg_advisory_xact_lock(
+        hashtext(request_row.requester_id::text),
+        hashtext(request_row.room_id::text)
+    );
+
+    if exists (
+        select 1
+        from public.live_guest_invitations invitation
+        where invitation.room_id = request_row.room_id
+          and invitation.guest_id = request_row.requester_id
+          and invitation.status in (
+              'pending',
+              'accepted'
+          )
+    ) then
+        raise exception
+            'Este usuario ya tiene acceso Guest activo o pendiente.';
+    end if;
+
+    insert into public.live_guest_invitations (
+        room_id,
+        inviter_id,
+        guest_id,
+        status,
+        message,
+        responded_at,
+        accepted_at
+    )
+    values (
+        request_row.room_id,
+        current_user_id,
+        request_row.requester_id,
+        'accepted',
+        request_row.message,
+        now(),
+        now()
+    )
+    returning *
+    into invitation_row;
+
+    update public.live_guest_requests
+    set
+        status = 'approved',
+        resolved_by = current_user_id,
+        invitation_id = invitation_row.id
+    where id = request_row.id
+    returning *
+    into request_row;
+
+    return request_row;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- RPC: Host / Moderator rechaza
+-- ------------------------------------------------------------
+
+create or replace function
+public.decline_live_guest_request(
+    target_request_id uuid
+)
+returns public.live_guest_requests
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    current_user_id uuid := auth.uid();
+    request_row public.live_guest_requests;
+    room_row public.live_rooms;
+    can_manage boolean := false;
+begin
+    if current_user_id is null then
+        raise exception 'Debes iniciar sesion.';
+    end if;
+
+    select *
+    into request_row
+    from public.live_guest_requests
+    where id = target_request_id
+    for update;
+
+    if request_row.id is null then
+        raise exception 'Guest Request no encontrado.';
+    end if;
+
+    if request_row.status <> 'pending' then
+        raise exception
+            'Este Guest Request ya esta cerrado.';
+    end if;
+
+    select *
+    into room_row
+    from public.live_rooms
+    where id = request_row.room_id;
+
+    if room_row.id is null then
+        raise exception 'Sala LIVE no encontrada.';
+    end if;
+
+    can_manage :=
+        room_row.host_id = current_user_id
+        or exists (
+            select 1
+            from public.live_moderators moderator
+            where moderator.room_id = request_row.room_id
+              and moderator.user_id = current_user_id
+              and coalesce(
+                  (
+                      moderator.permissions
+                      ->> 'manage_guests'
+                  )::boolean,
+                  false
+              ) = true
+        );
+
+    if not can_manage then
+        raise exception
+            'No tienes permiso para rechazar Guest Requests.';
+    end if;
+
+    update public.live_guest_requests
+    set
+        status = 'declined',
+        resolved_by = current_user_id
+    where id = request_row.id
+    returning *
+    into request_row;
+
+    return request_row;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Permisos RPC
+-- ------------------------------------------------------------
+
+revoke all
+on function public.request_live_guest_access(uuid, text)
+from public;
+
+revoke all
+on function public.cancel_live_guest_request(uuid)
+from public;
+
+revoke all
+on function public.approve_live_guest_request(uuid)
+from public;
+
+revoke all
+on function public.decline_live_guest_request(uuid)
+from public;
+
+grant execute
+on function public.request_live_guest_access(uuid, text)
+to authenticated;
+
+grant execute
+on function public.cancel_live_guest_request(uuid)
+to authenticated;
+
+grant execute
+on function public.approve_live_guest_request(uuid)
+to authenticated;
+
+grant execute
+on function public.decline_live_guest_request(uuid)
+to authenticated;
+
+-- ------------------------------------------------------------
+-- Supabase Realtime
+-- ------------------------------------------------------------
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public'
+          and tablename = 'live_guest_requests'
+    ) then
+        alter publication supabase_realtime
+        add table public.live_guest_requests;
+    end if;
+end
+$$;
+
+commit;

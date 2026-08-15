@@ -28,6 +28,7 @@ import {
   BattleStudio,
   type BattleSeriesConfig,
 } from "@/components/live/battle";
+import { LiveChatPanel } from "@/components/live/chat";
 import { LiveCommandCenter } from "@/components/live/command-center";
 import { LiveGuestControlCenter } from "@/components/live/guest";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
@@ -38,7 +39,10 @@ import {
   useBattleSeriesHostController,
   useLiveBattle,
   useLiveBattleSeries,
+  useLiveChat,
   useLiveDashboard,
+  useLiveGuestInvitations,
+  useLiveGuestRequests,
   useLiveSession,
 } from "@/hooks";
 import {
@@ -91,11 +95,30 @@ export default function LiveStudioPage() {
     clearError: clearSessionError,
   } = useLiveSession();
 
+  const creatorGuestInvitations =
+    useLiveGuestInvitations();
+
+  const creatorGuestRequests =
+    useLiveGuestRequests(
+      session?.id,
+    );
+
   const {
     dashboard,
     connected: dashboardConnected,
     error: dashboardError,
   } = useLiveDashboard(
+    session?.id,
+  );
+
+  const {
+    messages: creatorChatMessages,
+    loading: creatorChatLoading,
+    sending: creatorChatSending,
+    connected: creatorChatConnected,
+    error: creatorChatError,
+    sendMessage: sendCreatorChatMessage,
+  } = useLiveChat(
     session?.id,
   );
 
@@ -1170,6 +1193,55 @@ export default function LiveStudioPage() {
                     gifts={
                       dashboard.gifts
                     }
+                    roomId={
+                      session?.id ?? null
+                    }
+                    chatMessages={
+                      creatorChatMessages
+                    }
+                    chatContent={
+                      <LiveChatPanel
+                        messages={
+                          creatorChatMessages
+                        }
+                        loading={
+                          creatorChatLoading
+                        }
+                        sending={
+                          creatorChatSending
+                        }
+                        connected={
+                          creatorChatConnected
+                        }
+                        error={
+                          creatorChatError
+                        }
+                        onSendMessage={
+                          sendCreatorChatMessage
+                        }
+                        creatorActions={
+                          session
+                            ? {
+                                roomId:
+                                  session.id,
+                                currentUserId:
+                                  session.hostId,
+                              }
+                            : undefined
+                        }
+                        compact
+                      />
+                    }
+                    guestContent={
+                      <LiveGuestControlCenter
+                        roomId={
+                          session?.id ?? null
+                        }
+                        disabled={!session}
+                        guestInvitations={creatorGuestInvitations}
+                        guestRequests={creatorGuestRequests}
+                      />
+                    }
                     duration={
                       formatDuration(
                         liveDuration,
@@ -1415,10 +1487,18 @@ export default function LiveStudioPage() {
                 LIVE.
               </p>
 
-              <LiveGuestControlCenter
-                roomId={session?.id ?? null}
-                disabled={!session}
-              />
+              {!isLive ? (
+                <LiveGuestControlCenter
+                  roomId={session?.id ?? null}
+                  disabled={!session}
+                  guestInvitations={creatorGuestInvitations}
+                  guestRequests={creatorGuestRequests}
+                />
+              ) : (
+                <p className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.05] px-4 py-3 text-sm leading-6 text-cyan-100/70">
+                  Durante el LIVE, administra los invitados desde Guests LIVE.
+                </p>
+              )}
             </div>
 
             {isLive ? (
@@ -1450,6 +1530,7 @@ export default function LiveStudioPage() {
             <LiveProductionPanel
               room={liveKitRoom}
               isLive={isLive}
+              guestInvitations={creatorGuestInvitations}
               onPublishedOverlayChange={
                 setCreatorOnAirOverlay
               }

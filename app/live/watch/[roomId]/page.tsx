@@ -83,6 +83,7 @@ import { LiveChatPanel } from "@/components/live/chat";
 import FollowButton from "@/components/feed/FollowButton";
 import { LiveGuestMedia } from "@/components/live/guest";
 import { LiveGuestWaitingPreview } from "@/components/live/guest/LiveGuestWaitingPreview";
+import { LiveGuestRequestButton } from "@/components/live/guest/LiveGuestRequestButton";
 import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
 import { LiveViewerMedia } from "@/components/live/media/LiveViewerMedia";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
@@ -292,7 +293,7 @@ export default function LiveWatchPage() {
     viewerAuthAction,
     setViewerAuthAction,
   ] = useState<
-    "reaction" | "chat" | "gifts" | "follow" | null
+    "reaction" | "chat" | "gifts" | "follow" | "guest" | null
   >(null);
 
   async function requireViewerAuth(
@@ -2267,6 +2268,19 @@ export default function LiveWatchPage() {
                     </span>
                   </button>
 
+                  <LiveGuestRequestButton
+                    roomId={roomId}
+                    hostId={room.hostId}
+                    hasActiveInvitation={Boolean(
+                      activeGuestInvitation,
+                    )}
+                    disabled={guestInvitationsLoading}
+                    onAuthRequired={() => {
+                      setViewerAuthAction("guest");
+                      setViewerAuthGateOpen(true);
+                    }}
+                  />
+
                   <button
                     type="button"
                     aria-label="Enviar regalo"
@@ -2368,7 +2382,9 @@ export default function LiveWatchPage() {
                     ? "Inicia sesión para comentar en este LIVE."
                     : viewerAuthAction === "follow"
                       ? "Inicia sesión para seguir a este creador."
-                      : "Inicia sesión para enviar regalos al creador."}
+                      : viewerAuthAction === "guest"
+                        ? "Inicia sesión para solicitar subir al LIVE como Guest."
+                        : "Inicia sesión para enviar regalos al creador."}
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
