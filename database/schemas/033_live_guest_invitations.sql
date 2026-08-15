@@ -112,16 +112,23 @@ create table if not exists public.live_guest_invitations (
 );
 
 -- ------------------------------------------------------------
--- Evitar invitaciones Guest pendientes duplicadas
+-- Un solo acceso Guest abierto por usuario / sala
+-- pending + accepted comparten la misma exclusividad
 -- ------------------------------------------------------------
 
+drop index if exists
+public.idx_live_guest_invitations_unique_pending;
+
 create unique index if not exists
-idx_live_guest_invitations_unique_pending
+idx_live_guest_invitations_unique_active
 on public.live_guest_invitations (
     room_id,
     guest_id
 )
-where status = 'pending';
+where status in (
+    'pending',
+    'accepted'
+);
 
 -- ------------------------------------------------------------
 -- Indices
@@ -184,66 +191,69 @@ begin
     end if;
 
     -- No permitir reapertura ni saltos arbitrarios.
-    if old.status = 'pending' then
-        if new.status not in (
-            'accepted',
-            'declined',
-            'cancelled',
-            'expired'
-        ) then
-            raise exception
-                'Transicion de invitacion Guest no permitida.';
-        end if;
-
-        if new.status = 'accepted' then
-            if old.expires_at <= now() then
+    -- Las reglas de transicion aplican solo cuando cambia status.
+    if new.status is distinct from old.status then
+        if old.status = 'pending' then
+            if new.status not in (
+                'accepted',
+                'declined',
+                'cancelled',
+                'expired'
+            ) then
                 raise exception
-                    'La invitacion Guest ha expirado.';
+                    'Transicion de invitacion Guest no permitida.';
             end if;
 
-            new.responded_at = now();
-            new.accepted_at = now();
+            if new.status = 'accepted' then
+                if old.expires_at <= now() then
+                    raise exception
+                        'La invitacion Guest ha expirado.';
+                end if;
+
+                new.responded_at = now();
+                new.accepted_at = now();
+                new.declined_at = null;
+                new.cancelled_at = null;
+                new.revoked_at = null;
+
+            elsif new.status = 'declined' then
+                new.responded_at = now();
+                new.accepted_at = null;
+                new.declined_at = now();
+                new.cancelled_at = null;
+                new.revoked_at = null;
+
+            elsif new.status = 'cancelled' then
+                new.responded_at = null;
+                new.accepted_at = null;
+                new.declined_at = null;
+                new.cancelled_at = now();
+                new.revoked_at = null;
+
+            elsif new.status = 'expired' then
+                new.responded_at = null;
+                new.accepted_at = null;
+                new.declined_at = null;
+                new.cancelled_at = null;
+                new.revoked_at = null;
+            end if;
+
+        elsif old.status = 'accepted' then
+            if new.status <> 'revoked' then
+                raise exception
+                    'Un Guest aceptado solo puede ser revocado.';
+            end if;
+
+            new.responded_at = old.responded_at;
+            new.accepted_at = old.accepted_at;
             new.declined_at = null;
             new.cancelled_at = null;
-            new.revoked_at = null;
+            new.revoked_at = now();
 
-        elsif new.status = 'declined' then
-            new.responded_at = now();
-            new.accepted_at = null;
-            new.declined_at = now();
-            new.cancelled_at = null;
-            new.revoked_at = null;
-
-        elsif new.status = 'cancelled' then
-            new.responded_at = null;
-            new.accepted_at = null;
-            new.declined_at = null;
-            new.cancelled_at = now();
-            new.revoked_at = null;
-
-        elsif new.status = 'expired' then
-            new.responded_at = null;
-            new.accepted_at = null;
-            new.declined_at = null;
-            new.cancelled_at = null;
-            new.revoked_at = null;
-        end if;
-
-    elsif old.status = 'accepted' then
-        if new.status <> 'revoked' then
+        else
             raise exception
-                'Un Guest aceptado solo puede ser revocado.';
+                'Esta invitacion Guest ya esta cerrada.';
         end if;
-
-        new.responded_at = old.responded_at;
-        new.accepted_at = old.accepted_at;
-        new.declined_at = null;
-        new.cancelled_at = null;
-        new.revoked_at = now();
-
-    else
-        raise exception
-            'Esta invitacion Guest ya esta cerrada.';
     end if;
 
     return new;

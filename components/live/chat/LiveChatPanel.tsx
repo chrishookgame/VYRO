@@ -12,7 +12,12 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 
+import FollowButton from "@/components/feed/FollowButton";
+import {
+  createLiveGuestInvitation,
+} from "@/lib/live-guest-invitations/repository";
 import type {
   LiveChatMessage,
 } from "@/lib/live";
@@ -23,9 +28,127 @@ interface LiveChatPanelProps {
   sending: boolean;
   connected: boolean;
   error: string;
+  compact?: boolean;
+  creatorActions?: {
+    roomId: string;
+    currentUserId: string;
+  };
   onSendMessage: (
     content: string,
   ) => Promise<LiveChatMessage | null>;
+}
+
+interface CreatorMessageActionsProps {
+  roomId: string;
+  userId: string;
+  profileName: string;
+}
+
+function CreatorMessageActions({
+  roomId,
+  userId,
+  profileName,
+}: CreatorMessageActionsProps) {
+  const [
+    inviteState,
+    setInviteState,
+  ] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
+
+  async function handleInvite() {
+    if (
+      inviteState === "sending" ||
+      inviteState === "sent"
+    ) {
+      return;
+    }
+
+    setInviteState("sending");
+
+    try {
+      await createLiveGuestInvitation({
+        roomId,
+        guestId: userId,
+        message:
+          "El creador te invita a subir al LIVE como Guest.",
+        expiresInSeconds: 300,
+      });
+
+      setInviteState("sent");
+    } catch (inviteError) {
+      const message =
+        inviteError instanceof Error
+          ? inviteError.message
+          : "";
+
+      if (
+        message.includes(
+          "idx_live_guest_invitations_unique_active",
+        ) ||
+        message
+          .toLocaleLowerCase()
+          .includes("duplicate")
+      ) {
+        setInviteState("sent");
+        return;
+      }
+
+      console.error(
+        "VYRO LIVE guest invitation from chat failed:",
+        inviteError,
+      );
+
+      setInviteState("error");
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <Link
+        href={`/profile/${userId}`}
+        className="inline-flex h-8 items-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-[11px] font-black text-white/75 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-cyan-200"
+      >
+        Perfil
+      </Link>
+
+      <div className="[&>button]:h-8 [&>button]:min-h-0 [&>button]:rounded-lg [&>button]:px-3 [&>button]:py-1 [&>button]:text-[11px]">
+        <FollowButton
+          creatorId={userId}
+          ownLabel={null}
+        />
+      </div>
+
+      <button
+        type="button"
+        disabled={
+          inviteState === "sending" ||
+          inviteState === "sent"
+        }
+        onClick={() => {
+          void handleInvite();
+        }}
+        className="inline-flex h-8 items-center gap-2 rounded-lg border border-violet-300/20 bg-violet-400/10 px-3 text-[11px] font-black text-violet-100 transition hover:border-violet-300/40 hover:bg-violet-400/20 disabled:cursor-default disabled:opacity-70"
+        title={`Invitar a ${profileName} al panel LIVE`}
+      >
+        {inviteState === "sending" ? (
+          <>
+            <LoaderCircle
+              size={13}
+              className="animate-spin"
+            />
+            Enviando
+          </>
+        ) : inviteState === "sent" ? (
+          "Invitado"
+        ) : inviteState === "error" ? (
+          "Reintentar"
+        ) : (
+          "Invitar"
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function LiveChatPanel({
@@ -34,6 +157,8 @@ export default function LiveChatPanel({
   sending,
   connected,
   error,
+  compact = false,
+  creatorActions,
   onSendMessage,
 }: LiveChatPanelProps) {
   const [content, setContent] =
@@ -42,11 +167,39 @@ export default function LiveChatPanel({
   const bottomRef =
     useRef<HTMLDivElement>(null);
 
+  const messageScrollRef =
+    useRef<HTMLDivElement>(null);
+
+  const followLiveRef =
+    useRef(true);
+
   useEffect(() => {
+    if (!followLiveRef.current) {
+      return;
+    }
+
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
+      block: "end",
     });
-  }, [messages]);
+  }, [messages.length]);
+
+  function handleMessageScroll() {
+    const container =
+      messageScrollRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight -
+      container.scrollTop -
+      container.clientHeight;
+
+    followLiveRef.current =
+      distanceFromBottom < 96;
+  }
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -68,7 +221,13 @@ export default function LiveChatPanel({
   }
 
   return (
-    <section className="flex min-h-[620px] flex-col overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[#07111D]/25 shadow-[0_16px_50px_rgba(0,0,0,0.18)] backdrop-blur-[3px]">
+    <section
+      className={
+        compact
+          ? "flex h-[min(66vh,610px)] min-h-[430px] flex-col overflow-hidden bg-transparent"
+          : "flex min-h-[620px] flex-col overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[#07111D]/25 shadow-[0_16px_50px_rgba(0,0,0,0.18)] backdrop-blur-[3px]"
+      }
+    >
       <header className="border-b border-white/10 p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -112,7 +271,11 @@ export default function LiveChatPanel({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-5">
+      <div
+        ref={messageScrollRef}
+        onScroll={handleMessageScroll}
+        className="flex-1 overflow-y-auto p-5"
+      >
         {loading && messages.length === 0 ? (
           <div className="flex min-h-[360px] items-center justify-center">
             <div className="text-center">
@@ -161,7 +324,7 @@ export default function LiveChatPanel({
               return (
                 <article
                   key={message.id}
-                  className="flex gap-3 rounded-2xl border border-white/5 bg-white/[0.025] p-4"
+                  className="group flex gap-3 rounded-2xl border border-white/5 bg-white/[0.025] p-4 transition hover:border-white/10 hover:bg-white/[0.04]"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-cyan-400/20 bg-cyan-400/10 text-xs font-black text-cyan-200">
                     {message.profile?.avatarUrl ? (
@@ -210,6 +373,18 @@ export default function LiveChatPanel({
                     <p className="mt-2 break-words text-sm leading-6 text-gray-300">
                       {message.message}
                     </p>
+
+                    {creatorActions &&
+                    message.userId !==
+                      creatorActions.currentUserId ? (
+                      <CreatorMessageActions
+                        roomId={
+                          creatorActions.roomId
+                        }
+                        userId={message.userId}
+                        profileName={profileName}
+                      />
+                    ) : null}
                   </div>
                 </article>
               );
