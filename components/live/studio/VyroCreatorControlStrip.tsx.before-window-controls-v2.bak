@@ -1,0 +1,1243 @@
+"use client";
+
+import {
+  ChevronDown,
+  Clock3,
+  Gift,
+  Grip,
+  Heart,
+  MessageCircle,
+  Search,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
+
+import type {
+  LiveChatMessage,
+} from "@/lib/live";
+import { supabase } from "@/lib/supabase";
+
+type CreatorPanel =
+  | "viewers"
+  | "reactions"
+  | "messages"
+  | "gifts"
+  | "activity"
+  | "search"
+  | "guests";
+
+type PanelPosition = {
+  x: number;
+  y: number;
+};
+
+type ReactionProfile = {
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
+type ReactionFeedRow = {
+  id: string;
+  user_id: string;
+  reaction_type: string;
+  intensity: number;
+  created_at: string;
+  profiles:
+    | ReactionProfile[]
+    | ReactionProfile
+    | null;
+};
+
+type ReactionFeedItem = {
+  id: string;
+  user_id: string;
+  reaction_type: string;
+  intensity: number;
+  created_at: string;
+  profile: ReactionProfile | null;
+};
+
+type VyroCreatorControlStripProps = {
+  roomId: string | null;
+  activeViewers: number;
+  peakViewers: number;
+  totalJoins: number;
+  reactions: number;
+  messages: number;
+  gifts: number;
+  duration: string;
+  chatMessages?: LiveChatMessage[];
+  chatContent?: ReactNode;
+  searchContent?: ReactNode;
+  guestContent?: ReactNode;
+};
+
+type ControlButtonProps = {
+  active: boolean;
+  label: string;
+  value?: number;
+  icon: ReactNode;
+  onClick: () => void;
+};
+
+const initialPositions: Record<
+  CreatorPanel,
+  PanelPosition
+> = {
+  viewers: {
+    x: 40,
+    y: 120,
+  },
+  reactions: {
+    x: 390,
+    y: 135,
+  },
+  messages: {
+    x: 720,
+    y: 120,
+  },
+  gifts: {
+    x: 80,
+    y: 360,
+  },
+  activity: {
+    x: 430,
+    y: 380,
+  },
+  search: {
+    x: 760,
+    y: 390,
+  },
+  guests: {
+    x: 280,
+    y: 180,
+  },
+};
+
+const emptyOpenPanels: Record<
+  CreatorPanel,
+  boolean
+> = {
+  viewers: false,
+  reactions: false,
+  messages: false,
+  gifts: false,
+  activity: false,
+  search: false,
+  guests: false,
+};
+
+const panelTitles: Record<
+  CreatorPanel,
+  string
+> = {
+  viewers: "Viewers LIVE",
+  reactions: "Reactions LIVE",
+  messages: "Chat LIVE",
+  gifts: "Gifts LIVE",
+  activity: "Activity LIVE",
+  search: "Buscar LIVE",
+  guests: "Guests LIVE",
+};
+
+const reactionIcons: Record<
+  string,
+  string
+> = {
+  like: "👍",
+  love: "❤️",
+  fire: "🔥",
+  wow: "😮",
+  celebrate: "🎉",
+  support: "🙌",
+  vyro_energy: "⚡",
+};
+
+function ControlButton({
+  active,
+  label,
+  value,
+  icon,
+  onClick,
+}: ControlButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={active}
+      className={[
+        "group flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5",
+        "text-xs font-bold text-white transition",
+        active
+          ? "border-cyan-300/50 bg-cyan-400/15 shadow-[0_0_24px_rgba(34,211,238,0.12)]"
+          : "border-white/10 bg-white/[0.07] hover:border-white/20 hover:bg-white/[0.12]",
+      ].join(" ")}
+    >
+      {icon}
+
+      {typeof value === "number" ? (
+        <span className="tabular-nums">
+          {value}
+        </span>
+      ) : null}
+
+      <span className="hidden text-white/55 2xl:inline">
+        {label}
+      </span>
+
+      <ChevronDown
+        size={12}
+        className={[
+          "text-white/35 transition-transform",
+          active
+            ? "rotate-180 text-cyan-300"
+            : "",
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
+export function VyroCreatorControlStrip({
+  roomId,
+  activeViewers,
+  peakViewers,
+  totalJoins,
+  reactions,
+  messages,
+  gifts,
+  duration,
+  chatMessages = [],
+  chatContent,
+  searchContent,
+  guestContent,
+}: VyroCreatorControlStripProps) {
+  const [
+    openPanels,
+    setOpenPanels,
+  ] = useState<
+    Record<CreatorPanel, boolean>
+  >(emptyOpenPanels);
+
+  const [
+    positions,
+    setPositions,
+  ] = useState<
+    Record<CreatorPanel, PanelPosition>
+  >(initialPositions);
+
+  const [
+    panelZ,
+    setPanelZ,
+  ] = useState<
+    Record<CreatorPanel, number>
+  >({
+    viewers: 100,
+    reactions: 101,
+    messages: 102,
+    gifts: 103,
+    activity: 104,
+    search: 105,
+    guests: 106,
+  });
+
+  const [
+    ,
+    setTopZ,
+  ] = useState(106);
+
+  const [
+    reactionFeed,
+    setReactionFeed,
+  ] = useState<ReactionFeedItem[]>([]);
+
+  const [
+    reactionFeedConnected,
+    setReactionFeedConnected,
+  ] = useState(false);
+
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState("");
+
+  const dragRef =
+    useRef<{
+      panel: CreatorPanel;
+      offsetX: number;
+      offsetY: number;
+    } | null>(null);
+
+  const bringToFront =
+    useCallback(
+      (
+        panel: CreatorPanel,
+      ) => {
+        setTopZ((current) => {
+          const next =
+            current + 1;
+
+          setPanelZ(
+            (currentZ) => ({
+              ...currentZ,
+              [panel]: next,
+            }),
+          );
+
+          return next;
+        });
+      },
+      [],
+    );
+
+  const togglePanel =
+    useCallback(
+      (
+        panel: CreatorPanel,
+      ) => {
+        setOpenPanels(
+          (current) => ({
+            ...current,
+            [panel]:
+              !current[panel],
+          }),
+        );
+
+        bringToFront(panel);
+      },
+      [
+        bringToFront,
+      ],
+    );
+
+  const closePanel =
+    useCallback(
+      (
+        panel: CreatorPanel,
+      ) => {
+        setOpenPanels(
+          (current) => ({
+            ...current,
+            [panel]: false,
+          }),
+        );
+      },
+      [],
+    );
+
+  const startDrag =
+    useCallback(
+      (
+        panel: CreatorPanel,
+        event:
+          ReactPointerEvent<HTMLDivElement>,
+      ) => {
+        const target =
+          event.target as HTMLElement;
+
+        if (
+          target.closest(
+            "button,input,textarea,select,a",
+          )
+        ) {
+          return;
+        }
+
+        const position =
+          positions[panel];
+
+        dragRef.current = {
+          panel,
+          offsetX:
+            event.clientX -
+            position.x,
+          offsetY:
+            event.clientY -
+            position.y,
+        };
+
+        bringToFront(panel);
+      },
+      [
+        bringToFront,
+        positions,
+      ],
+    );
+
+  useEffect(() => {
+    const handlePointerMove = (
+      event: PointerEvent,
+    ) => {
+      const drag =
+        dragRef.current;
+
+      if (!drag) {
+        return;
+      }
+
+      const panelWidth =
+        Math.min(
+          430,
+          Math.max(
+            300,
+            window.innerWidth - 16,
+          ),
+        );
+
+      const maxX =
+        Math.max(
+          8,
+          window.innerWidth -
+            panelWidth -
+            8,
+        );
+
+      const maxY =
+        Math.max(
+          80,
+          window.innerHeight - 120,
+        );
+
+      const nextX =
+        Math.min(
+          maxX,
+          Math.max(
+            8,
+            event.clientX -
+              drag.offsetX,
+          ),
+        );
+
+      const nextY =
+        Math.min(
+          maxY,
+          Math.max(
+            80,
+            event.clientY -
+              drag.offsetY,
+          ),
+        );
+
+      setPositions(
+        (current) => ({
+          ...current,
+          [drag.panel]: {
+            x: nextX,
+            y: nextY,
+          },
+        }),
+      );
+    };
+
+    const handlePointerUp =
+      () => {
+        dragRef.current = null;
+      };
+
+    window.addEventListener(
+      "pointermove",
+      handlePointerMove,
+    );
+
+    window.addEventListener(
+      "pointerup",
+      handlePointerUp,
+    );
+
+    window.addEventListener(
+      "pointercancel",
+      handlePointerUp,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pointermove",
+        handlePointerMove,
+      );
+
+      window.removeEventListener(
+        "pointerup",
+        handlePointerUp,
+      );
+
+      window.removeEventListener(
+        "pointercancel",
+        handlePointerUp,
+      );
+    };
+  }, []);
+
+  const refreshReactionFeed =
+    useCallback(async () => {
+      if (!roomId) {
+        setReactionFeed([]);
+        return;
+      }
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("live_reactions")
+        .select(
+          "id,user_id,reaction_type,intensity,created_at,profiles(username,full_name,avatar_url)",
+        )
+        .eq(
+          "room_id",
+          roomId,
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          },
+        )
+        .limit(40);
+
+      if (error) {
+        console.error(
+          "VYRO creator reaction feed error:",
+          error,
+        );
+        return;
+      }
+
+      const rows =
+        (data ?? []) as ReactionFeedRow[];
+
+      setReactionFeed(
+        rows.map((row) => {
+          const profile =
+            Array.isArray(row.profiles)
+              ? row.profiles[0] ?? null
+              : row.profiles;
+
+          return {
+            id: row.id,
+            user_id: row.user_id,
+            reaction_type:
+              row.reaction_type,
+            intensity:
+              row.intensity,
+            created_at:
+              row.created_at,
+            profile,
+          };
+        }),
+      );
+    }, [
+      roomId,
+    ]);
+
+  useEffect(() => {
+    void refreshReactionFeed();
+  }, [
+    refreshReactionFeed,
+  ]);
+
+  useEffect(() => {
+    if (!roomId) {
+      setReactionFeedConnected(
+        false,
+      );
+      return;
+    }
+
+    const channel =
+      supabase
+        .channel(
+          `vyro-creator-reactions:${roomId}`,
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table:
+              "live_reactions",
+            filter:
+              `room_id=eq.${roomId}`,
+          },
+          () => {
+            void refreshReactionFeed();
+          },
+        )
+        .subscribe(
+          (status) => {
+            setReactionFeedConnected(
+              status ===
+                "SUBSCRIBED",
+            );
+
+            if (
+              status ===
+              "SUBSCRIBED"
+            ) {
+              void refreshReactionFeed();
+            }
+          },
+        );
+
+    return () => {
+      setReactionFeedConnected(
+        false,
+      );
+
+      void supabase.removeChannel(
+        channel,
+      );
+    };
+  }, [
+    refreshReactionFeed,
+    roomId,
+  ]);
+
+  const searchResults =
+    useMemo(() => {
+      const query =
+        searchQuery
+          .trim()
+          .toLocaleLowerCase();
+
+      if (!query) {
+        return chatMessages.slice(
+          -20,
+        );
+      }
+
+      return chatMessages
+        .filter(
+          (message) => {
+            const profileName =
+              message.profile?.fullName ??
+              "";
+
+            const username =
+              message.profile?.username ??
+              "";
+
+            return [
+              profileName,
+              username,
+              message.message,
+            ].some(
+              (value) =>
+                value
+                  .toLocaleLowerCase()
+                  .includes(query),
+            );
+          },
+        )
+        .slice(-30);
+    }, [
+      chatMessages,
+      searchQuery,
+    ]);
+
+  function renderPanelContent(
+    panel: CreatorPanel,
+  ): ReactNode {
+    if (
+      panel === "viewers"
+    ) {
+      return (
+        <div className="grid gap-3 p-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-[11px] font-black uppercase tracking-wider text-white/40">
+              Viendo ahora
+            </p>
+
+            <p className="mt-2 text-3xl font-black text-cyan-300">
+              {activeViewers}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-[11px] font-black uppercase tracking-wider text-white/40">
+              Pico LIVE
+            </p>
+
+            <p className="mt-2 text-3xl font-black text-white">
+              {peakViewers}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-[11px] font-black uppercase tracking-wider text-white/40">
+              Entradas
+            </p>
+
+            <p className="mt-2 text-3xl font-black text-white">
+              {totalJoins}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (
+      panel === "reactions"
+    ) {
+      return (
+        <div className="p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-pink-300">
+                Reacciones recibidas
+              </p>
+
+              <p className="mt-1 text-2xl font-black text-white">
+                {reactions}
+              </p>
+            </div>
+
+            <div className={[
+              "rounded-full border px-3 py-1 text-[10px] font-black",
+              reactionFeedConnected
+                ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                : "border-yellow-400/25 bg-yellow-400/10 text-yellow-300",
+            ].join(" ")}>
+              {reactionFeedConnected
+                ? "REALTIME"
+                : "CONECTANDO"}
+            </div>
+          </div>
+
+          {reactionFeed.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center text-sm text-white/45">
+              Las reacciones aparecerán aquí en tiempo real.
+            </div>
+          ) : (
+            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              {reactionFeed.map(
+                (reaction) => (
+                  <div
+                    key={
+                      reaction.id
+                    }
+                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3"
+                  >
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-pink-300/20 bg-pink-400/10 text-xl">
+                      {reaction.profile?.avatar_url ? (
+                        <span
+                          role="img"
+                          aria-label={
+                            reaction.profile
+                              .full_name ||
+                            reaction.profile
+                              .username ||
+                            "Usuario VYRO"
+                          }
+                          className="h-full w-full bg-cover bg-center"
+                          style={{
+                            backgroundImage:
+                              `url("${reaction.profile.avatar_url}")`,
+                          }}
+                        />
+                      ) : (
+                        <span>
+                          {reactionIcons[
+                            reaction
+                              .reaction_type
+                          ] ?? "✨"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-black text-white">
+                          {reaction.profile
+                            ?.full_name ||
+                            reaction.profile
+                              ?.username ||
+                            "Usuario VYRO"}
+                        </p>
+
+                        <span
+                          className="shrink-0 text-base"
+                          aria-hidden="true"
+                        >
+                          {reactionIcons[
+                            reaction
+                              .reaction_type
+                          ] ?? "✨"}
+                        </span>
+                      </div>
+
+                      <p className="truncate text-[11px] text-white/45">
+                        {reaction.profile
+                          ?.username
+                          ? `@${reaction.profile.username} · `
+                          : ""}
+                        {reaction.reaction_type}
+                        {" · "}
+                        Intensidad{" "}
+                        {reaction.intensity}
+                      </p>
+                    </div>
+
+                    <time className="shrink-0 text-[10px] text-white/35">
+                      {new Intl.DateTimeFormat(
+                        "es-419",
+                        {
+                          hour:
+                            "2-digit",
+                          minute:
+                            "2-digit",
+                        },
+                      ).format(
+                        new Date(
+                          reaction.created_at,
+                        ),
+                      )}
+                    </time>
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (
+      panel === "messages"
+    ) {
+      return (
+        chatContent ?? (
+          <div className="p-5">
+            <p className="text-sm text-white/50">
+              {messages} mensajes registrados.
+            </p>
+          </div>
+        )
+      );
+    }
+
+    if (
+      panel === "gifts"
+    ) {
+      return (
+        <div className="p-5">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">
+            Gifts LIVE
+          </p>
+
+          <p className="mt-3 text-4xl font-black text-white">
+            {gifts}
+          </p>
+
+          <p className="mt-2 text-sm text-white/45">
+            Regalos registrados durante esta transmisión.
+          </p>
+        </div>
+      );
+    }
+
+    if (
+      panel === "activity"
+    ) {
+      return (
+        <div className="p-4">
+          <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+            Actividad LIVE
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs text-white/40">
+                Entradas
+              </p>
+
+              <p className="mt-2 text-2xl font-black">
+                {totalJoins}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs text-white/40">
+                Chat
+              </p>
+
+              <p className="mt-2 text-2xl font-black">
+                {messages}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs text-white/40">
+                Reactions
+              </p>
+
+              <p className="mt-2 text-2xl font-black">
+                {reactions}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs text-white/40">
+                Gifts
+              </p>
+
+              <p className="mt-2 text-2xl font-black">
+                {gifts}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (
+      panel === "search"
+    ) {
+      if (searchContent) {
+        return searchContent;
+      }
+
+      return (
+        <div className="p-4">
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-300"
+            />
+
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={
+                (event) => {
+                  setSearchQuery(
+                    event.target.value,
+                  );
+                }
+              }
+              placeholder="Buscar comentario o usuario..."
+              className="w-full rounded-xl border border-white/10 bg-black/30 py-3 pl-10 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-400/40"
+            />
+          </div>
+
+          <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto">
+            {searchResults.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm text-white/40">
+                No hay coincidencias.
+              </div>
+            ) : (
+              searchResults.map(
+                (message) => {
+                  const name =
+                    message.profile?.fullName ||
+                    message.profile?.username ||
+                    "Usuario VYRO";
+
+                  return (
+                    <div
+                      key={
+                        message.id
+                      }
+                      className="rounded-xl border border-white/10 bg-white/[0.035] p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-xs font-black text-cyan-200">
+                          {name}
+                        </p>
+
+                        <time className="shrink-0 text-[10px] text-white/30">
+                          {new Intl.DateTimeFormat(
+                            "es-419",
+                            {
+                              hour:
+                                "2-digit",
+                              minute:
+                                "2-digit",
+                            },
+                          ).format(
+                            new Date(
+                              message.createdAt,
+                            ),
+                          )}
+                        </time>
+                      </div>
+
+                      <p className="mt-2 break-words text-sm text-white/70">
+                        {
+                          message.message
+                        }
+                      </p>
+                    </div>
+                  );
+                },
+              )
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      guestContent ?? (
+        <div className="p-5 text-sm text-white/45">
+          Guest Control no disponible.
+        </div>
+      )
+    );
+  }
+
+  const panels =
+    Object.keys(
+      openPanels,
+    ) as CreatorPanel[];
+
+  return (
+    <>
+      <div className="relative w-full">
+        <div className="flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/70 px-3 py-2 shadow-2xl backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4">
+          <div className="flex shrink-0 items-center gap-2 rounded-full bg-red-500 px-3 py-1.5 text-xs font-black text-white shadow-lg">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+            ON AIR
+          </div>
+
+          <ControlButton
+            active={
+              openPanels.viewers
+            }
+            label="Viewers"
+            value={activeViewers}
+            icon={
+              <Users
+                size={14}
+                className="text-cyan-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "viewers",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.reactions
+            }
+            label="Reactions"
+            value={reactions}
+            icon={
+              <Heart
+                size={14}
+                className="text-pink-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "reactions",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.messages
+            }
+            label="Chat"
+            value={messages}
+            icon={
+              <MessageCircle
+                size={14}
+                className="text-violet-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "messages",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.gifts
+            }
+            label="Gifts"
+            value={gifts}
+            icon={
+              <Gift
+                size={14}
+                className="text-amber-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "gifts",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.activity
+            }
+            label="Activity"
+            value={totalJoins}
+            icon={
+              <UserPlus
+                size={14}
+                className="text-emerald-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "activity",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.search
+            }
+            label="Buscar"
+            icon={
+              <Search
+                size={14}
+                className="text-cyan-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "search",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.guests
+            }
+            label="Guests"
+            icon={
+              <Users
+                size={14}
+                className="text-fuchsia-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "guests",
+              )
+            }
+          />
+
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-black tabular-nums text-white">
+            <Clock3
+              size={14}
+              className="text-cyan-300"
+            />
+
+            {duration}
+          </div>
+        </div>
+      </div>
+
+      {panels.map(
+        (panel) => {
+          if (
+            !openPanels[panel]
+          ) {
+            return null;
+          }
+
+          return (
+            <section
+              key={panel}
+              onPointerDown={() => {
+                bringToFront(
+                  panel,
+                );
+              }}
+              className="fixed w-[min(430px,calc(100vw-16px))] overflow-hidden rounded-2xl border border-white/15 bg-[#070B12]/95 shadow-[0_28px_90px_rgba(0,0,0,0.72)] backdrop-blur-2xl"
+              style={{
+                left:
+                  positions[
+                    panel
+                  ].x,
+                top:
+                  positions[
+                    panel
+                  ].y,
+                zIndex:
+                  panelZ[
+                    panel
+                  ],
+              }}
+            >
+              <div
+                onPointerDown={
+                  (event) =>
+                    startDrag(
+                      panel,
+                      event,
+                    )
+                }
+                className="flex cursor-move touch-none select-none items-center gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3"
+              >
+                <Grip
+                  size={16}
+                  className="shrink-0 text-cyan-300"
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-white">
+                    {
+                      panelTitles[
+                        panel
+                      ]
+                    }
+                  </p>
+
+                  <p className="mt-0.5 text-[10px] text-white/35">
+                    Arrastra esta barra para mover
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    closePanel(
+                      panel,
+                    )
+                  }
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-white/60 transition hover:bg-white/10 hover:text-white"
+                  aria-label={`Cerrar ${panelTitles[panel]}`}
+                >
+                  <X
+                    size={15}
+                  />
+                </button>
+              </div>
+
+              <div className="max-h-[min(72vh,680px)] overflow-y-auto">
+                {renderPanelContent(
+                  panel,
+                )}
+              </div>
+            </section>
+          );
+        },
+      )}
+    </>
+  );
+}

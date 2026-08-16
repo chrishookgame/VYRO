@@ -1,0 +1,479 @@
+-- ============================================================
+-- VYRO LIVE GUEST INVITATIONS
+-- Guest Core
+-- ============================================================
+
+begin;
+
+-- ------------------------------------------------------------
+-- Estado de invitacion
+-- ------------------------------------------------------------
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_type t
+        join pg_namespace n
+            on n.oid = t.typnamespace
+        where n.nspname = 'public'
+          and t.typname = 'live_guest_invitation_status'
+    ) then
+        create type public.live_guest_invitation_status as enum (
+            'pending',
+            'accepted',
+            'declined',
+            'expired',
+            'cancelled',
+            'revoked'
+        );
+    end if;
+end
+$$;
+
+-- ------------------------------------------------------------
+-- Invitaciones de Guest
+-- ------------------------------------------------------------
+
+create table if not exists public.live_guest_invitations (
+    id uuid primary key default gen_random_uuid(),
+
+    room_id uuid not null
+        references public.live_rooms(id)
+        on delete cascade,
+
+    inviter_id uuid not null
+        references public.profiles(id)
+        on delete cascade,
+
+    guest_id uuid not null
+        references public.profiles(id)
+        on delete cascade,
+
+    status public.live_guest_invitation_status not null
+        default 'pending',
+
+    message text,
+
+    permissions jsonb not null
+        default jsonb_build_object(
+            'canPublishCamera', true,
+            'canPublishMicrophone', true,
+            'canShareScreen', false
+        ),
+
+    expires_at timestamptz not null
+        default (now() + interval '5 minutes'),
+
+    responded_at timestamptz,
+    accepted_at timestamptz,
+    declined_at timestamptz,
+    cancelled_at timestamptz,
+    revoked_at timestamptz,
+
+    created_at timestamptz not null
+        default now(),
+
+    updated_at timestamptz not null
+        default now(),
+
+    constraint live_guest_invitations_distinct_users
+        check (
+            inviter_id <> guest_id
+        ),
+
+    constraint live_guest_invitations_valid_expiration
+        check (
+            expires_at > created_at
+        ),
+
+    constraint live_guest_invitations_valid_permissions
+        check (
+            jsonb_typeof(permissions) = 'object'
+            and coalesce(
+                jsonb_typeof(
+                    permissions -> 'canPublishCamera'
+                ),
+                ''
+            ) = 'boolean'
+            and coalesce(
+                jsonb_typeof(
+                    permissions -> 'canPublishMicrophone'
+                ),
+                ''
+            ) = 'boolean'
+            and coalesce(
+                jsonb_typeof(
+                    permissions -> 'canShareScreen'
+                ),
+                ''
+            ) = 'boolean'
+        )
+);
+
+-- ------------------------------------------------------------
+-- Evitar invitaciones Guest pendientes duplicadas
+-- ------------------------------------------------------------
+
+create unique index if not exists
+idx_live_guest_invitations_unique_pending
+on public.live_guest_invitations (
+    room_id,
+    guest_id
+)
+where status = 'pending';
+
+-- ------------------------------------------------------------
+-- Indices
+-- ------------------------------------------------------------
+
+create index if not exists
+idx_live_guest_invitations_guest_status
+on public.live_guest_invitations (
+    guest_id,
+    status,
+    created_at desc
+);
+
+create index if not exists
+idx_live_guest_invitations_inviter_status
+on public.live_guest_invitations (
+    inviter_id,
+    status,
+    created_at desc
+);
+
+create index if not exists
+idx_live_guest_invitations_room_status
+on public.live_guest_invitations (
+    room_id,
+    status,
+    created_at desc
+);
+
+create index if not exists
+idx_live_guest_invitations_expiration
+on public.live_guest_invitations (
+    expires_at,
+    status
+);
+
+-- ------------------------------------------------------------
+-- Seguridad de transiciones
+-- ------------------------------------------------------------
+
+create or replace function
+public.guard_live_guest_invitation_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+    -- Identidad y autorizacion de la invitacion son inmutables.
+    if new.id is distinct from old.id
+       or new.room_id is distinct from old.room_id
+       or new.inviter_id is distinct from old.inviter_id
+       or new.guest_id is distinct from old.guest_id
+       or new.permissions is distinct from old.permissions
+       or new.expires_at is distinct from old.expires_at
+       or new.created_at is distinct from old.created_at
+    then
+        raise exception
+            'Los datos protegidos de la invitacion Guest no pueden modificarse.';
+    end if;
+
+    -- No permitir reapertura ni saltos arbitrarios.
+    -- Las reglas de transicion aplican solo cuando cambia status.
+    if new.status is distinct from old.status then
+        if old.status = 'pending' then
+            if new.status not in (
+                'accepted',
+                'declined',
+                'cancelled',
+                'expired'
+            ) then
+                raise exception
+                    'Transicion de invitacion Guest no permitida.';
+            end if;
+
+            if new.status = 'accepted' then
+                if old.expires_at <= now() then
+                    raise exception
+                        'La invitacion Guest ha expirado.';
+                end if;
+
+                new.responded_at = now();
+                new.accepted_at = now();
+                new.declined_at = null;
+                new.cancelled_at = null;
+                new.revoked_at = null;
+
+            elsif new.status = 'declined' then
+                new.responded_at = now();
+                new.accepted_at = null;
+                new.declined_at = now();
+                new.cancelled_at = null;
+                new.revoked_at = null;
+
+            elsif new.status = 'cancelled' then
+                new.responded_at = null;
+                new.accepted_at = null;
+                new.declined_at = null;
+                new.cancelled_at = now();
+                new.revoked_at = null;
+
+            elsif new.status = 'expired' then
+                new.responded_at = null;
+                new.accepted_at = null;
+                new.declined_at = null;
+                new.cancelled_at = null;
+                new.revoked_at = null;
+            end if;
+
+        elsif old.status = 'accepted' then
+            if new.status <> 'revoked' then
+                raise exception
+                    'Un Guest aceptado solo puede ser revocado.';
+            end if;
+
+            new.responded_at = old.responded_at;
+            new.accepted_at = old.accepted_at;
+            new.declined_at = null;
+            new.cancelled_at = null;
+            new.revoked_at = now();
+
+        else
+            raise exception
+                'Esta invitacion Guest ya esta cerrada.';
+        end if;
+    end if;
+
+    return new;
+end;
+$$;
+
+drop trigger if exists
+trg_live_guest_invitations_guard
+on public.live_guest_invitations;
+
+create trigger
+trg_live_guest_invitations_guard
+before update on public.live_guest_invitations
+for each row
+execute function
+public.guard_live_guest_invitation_update();
+-- ------------------------------------------------------------
+-- updated_at
+-- ------------------------------------------------------------
+
+drop trigger if exists
+trg_live_guest_invitations_updated_at
+on public.live_guest_invitations;
+
+create trigger
+trg_live_guest_invitations_updated_at
+before update on public.live_guest_invitations
+for each row
+execute function public.set_live_updated_at();
+
+-- ------------------------------------------------------------
+-- Row Level Security
+-- ------------------------------------------------------------
+
+alter table public.live_guest_invitations
+enable row level security;
+
+drop policy if exists
+"Guest participants can view invitations"
+on public.live_guest_invitations;
+
+create policy
+"Guest participants can view invitations"
+on public.live_guest_invitations
+for select
+to authenticated
+using (
+    auth.uid() = inviter_id
+    or auth.uid() = guest_id
+);
+
+drop policy if exists
+"Hosts can create guest invitations"
+on public.live_guest_invitations;
+
+create policy
+"Hosts can create guest invitations"
+on public.live_guest_invitations
+for insert
+to authenticated
+with check (
+    auth.uid() = inviter_id
+    and inviter_id <> guest_id
+    and status = 'pending'
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+);
+
+drop policy if exists
+"Authorized moderators can create guest invitations"
+on public.live_guest_invitations;
+
+create policy
+"Authorized moderators can create guest invitations"
+on public.live_guest_invitations
+for insert
+to authenticated
+with check (
+    auth.uid() = inviter_id
+    and inviter_id <> guest_id
+    and status = 'pending'
+    and exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (moderator.permissions ->> 'manage_guests')::boolean,
+              false
+          ) = true
+    )
+);
+
+drop policy if exists
+"Guests can respond to invitations"
+on public.live_guest_invitations;
+
+create policy
+"Guests can respond to invitations"
+on public.live_guest_invitations
+for update
+to authenticated
+using (
+    auth.uid() = guest_id
+    and status = 'pending'
+    and expires_at > now()
+)
+with check (
+    auth.uid() = guest_id
+    and status in (
+        'accepted',
+        'declined'
+    )
+);
+
+drop policy if exists
+"Inviters can cancel guest invitations"
+on public.live_guest_invitations;
+
+create policy
+"Inviters can cancel guest invitations"
+on public.live_guest_invitations
+for update
+to authenticated
+using (
+    auth.uid() = inviter_id
+    and status = 'pending'
+)
+with check (
+    auth.uid() = inviter_id
+    and status = 'cancelled'
+);
+
+-- ------------------------------------------------------------
+-- Revocar acceso Guest aceptado
+-- ------------------------------------------------------------
+
+drop policy if exists
+"Hosts can revoke guest access"
+on public.live_guest_invitations;
+
+create policy
+"Hosts can revoke guest access"
+on public.live_guest_invitations
+for update
+to authenticated
+using (
+    status = 'accepted'
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+)
+with check (
+    status = 'revoked'
+    and exists (
+        select 1
+        from public.live_rooms room
+        where room.id = room_id
+          and room.host_id = auth.uid()
+    )
+);
+
+drop policy if exists
+"Authorized moderators can revoke guest access"
+on public.live_guest_invitations;
+
+create policy
+"Authorized moderators can revoke guest access"
+on public.live_guest_invitations
+for update
+to authenticated
+using (
+    status = 'accepted'
+    and exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (
+                  moderator.permissions
+                  ->> 'manage_guests'
+              )::boolean,
+              false
+          ) = true
+    )
+)
+with check (
+    status = 'revoked'
+    and exists (
+        select 1
+        from public.live_moderators moderator
+        where moderator.room_id = room_id
+          and moderator.user_id = auth.uid()
+          and coalesce(
+              (
+                  moderator.permissions
+                  ->> 'manage_guests'
+              )::boolean,
+              false
+          ) = true
+    )
+);
+-- ------------------------------------------------------------
+-- Supabase Realtime
+-- ------------------------------------------------------------
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public'
+          and tablename = 'live_guest_invitations'
+    ) then
+        execute
+            'alter publication supabase_realtime add table public.live_guest_invitations';
+    end if;
+end
+$$;
+
+commit;
