@@ -157,6 +157,100 @@ function GuestVideoPreview({
     </div>
   );
 }
+function HostVideoPreview({
+  room,
+  mode,
+}: {
+  room: Room | null;
+  mode: "fullscreen" | "window" | "pip";
+}) {
+  const [
+    videoElement,
+    setVideoElement,
+  ] = useState<HTMLVideoElement | null>(null);
+
+  const cameraPublication =
+    room?.localParticipant.getTrackPublication(
+      Track.Source.Camera,
+    ) ?? null;
+
+  const cameraTrack =
+    cameraPublication?.track ?? null;
+
+  useEffect(() => {
+    if (
+      !videoElement ||
+      !cameraTrack
+    ) {
+      return;
+    }
+
+    cameraTrack.attach(
+      videoElement,
+    );
+
+    return () => {
+      cameraTrack.detach(
+        videoElement,
+      );
+    };
+  }, [
+    cameraTrack,
+    videoElement,
+  ]);
+
+  const cameraAvailable =
+    Boolean(
+      cameraPublication &&
+        cameraTrack &&
+        !cameraPublication.isMuted,
+    );
+
+  return (
+    <div
+      className={`relative aspect-video overflow-hidden rounded-2xl border border-violet-300/30 bg-black transition-all duration-300 ${
+        mode === "fullscreen"
+          ? "col-span-full w-full"
+          : mode === "pip"
+            ? "w-full max-w-xs justify-self-end"
+            : "w-full"
+      }`}
+    >
+      {cameraAvailable ? (
+        <video
+          ref={setVideoElement}
+          autoPlay
+          playsInline
+          muted
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center px-4 text-center">
+          <div>
+            <p className="text-sm font-black text-white/50">
+              Cámara del creador
+            </p>
+
+            <p className="mt-1 text-xs text-white/30">
+              Esperando video del HOST.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-4 pb-3 pt-10">
+        <p className="text-sm font-black text-white">
+          HOST
+        </p>
+
+        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200">
+          {mode}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function LiveProductionPanel({
   room,
   isLive,
@@ -213,6 +307,19 @@ export function LiveProductionPanel({
       "fullscreen",
     );
 
+  const stagePreviewItemCount =
+    stageMaxGuests + 1;
+
+  const stagePreviewGridClass =
+    stagePreviewItemCount <= 2
+      ? "grid-cols-1 sm:grid-cols-2"
+      : stagePreviewItemCount <= 4
+        ? "grid-cols-2"
+        : stagePreviewItemCount <= 6
+          ? "grid-cols-2 lg:grid-cols-3"
+          : stagePreviewItemCount <= 9
+            ? "grid-cols-2 md:grid-cols-3"
+            : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
   const [stagePanelOpen, setStagePanelOpen] =
     useState(false);
 
@@ -546,6 +653,38 @@ export function LiveProductionPanel({
         ),
       [remoteParticipants],
     );
+  const onStageGuestParticipants =
+    useMemo(
+      () =>
+        onStageGuestInvitations.map(
+          (invitation) => {
+            const identity =
+              `guest:${invitation.guestId}`;
+
+            const media =
+              guestParticipants.find(
+                (candidate) =>
+                  candidate.identity ===
+                  identity,
+              ) ?? null;
+
+            return {
+              identity,
+              media,
+              name:
+                invitation.guest?.full_name ??
+                invitation.guest?.username ??
+                media?.name ??
+                "VYRO Guest",
+            };
+          },
+        ),
+      [
+        guestParticipants,
+        onStageGuestInvitations,
+      ],
+    );
+
   const canPublish =
     isLive && room !== null;
 
@@ -1416,7 +1555,7 @@ export function LiveProductionPanel({
                   </p>
 
                   <p className="mt-1 text-xs text-white/35">
-                    {guestParticipants.length} invitados conectados · máximo {stageMaxGuests}
+                    {onStageGuestParticipants.length} invitados ON STAGE · máximo {stageMaxGuests}
                   </p>
                 </div>
 
@@ -1425,26 +1564,17 @@ export function LiveProductionPanel({
                 </span>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                <div className="relative min-h-24 overflow-hidden rounded-2xl border border-violet-300/30 bg-gradient-to-br from-violet-400/15 to-cyan-400/5 p-3">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-violet-200">
-                    HOST
-                  </span>
-
-                  <p className="mt-8 text-xs font-black text-white/75">
-                    Tu cámara
-                  </p>
-
-                  <p className="mt-1 text-[10px] uppercase text-white/30">
-                    {stageHostMode}
-                  </p>
-                </div>
+              <div className={`mt-4 grid gap-3 ${stagePreviewGridClass}`}>
+                <HostVideoPreview
+                  room={room}
+                  mode={stageHostMode}
+                />
 
                 {Array.from({
                   length: stageMaxGuests,
                 }).map((_, index) => {
                   const guest =
-                    guestParticipants[index];
+                    onStageGuestParticipants[index];
 
                   return (
                     <div
@@ -1468,6 +1598,16 @@ export function LiveProductionPanel({
                         GUEST {index + 1}
                       </span>
 
+                      {guest?.media?.participant ? (
+                        <div className="mt-3">
+                          <GuestVideoPreview
+                            participant={
+                              guest.media.participant
+                            }
+                          />
+                        </div>
+                      ) : null}
+
                       <p className="mt-8 truncate text-xs font-black text-white/65">
                         {guest
                           ? guest.name
@@ -1476,7 +1616,9 @@ export function LiveProductionPanel({
 
                       <p className="mt-1 text-[10px] uppercase text-white/25">
                         {guest
-                          ? "CONECTADO"
+                          ? guest.media
+                            ? "ON STAGE · CONECTADO"
+                            : "ON STAGE · ESPERANDO MEDIA"
                           : "ESPERANDO"}
                       </p>
                     </div>

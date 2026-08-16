@@ -166,7 +166,7 @@ export function decodeVyroPresentation(
             ),
           ),
           1,
-          6,
+          10,
         ),
         layout:
           rawStage.layout === "grid" ||
