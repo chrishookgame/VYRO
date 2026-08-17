@@ -81,7 +81,11 @@ import {
 } from "@/components/live/battle";
 import { LiveChatPanel } from "@/components/live/chat";
 import FollowButton from "@/components/feed/FollowButton";
-import { LiveGuestMedia } from "@/components/live/guest";
+import {
+  LiveGuestMedia,
+  LiveGuestStageOverlay,
+  type LiveGuestMediaHandle,
+} from "@/components/live/guest";
 import { LiveGuestWaitingPreview } from "@/components/live/guest/LiveGuestWaitingPreview";
 import { LiveGuestRequestButton } from "@/components/live/guest/LiveGuestRequestButton";
 import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
@@ -386,6 +390,9 @@ export default function LiveWatchPage() {
 
   const displayedReactionIdsRef =
     useRef<Set<string>>(new Set());
+  const guestMediaRef =
+    useRef<LiveGuestMediaHandle | null>(null);
+
 
   const [
     floatingReactions,
@@ -2032,15 +2039,21 @@ export default function LiveWatchPage() {
             />
           ) : null}
 
-          {isGuestOnStage ? (
-            <LiveGuestMedia
-              roomId={roomId}
-            />
-          ) : (
             <div className="relative">
               <LiveViewerMedia
                 roomId={roomId}
               />
+
+              {isGuestOnStage ? (
+                <LiveGuestStageOverlay
+                  guestControls={guestMediaRef}
+                >
+                  <LiveGuestMedia
+                    ref={guestMediaRef}
+                    roomId={roomId}
+                  />
+                </LiveGuestStageOverlay>
+              ) : null}
 
               <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]">
                 {floatingReactions.map(
@@ -2350,7 +2363,6 @@ export default function LiveWatchPage() {
                 </div>
               </div>
             </div>
-          )}
         </section>
         {viewerAuthGateOpen ? (
           <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/15 p-4 backdrop-blur-[1px]">

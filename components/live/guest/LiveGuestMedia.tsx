@@ -7,7 +7,9 @@ import {
   type LocalTrackPublication,
 } from "livekit-client";
 import {
+  forwardRef,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -22,6 +24,12 @@ type LiveGuestMediaProps = {
   roomId: string;
 };
 
+export type LiveGuestMediaHandle = {
+  toggleCamera: () => void;
+  toggleMicrophone: () => void;
+  toggleScreenShare: () => Promise<void>;
+};
+
 type TokenResponse = {
   success: boolean;
   token?: string;
@@ -30,9 +38,15 @@ type TokenResponse = {
   guestPermissions?: GuestPermissions | null;
 };
 
-export function LiveGuestMedia({
-  roomId,
-}: LiveGuestMediaProps) {
+export const LiveGuestMedia = forwardRef<
+  LiveGuestMediaHandle,
+  LiveGuestMediaProps
+>(function LiveGuestMedia(
+  {
+    roomId,
+  },
+  ref,
+) {
   const videoRef =
     useRef<HTMLVideoElement>(null);
 
@@ -431,6 +445,15 @@ export function LiveGuestMedia({
     }
   }
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      toggleCamera,
+      toggleMicrophone,
+      toggleScreenShare,
+    }),
+  );
+
   return (
     <section className="overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-[#05070A] shadow-2xl">
       <div className="relative aspect-video min-h-[320px] bg-black">
@@ -534,4 +557,4 @@ export function LiveGuestMedia({
       ) : null}
     </section>
   );
-}
+});
