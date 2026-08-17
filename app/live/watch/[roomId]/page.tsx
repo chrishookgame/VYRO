@@ -174,6 +174,7 @@ export default function LiveWatchPage() {
     loading: guestInvitationsLoading,
     acceptInvitation: acceptGuestInvitation,
     declineInvitation: declineGuestInvitation,
+    leaveGuestStage: leaveActiveGuestStage,
   } = useLiveGuestInvitations();
 
   const [
@@ -277,6 +278,37 @@ export default function LiveWatchPage() {
     }
   }
 
+  async function handleLeaveGuestStage() {
+    if (
+      !activeGuestInvitation ||
+      activeGuestInvitation.status !==
+        "accepted" ||
+      activeGuestInvitation.stageStatus !==
+        "on_stage"
+    ) {
+      return;
+    }
+
+    setGuestActionId(
+      activeGuestInvitation.id,
+    );
+
+    setGuestActionError("");
+
+    try {
+      await leaveActiveGuestStage(
+        activeGuestInvitation.id,
+      );
+    } catch (guestError) {
+      setGuestActionError(
+        guestError instanceof Error
+          ? guestError.message
+          : "No fue posible salir del Guest Stage.",
+      );
+    } finally {
+      setGuestActionId(null);
+    }
+  }
   const [room, setRoom] =
     useState<LiveRoomDetails | null>(null);
 
@@ -2047,6 +2079,9 @@ export default function LiveWatchPage() {
               {isGuestOnStage ? (
                 <LiveGuestStageOverlay
                   guestControls={guestMediaRef}
+                  onClose={() => {
+                    void handleLeaveGuestStage();
+                  }}
                 >
                   <LiveGuestMedia
                     ref={guestMediaRef}

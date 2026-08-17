@@ -15,6 +15,7 @@ import {
   getSentLiveGuestInvitations,
   putLiveGuestOnStage,
   returnLiveGuestToWaiting,
+  leaveLiveGuestStage,
   revokeLiveGuestInvitation,
   type CreateLiveGuestInvitationInput,
   type LiveGuestInvitation,
@@ -48,6 +49,9 @@ export interface UseLiveGuestInvitationsResult {
     invitationId: string,
   ) => Promise<LiveGuestInvitation>;
   returnGuestToWaiting: (
+    invitationId: string,
+  ) => Promise<LiveGuestInvitation>;
+  leaveGuestStage: (
     invitationId: string,
   ) => Promise<LiveGuestInvitation>;
 }
@@ -212,6 +216,22 @@ export function useLiveGuestInvitations():
       [refresh],
     );
 
+  const leaveGuestStage =
+    useCallback(
+      async (
+        invitationId: string,
+      ) => {
+        const invitation =
+          await leaveLiveGuestStage(
+            invitationId,
+          );
+
+        await refresh();
+
+        return invitation;
+      },
+      [refresh],
+    );
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -269,5 +289,6 @@ export function useLiveGuestInvitations():
     revokeInvitation,
     putGuestOnStage,
     returnGuestToWaiting,
+    leaveGuestStage,
   };
 }

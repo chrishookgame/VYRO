@@ -350,3 +350,32 @@ export async function returnLiveGuestToWaiting(
     data as LiveGuestInvitationRow,
   );
 }
+
+export async function leaveLiveGuestStage(
+  invitationId: string,
+): Promise<LiveGuestInvitation> {
+  const { data, error } =
+    await supabase.rpc(
+      "leave_live_guest_stage",
+      {
+        target_invitation_id:
+          invitationId,
+      },
+    );
+
+  if (error) {
+    throw new Error(
+      `No se pudo salir del Guest Stage: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "VYRO no recibió el Guest actualizado.",
+    );
+  }
+
+  return mapInvitation(
+    data as LiveGuestInvitationRow,
+  );
+}
