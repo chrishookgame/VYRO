@@ -36,6 +36,7 @@ type LiveProductionPanelProps = {
   onPublishedOverlayChange?: (
     overlay: CreatorOnAirOverlay,
   ) => void;
+  onStageMaxGuestsChange?: (maxGuests: number) => void;
 };
 
 function createPresentationTimestamp() {
@@ -157,105 +158,12 @@ function GuestVideoPreview({
     </div>
   );
 }
-function HostVideoPreview({
-  room,
-  mode,
-}: {
-  room: Room | null;
-  mode: "fullscreen" | "window" | "pip";
-}) {
-  const [
-    videoElement,
-    setVideoElement,
-  ] = useState<HTMLVideoElement | null>(null);
-
-  const cameraPublication =
-    room?.localParticipant.getTrackPublication(
-      Track.Source.Camera,
-    ) ?? null;
-
-  const cameraTrack =
-    cameraPublication?.track ?? null;
-
-  useEffect(() => {
-    if (
-      !videoElement ||
-      !cameraTrack
-    ) {
-      return;
-    }
-
-    cameraTrack.attach(
-      videoElement,
-    );
-
-    return () => {
-      cameraTrack.detach(
-        videoElement,
-      );
-    };
-  }, [
-    cameraTrack,
-    videoElement,
-  ]);
-
-  const cameraAvailable =
-    Boolean(
-      cameraPublication &&
-        cameraTrack &&
-        !cameraPublication.isMuted,
-    );
-
-  return (
-    <div
-      className={`relative aspect-video overflow-hidden rounded-2xl border border-violet-300/30 bg-black transition-all duration-300 ${
-        mode === "fullscreen"
-          ? "col-span-full w-full"
-          : mode === "pip"
-            ? "w-full max-w-xs justify-self-end"
-            : "w-full"
-      }`}
-    >
-      {cameraAvailable ? (
-        <video
-          ref={setVideoElement}
-          autoPlay
-          playsInline
-          muted
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center px-4 text-center">
-          <div>
-            <p className="text-sm font-black text-white/50">
-              Cámara del creador
-            </p>
-
-            <p className="mt-1 text-xs text-white/30">
-              Esperando video del HOST.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-4 pb-3 pt-10">
-        <p className="text-sm font-black text-white">
-          HOST
-        </p>
-
-        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200">
-          {mode}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function LiveProductionPanel({
   room,
   isLive,
   guestInvitations,
   onPublishedOverlayChange,
+  onStageMaxGuestsChange,
 }: LiveProductionPanelProps) {
   const {
     sent: sentInvitations,
@@ -307,19 +215,6 @@ export function LiveProductionPanel({
       "fullscreen",
     );
 
-  const stagePreviewItemCount =
-    stageMaxGuests + 1;
-
-  const stagePreviewGridClass =
-    stagePreviewItemCount <= 2
-      ? "grid-cols-1 sm:grid-cols-2"
-      : stagePreviewItemCount <= 4
-        ? "grid-cols-2"
-        : stagePreviewItemCount <= 6
-          ? "grid-cols-2 lg:grid-cols-3"
-          : stagePreviewItemCount <= 9
-            ? "grid-cols-2 md:grid-cols-3"
-            : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
   const [stagePanelOpen, setStagePanelOpen] =
     useState(false);
 
@@ -653,38 +548,6 @@ export function LiveProductionPanel({
         ),
       [remoteParticipants],
     );
-  const onStageGuestParticipants =
-    useMemo(
-      () =>
-        onStageGuestInvitations.map(
-          (invitation) => {
-            const identity =
-              `guest:${invitation.guestId}`;
-
-            const media =
-              guestParticipants.find(
-                (candidate) =>
-                  candidate.identity ===
-                  identity,
-              ) ?? null;
-
-            return {
-              identity,
-              media,
-              name:
-                invitation.guest?.full_name ??
-                invitation.guest?.username ??
-                media?.name ??
-                "VYRO Guest",
-            };
-          },
-        ),
-      [
-        guestParticipants,
-        onStageGuestInvitations,
-      ],
-    );
-
   const canPublish =
     isLive && room !== null;
 
@@ -1094,15 +957,15 @@ export function LiveProductionPanel({
 
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black text-white/45">
-              0 GUEST → FOCUS
+              0 GUEST {"\u2192"} FOCUS
             </span>
 
             <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black text-white/45">
-              GUEST → CINEMA
+              GUEST {"\u2192"} CINEMA
             </span>
 
             <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-black text-white/45">
-              SCREEN → SPOTLIGHT
+              SCREEN {"\u2192"} SPOTLIGHT
             </span>
           </div>
         </div>
@@ -1462,6 +1325,7 @@ export function LiveProductionPanel({
                           setStageMaxGuests(
                             amount,
                           );
+                          onStageMaxGuestsChange?.(amount);
                         }}
                         className={`rounded-xl border py-2 text-xs font-black transition ${
                           stageMaxGuests === amount
@@ -1547,92 +1411,6 @@ export function LiveProductionPanel({
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
-                    Stage Preview
-                  </p>
-
-                  <p className="mt-1 text-xs text-white/35">
-                    {onStageGuestParticipants.length} invitados ON STAGE · máximo {stageMaxGuests}
-                  </p>
-                </div>
-
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/45">
-                  {stageLayout} · {stageHostMode}
-                </span>
-              </div>
-
-              <div className={`mt-4 grid gap-3 ${stagePreviewGridClass}`}>
-                <HostVideoPreview
-                  room={room}
-                  mode={stageHostMode}
-                />
-
-                {Array.from({
-                  length: stageMaxGuests,
-                }).map((_, index) => {
-                  const guest =
-                    onStageGuestParticipants[index];
-
-                  return (
-                    <div
-                      key={
-                        guest?.identity ??
-                        `stage-slot-${index}`
-                      }
-                      className={`relative min-h-24 overflow-hidden rounded-2xl border p-3 ${
-                        guest
-                          ? "border-emerald-300/25 bg-emerald-300/[0.06]"
-                          : "border-dashed border-white/10 bg-white/[0.02]"
-                      }`}
-                    >
-                      <span
-                        className={`text-[9px] font-black uppercase tracking-[0.14em] ${
-                          guest
-                            ? "text-emerald-300"
-                            : "text-white/25"
-                        }`}
-                      >
-                        GUEST {index + 1}
-                      </span>
-
-                      {guest?.media?.participant ? (
-                        <div className="mt-3">
-                          <GuestVideoPreview
-                            participant={
-                              guest.media.participant
-                            }
-                          />
-                        </div>
-                      ) : null}
-
-                      <p className="mt-8 truncate text-xs font-black text-white/65">
-                        {guest
-                          ? guest.name
-                          : "Disponible"}
-                      </p>
-
-                      <p className="mt-1 text-[10px] uppercase text-white/25">
-                        {guest
-                          ? guest.media
-                            ? "ON STAGE · CONECTADO"
-                            : "ON STAGE · ESPERANDO MEDIA"
-                          : "ESPERANDO"}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {guestParticipants.length >
-              stageMaxGuests ? (
-                <p className="mt-3 text-xs font-bold text-amber-300/80">
-                  Hay más invitados conectados que espacios configurados en el Stage.
-                </p>
-              ) : null}
-            </div>
           </div>
         ) : null}
       </div>
@@ -1798,7 +1576,7 @@ export function LiveProductionPanel({
                   event.target.value,
                 );
               }}
-              placeholder="Etiqueta · AHORA EN VIVO"
+              placeholder="Etiqueta \u00B7 AHORA EN VIVO"
               maxLength={32}
               className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-cyan-400/50"
             />
@@ -1810,7 +1588,7 @@ export function LiveProductionPanel({
                   event.target.value,
                 );
               }}
-              placeholder="CTA · SEGUIR"
+              placeholder="CTA \u00B7 SEGUIR"
               maxLength={60}
               className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-cyan-400/50"
             />

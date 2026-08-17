@@ -31,6 +31,7 @@ import {
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveCommandCenter } from "@/components/live/command-center";
 import { LiveGuestControlCenter } from "@/components/live/guest";
+import { VyroGuestCanvasStage } from "@/components/live/guest/stage/VyroGuestCanvasStage";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
 import { VyroCreatorControlStrip } from "@/components/live/studio/VyroCreatorControlStrip";
 import {
@@ -80,6 +81,16 @@ export default function LiveStudioPage() {
     message: "",
     cta: "",
   });
+
+  const [
+    creatorStageMaxGuests,
+    setCreatorStageMaxGuests,
+  ] = useState(10);
+
+  const [
+    creatorGuestLayoutMode,
+    setCreatorGuestLayoutMode,
+  ] = useState<"two" | "three" | "free">("two");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -1005,12 +1016,12 @@ export default function LiveStudioPage() {
                 </span>
 
                 <span className="animate-pulse rounded-full border border-red-500/40 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-300">
-                  ● LIVE
+                  {"\u25CF"} LIVE
                 </span>
               </>
             ) : (
               <span className="rounded-full border border-gray-500/30 bg-white/5 px-4 py-2 text-sm font-bold text-gray-300">
-                ● OFFLINE
+                {"\u25CF"} OFFLINE
               </span>
             )}
           </div>
@@ -1074,6 +1085,16 @@ export default function LiveStudioPage() {
                 className="h-full min-h-[500px] xl:min-h-[560px] w-full object-cover"
               />
 
+              <VyroGuestCanvasStage
+                room={liveKitRoom}
+                isLive={isLive}
+                guestInvitations={
+                  creatorGuestInvitations
+                }
+                maxGuests={creatorStageMaxGuests}
+                layoutMode={creatorGuestLayoutMode}
+              />
+
               {isLive &&
               creatorOnAirOverlay.visible ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
@@ -1103,7 +1124,7 @@ export default function LiveStudioPage() {
                             {creatorOnAirOverlay.title &&
                             creatorOnAirOverlay.message ? (
                               <span className="text-cyan-300">
-                                •
+                                {"\u2022"}
                               </span>
                             ) : null}
 
@@ -1114,7 +1135,7 @@ export default function LiveStudioPage() {
                             ) : null}
 
                             <span className="text-cyan-300">
-                              •
+                              {"\u2022"}
                             </span>
 
                             <span className="shrink-0 text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
@@ -1122,7 +1143,7 @@ export default function LiveStudioPage() {
                             </span>
 
                             <span className="text-cyan-300">
-                              •
+                              {"\u2022"}
                             </span>
                           </div>
                         ))}
@@ -1233,16 +1254,94 @@ export default function LiveStudioPage() {
                       />
                     }
                     guestContent={
-                      <LiveGuestControlCenter
-                        roomId={
-                          session?.id ?? null
-                        }
-                        disabled={!session}
-                        guestInvitations={creatorGuestInvitations}
-                        guestRequests={creatorGuestRequests}
-                      />
-                    }
-                    duration={
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-cyan-300/20 bg-black/35 px-4 py-3">
+                          <div className="flex items-center justify-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCreatorStageMaxGuests(
+                                  (current) =>
+                                    Math.max(
+                                      1,
+                                      current - 1,
+                                    ),
+                                );
+                              }}
+                              disabled={
+                                creatorStageMaxGuests <= 1
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-lg font-black text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-25"
+                              title="Reducir personas en Stage"
+                            >
+                              {"\u2212"}
+                            </button>
+
+                            <div className="flex min-w-[52px] items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/[0.08] px-3 py-2">
+                              <span className="text-xl font-black tabular-nums text-cyan-200">
+                                {creatorStageMaxGuests}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCreatorStageMaxGuests(
+                                  (current) =>
+                                    Math.min(
+                                      10,
+                                      current + 1,
+                                    ),
+                                );
+                              }}
+                              disabled={
+                                creatorStageMaxGuests >= 10
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-lg font-black text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-25"
+                              title="Aumentar personas en Stage"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-2">
+                          {([
+                            ["two", "2"],
+                            ["three", "3"],
+                            ["free", "LIBRE"],
+                          ] as const).map(([mode, label]) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => {
+                                setCreatorGuestLayoutMode(mode);
+                              }}
+                              className={`rounded-lg border px-3 py-1.5 text-[10px] font-black transition ${
+                                creatorGuestLayoutMode === mode
+                                  ? "border-cyan-300/60 bg-cyan-300/15 text-cyan-100"
+                                  : "border-white/10 bg-white/[0.04] text-white/55 hover:text-white"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <LiveGuestControlCenter
+                          roomId={
+                            session?.id ?? null
+                          }
+                          disabled={!session}
+                          guestInvitations={
+                            creatorGuestInvitations
+                          }
+                          guestRequests={
+                            creatorGuestRequests
+                          }
+                        />
+                      </div>
+                    }                    duration={
                       formatDuration(
                         liveDuration,
                       )
@@ -1534,9 +1633,13 @@ export default function LiveStudioPage() {
               onPublishedOverlayChange={
                 setCreatorOnAirOverlay
               }
+              onStageMaxGuestsChange={
+                setCreatorStageMaxGuests
+              }
             />
           </aside>
         </div>
+
 
         <div className="mt-8 w-full">
           <BattleStudio

@@ -474,8 +474,185 @@ export function LiveGuestControlCenter({
       setProcessingId(null);
     }
   }
+  const onStageInvitations =
+    activeInvitations.filter(
+      (invitation) =>
+        invitation.status === "accepted" &&
+        invitation.stageStatus === "on_stage",
+    );
   return (
     <div className="mt-5">
+      <div
+        className="
+          mb-4
+          overflow-hidden
+          rounded-[24px]
+          border
+          border-cyan-400/20
+          bg-gradient-to-br
+          from-[#071018]
+          to-[#05070A]
+          shadow-xl
+        "
+      >
+        <div
+          className="
+            flex
+            items-center
+            justify-between
+            border-b
+            border-white/10
+            px-4
+            py-4
+          "
+        >
+          <div>
+            <div className="flex items-center gap-2">
+              <Users
+                size={17}
+                className="text-cyan-300"
+              />
+
+              <p className="font-black text-white">
+                Guests on Stage
+              </p>
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Participantes visibles dentro del LIVE.
+            </p>
+          </div>
+
+          <span
+            className="
+              rounded-full
+              border
+              border-cyan-400/20
+              bg-cyan-400/10
+              px-3
+              py-1
+              text-xs
+              font-black
+              text-cyan-200
+            "
+          >
+            {onStageInvitations.length}/10
+          </span>
+        </div>
+
+        <div className="p-3">
+          {onStageInvitations.length === 0 ? (
+            <div
+              className="
+                flex
+                min-h-24
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                border-dashed
+                border-white/10
+                bg-black/20
+                px-4
+                text-center
+              "
+            >
+              <div>
+                <Users
+                  size={22}
+                  className="mx-auto text-slate-600"
+                />
+
+                <p className="mt-2 text-sm font-bold text-slate-400">
+                  Stage preparado
+                </p>
+
+                <p className="mt-1 text-xs text-slate-600">
+                  Sube un Guest desde Waiting Room.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {onStageInvitations
+                .slice(0, 10)
+                .map((invitation) => {
+                  const stageGuestName =
+                    getInvitationName(
+                      invitation.guest?.username,
+                      invitation.guest?.full_name,
+                    );
+
+                  return (
+                    <div
+                      key={invitation.id}
+                      className="
+                        relative
+                        overflow-hidden
+                        rounded-2xl
+                        border
+                        border-emerald-400/20
+                        bg-white/[0.05]
+                        p-3
+                      "
+                    >
+                      <div className="flex items-center gap-3">
+                        {invitation.guest?.avatar_url ? (
+                          <Image
+                            src={
+                              invitation.guest
+                                .avatar_url
+                            }
+                            alt={stageGuestName}
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className="
+                              h-10
+                              w-10
+                              rounded-full
+                              object-cover
+                            "
+                          />
+                        ) : (
+                          <div
+                            className="
+                              flex
+                              h-10
+                              w-10
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-full
+                              bg-cyan-400/10
+                              text-sm
+                              font-black
+                              text-cyan-200
+                            "
+                          >
+                            {stageGuestName
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-white">
+                            {stageGuestName}
+                          </p>
+
+                          <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                            On Stage
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      </div>
       <button
         type="button"
         disabled={
@@ -495,7 +672,7 @@ export function LiveGuestControlCenter({
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <UserPlus size={18} />
-        Añadir invitado
+        Invite Guests
       </button>
 
       {open ? (
@@ -983,7 +1160,10 @@ export function LiveGuestControlCenter({
                             >
                               {invitation.status ===
                               "accepted"
-                                ? "Guest aceptado"
+                                ? invitation.stageStatus ===
+                                  "on_stage"
+                                  ? "On Stage"
+                                  : "Waiting Room"
                                 : "Esperando respuesta"}
                             </p>
                           </div>
