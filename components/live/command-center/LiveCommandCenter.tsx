@@ -1,4 +1,4 @@
-﻿import {
+import {
   Activity,
   Radio,
   Sparkles,
@@ -18,6 +18,7 @@ interface LiveCommandCenterProps {
   totalJoins?: number;
   reactions?: number;
   gifts?: number;
+  grossRevenue?: number;
   energy?: number;
   messages?: number;
   connected?: boolean;
@@ -29,6 +30,7 @@ export default function LiveCommandCenter({
   totalJoins = 0,
   reactions = 0,
   gifts = 0,
+  grossRevenue = 0,
   energy = 0,
   messages = 0,
   connected = false,
@@ -102,7 +104,7 @@ export default function LiveCommandCenter({
 
           <LiveRevenuePanel
             gifts={gifts}
-            grossRevenue={0}
+            grossRevenue={grossRevenue}
             creatorRevenue={0}
             pendingRevenue={0}
           />

@@ -1800,6 +1800,9 @@ export default function LiveStudioPage() {
             gifts={
               dashboard.gifts
             }
+            grossRevenue={
+              dashboard.grossRevenue
+            }
             energy={
               dashboard.energy
             }
