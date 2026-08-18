@@ -74,90 +74,6 @@ const sceneOptions: {
   },
 ];
 
-function GuestVideoPreview({
-  participant,
-}: {
-  participant: RemoteParticipant;
-}) {
-  const [
-    videoElement,
-    setVideoElement,
-  ] = useState<HTMLVideoElement | null>(null);
-
-  const cameraPublication =
-    participant.getTrackPublication(
-      Track.Source.Camera,
-    );
-
-  const cameraTrack =
-    cameraPublication?.track ?? null;
-
-  useEffect(() => {
-    if (
-      !videoElement ||
-      !cameraTrack
-    ) {
-      return;
-    }
-
-    cameraTrack.attach(
-      videoElement,
-    );
-
-    return () => {
-      cameraTrack.detach(
-        videoElement,
-      );
-    };
-  }, [
-    cameraTrack,
-    videoElement,
-  ]);
-
-  const cameraAvailable =
-    Boolean(
-      cameraPublication &&
-        cameraTrack &&
-        !cameraPublication.isMuted,
-    );
-
-  return (
-    <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
-      {cameraAvailable ? (
-        <video
-          ref={setVideoElement}
-          autoPlay
-          playsInline
-          muted
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center px-4 text-center">
-          <div>
-            <p className="text-sm font-black text-white/50">
-              Cámara no disponible
-            </p>
-
-            <p className="mt-1 text-xs text-white/30">
-              Esperando video del Guest.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-4 pb-3 pt-10">
-        <p className="truncate text-sm font-black text-white">
-          {participant.name ||
-            participant.identity}
-        </p>
-
-        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">
-          VYRO GUEST
-        </p>
-      </div>
-    </div>
-  );
-}
 export function LiveProductionPanel({
   room,
   isLive,
@@ -853,13 +769,7 @@ export function LiveProductionPanel({
                   key={participant.identity}
                   className="rounded-2xl border border-white/10 bg-black/25 p-4"
                 >
-                  <GuestVideoPreview
-                    participant={
-                      participant.participant
-                    }
-                  />
-
-                  <div className="mt-4 flex items-center justify-between gap-3">
+<div className="mt-4 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-black text-white">
                         {participant.name}

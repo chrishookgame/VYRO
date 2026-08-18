@@ -5,6 +5,7 @@ import {
   Mic,
   MicOff,
   Minimize2,
+  MoreVertical,
   Move,
   Video,
   VideoOff,
@@ -29,6 +30,7 @@ import type {
 
 type VyroGuestCanvasStageProps = {
   room: Room | null;
+  roomId: string | null;
   isLive: boolean;
   guestInvitations: UseLiveGuestInvitationsResult;
   maxGuests?: number;
@@ -40,6 +42,8 @@ type GuestMedia = {
   identity: string;
   camera: boolean;
   microphone: boolean;
+  cameraTrackSid: string | null;
+  microphoneTrackSid: string | null;
 };
 
 type GuestPosition = {
@@ -117,6 +121,7 @@ function GuestCanvasVideo({
 
 export function VyroGuestCanvasStage({
   room,
+  roomId,
   isLive,
   guestInvitations,
   maxGuests = 10,
@@ -130,6 +135,11 @@ export function VyroGuestCanvasStage({
   const [
     focusedGuestIdentity,
     setFocusedGuestIdentity,
+  ] = useState<string | null>(null);
+
+  const [
+    openGuestMenuIdentity,
+    setOpenGuestMenuIdentity,
   ] = useState<string | null>(null);
 
   const [
@@ -165,7 +175,7 @@ export function VyroGuestCanvasStage({
   const safeMaxGuests =
     Math.min(
       10,
-      Math.max(1, maxGuests),
+      Math.max(0, maxGuests),
     );
 
   useEffect(() => {
@@ -287,6 +297,12 @@ export function VyroGuestCanvasStage({
                     microphonePublication.track &&
                     !microphonePublication.isMuted,
                 ),
+              cameraTrackSid:
+                cameraPublication?.trackSid ??
+                null,
+              microphoneTrackSid:
+                microphonePublication?.trackSid ??
+                null,
             };
           }),
       [remoteParticipants],
@@ -321,6 +337,7 @@ export function VyroGuestCanvasStage({
               ) ?? null;
 
             return {
+              invitationId: invitation.id,
               identity,
               name:
                 invitation.guest?.full_name ??
@@ -354,6 +371,42 @@ export function VyroGuestCanvasStage({
     onStageGuests,
   ]);
 
+
+  const controlGuestMedia = async (
+    guestIdentity: string,
+    trackSid: string | null,
+    media: "camera" | "microphone",
+    muted: boolean,
+  ) => {
+    if (!roomId || !trackSid) {
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/live/guest/media-control", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomId,
+          guestIdentity,
+          trackSid,
+          media,
+          muted,
+        }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   if (!isLive) {
     return null;
   }
@@ -381,13 +434,13 @@ export function VyroGuestCanvasStage({
         x:
           columns === 3
             ? [18, 50, 82][column]
-            : [28, 72][column],
+            : (safeMaxGuests >= 7 ? [77, 90][column] : [75, 90][column]),
         y:
           4 +
           row *
-            (columns === 3 ? 20 : (safeMaxGuests >= 7 ? 17 : 24)),
+            (columns === 3 ? 20 : (safeMaxGuests >= 7 ? 15.6 : 18)),
         width:
-          columns === 3 ? 20 : (safeMaxGuests >= 7 ? 25 : 31),
+          columns === 3 ? 20 : (safeMaxGuests >= 7 ? 13 : 15),
       };
     }
 
@@ -664,26 +717,26 @@ export function VyroGuestCanvasStage({
                 className="
                   pointer-events-none
                   absolute
-                  min-w-[110px]
-                  max-w-[55%]
+                  min-w-[78px]
+                  max-w-[48%]
                   -translate-x-1/2
                   overflow-hidden
-                  rounded-2xl
+                  rounded-xl
                   border
                   border-dashed
-                  border-cyan-300/25
-                  bg-black/10
-                  backdrop-blur-[1px]
+                  border-cyan-300/35
+                  bg-black/35
+                  backdrop-blur-md
                 "
               >
-                <div className="relative aspect-video">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/15">
+                <div className="relative aspect-[4/3]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-black/25 via-black/35 to-cyan-950/25">
                     <VideoOff
                       size={18}
-                      className="text-white/20"
+                      className="text-cyan-100/30"
                     />
 
-                    <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/25">
+                    <span className="text-[8px] font-black uppercase tracking-[0.16em] text-cyan-100/45">
                       Guest {index + 1}
                     </span>
                   </div>
@@ -714,18 +767,18 @@ export function VyroGuestCanvasStage({
                   pointer-events-auto
                   group
                   absolute
-                  min-w-[110px]
-                  max-w-[55%]
+                  min-w-[78px]
+                  max-w-[48%]
                   -translate-x-1/2
                   overflow-hidden
-                  rounded-2xl
-                  border border-cyan-300/55
-                  bg-black/10
-                  shadow-[0_14px_40px_rgba(0,0,0,0.38)]
-                  backdrop-blur-[1px]
+                  rounded-xl
+                  border border-cyan-300/60
+                  bg-black/35
+                  shadow-[0_14px_36px_rgba(0,0,0,0.42)]
+                  backdrop-blur-md
                 "
               >
-                <div className="relative aspect-video">
+                <div className="relative aspect-[4/3]">
                   {guest.media ? (
                     <GuestCanvasVideo
                       participant={
@@ -774,18 +827,211 @@ export function VyroGuestCanvasStage({
                     <Move size={13} />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFocusedGuestIdentity(
-                        guest.identity,
-                      );
-                    }}
-                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white/80 backdrop-blur-xl transition hover:bg-white/15"
-                    title="Pantalla grande"
-                  >
-                    <Maximize2 size={13} />
-                  </button>
+                  <div className="absolute right-2 top-2 z-30">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+
+                        setOpenGuestMenuIdentity(
+                          (currentIdentity) =>
+                            currentIdentity ===
+                            guest.identity
+                              ? null
+                              : guest.identity,
+                        );
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-cyan-300/35 bg-black/65 text-cyan-100 shadow-lg backdrop-blur-xl transition hover:border-cyan-200/70 hover:bg-cyan-400/15"
+                      title={`Controles de ${guest.name}`}
+                      aria-label={`Abrir controles de ${guest.name}`}
+                      aria-expanded={
+                        openGuestMenuIdentity ===
+                        guest.identity
+                      }
+                    >
+                      <span className="text-base font-black leading-none">
+                        +
+                      </span>
+                    </button>
+
+                    {openGuestMenuIdentity ===
+                    guest.identity ? (
+                      <div
+                        className="absolute right-0 top-9 w-44 overflow-hidden rounded-xl border border-cyan-300/25 bg-slate-950/95 p-1.5 shadow-2xl backdrop-blur-2xl"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2 border-b border-white/10 px-2 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-[10px] font-black text-white">
+                              {guest.name}
+                            </p>
+
+                            <p className="text-[8px] font-black uppercase tracking-[0.14em] text-cyan-300">
+                              Guest {index + 1}
+                            </p>
+                          </div>
+
+                          <MoreVertical
+                            size={14}
+                            className="shrink-0 text-cyan-200/70"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await guestInvitations.returnGuestToWaiting(
+                              guest.invitationId,
+                            );
+
+                            setOpenGuestMenuIdentity(
+                              null,
+                            );
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[10px] font-bold text-white transition hover:bg-amber-300/10"
+                        >
+                          <Minimize2
+                            size={14}
+                            className="text-amber-300"
+                          />
+
+                          Enviar a Waiting
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await guestInvitations.revokeInvitation(
+                              guest.invitationId,
+                            );
+
+                            setOpenGuestMenuIdentity(
+                              null,
+                            );
+                          }}
+                          className="mt-1 flex w-full items-center gap-2 rounded-lg border border-red-400/15 bg-red-500/[0.06] px-2.5 py-2 text-left text-[10px] font-bold text-red-200 transition hover:border-red-300/30 hover:bg-red-500/15"
+                        >
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-red-300/30 text-[10px] font-black text-red-300">
+                            ×
+                          </span>
+
+                          Retirar Guest
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFocusedGuestIdentity(
+                              guest.identity,
+                            );
+
+                            setOpenGuestMenuIdentity(
+                              null,
+                            );
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[10px] font-bold text-white transition hover:bg-white/10"
+                        >
+                          <Maximize2
+                            size={14}
+                            className="text-cyan-300"
+                          />
+
+                          Pantalla grande
+                        </button>
+
+                        <div className="mt-1 grid grid-cols-2 gap-1 border-t border-white/10 pt-1.5">
+                          <button
+                            type="button"
+                            disabled={!guest.media?.cameraTrackSid}
+                            onClick={async () => {
+                              if (!guest.media) {
+                                return;
+                              }
+
+                              await controlGuestMedia(
+                                guest.identity,
+                                guest.media.cameraTrackSid,
+                                "camera",
+                                guest.media.camera,
+                              );
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-2 text-left transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                            title={
+                              guest.media?.camera
+                                ? "Apagar cámara"
+                                : "Activar cámara"
+                            }
+                            aria-label={
+                              guest.media?.camera
+                                ? `Apagar cámara de ${guest.name}`
+                                : `Activar cámara de ${guest.name}`
+                            }
+                          >
+                            {guest.media?.camera ? (
+                              <Video
+                                size={13}
+                                className="text-emerald-300"
+                              />
+                            ) : (
+                              <VideoOff
+                                size={13}
+                                className="text-red-300"
+                              />
+                            )}
+
+                            <span className="text-[8px] font-black uppercase text-white/70">
+                              Cámara
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!guest.media?.microphoneTrackSid}
+                            onClick={async () => {
+                              if (!guest.media) {
+                                return;
+                              }
+
+                              await controlGuestMedia(
+                                guest.identity,
+                                guest.media.microphoneTrackSid,
+                                "microphone",
+                                guest.media.microphone,
+                              );
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-2 text-left transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                            title={
+                              guest.media?.microphone
+                                ? "Silenciar micrófono"
+                                : "Activar micrófono"
+                            }
+                            aria-label={
+                              guest.media?.microphone
+                                ? `Silenciar micrófono de ${guest.name}`
+                                : `Activar micrófono de ${guest.name}`
+                            }
+                          >
+                            {guest.media?.microphone ? (
+                              <Mic
+                                size={13}
+                                className="text-emerald-300"
+                              />
+                            ) : (
+                              <MicOff
+                                size={13}
+                                className="text-red-300"
+                              />
+                            )}
+
+                            <span className="text-[8px] font-black uppercase text-white/70">
+                              Mic
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
 
                   <button
                     type="button"

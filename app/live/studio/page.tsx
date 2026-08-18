@@ -85,7 +85,7 @@ export default function LiveStudioPage() {
   const [
     creatorStageMaxGuests,
     setCreatorStageMaxGuests,
-  ] = useState(10);
+  ] = useState(0);
 
   const [
     creatorGuestLayoutMode,
@@ -1087,6 +1087,7 @@ export default function LiveStudioPage() {
 
               <VyroGuestCanvasStage
                 room={liveKitRoom}
+                roomId={session?.id ?? null}
                 isLive={isLive}
                 guestInvitations={
                   creatorGuestInvitations
@@ -1263,13 +1264,13 @@ export default function LiveStudioPage() {
                                 setCreatorStageMaxGuests(
                                   (current) =>
                                     Math.max(
-                                      1,
+                                      0,
                                       current - 1,
                                     ),
                                 );
                               }}
                               disabled={
-                                creatorStageMaxGuests <= 1
+                                creatorStageMaxGuests <= 0
                               }
                               className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-lg font-black text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-25"
                               title="Reducir personas en Stage"
