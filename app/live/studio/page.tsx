@@ -33,6 +33,7 @@ import { LiveCommandCenter } from "@/components/live/command-center";
 import { LiveGuestControlCenter } from "@/components/live/guest";
 import { VyroGuestCanvasStage } from "@/components/live/guest/stage/VyroGuestCanvasStage";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
+import { LiveRankingPanel } from "@/components/live/ranking";
 import { VyroCreatorControlStrip } from "@/components/live/studio/VyroCreatorControlStrip";
 import {
   useBattleCountdown,
@@ -1773,6 +1774,14 @@ export default function LiveStudioPage() {
         ) : null}
 
 
+
+        {session ? (
+          <div className="mt-8">
+            <LiveRankingPanel
+              roomId={session.id}
+            />
+          </div>
+        ) : null}
 
         <div className="mt-8">
           <LiveCommandCenter
