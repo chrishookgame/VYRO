@@ -183,11 +183,11 @@ function ControlButton({
       onClick={onClick}
       aria-expanded={active}
       className={[
-        "group flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5",
-        "text-xs font-bold text-white transition",
+        "group relative flex shrink-0 items-center gap-1.5 overflow-hidden rounded-full border px-3 py-1.5",
+        "text-xs font-bold text-white transition-all duration-300 ease-out",
         active
-          ? "border-cyan-300/50 bg-cyan-400/15 shadow-[0_0_24px_rgba(34,211,238,0.12)]"
-          : "border-white/10 bg-white/[0.07] hover:border-white/20 hover:bg-white/[0.12]",
+          ? "border-cyan-300/70 bg-[linear-gradient(180deg,rgba(34,211,238,0.18),rgba(8,47,73,0.18))] shadow-[inset_0_0_0_1px_rgba(165,243,252,0.10),inset_0_0_14px_rgba(34,211,238,0.10),0_0_18px_rgba(34,211,238,0.22)]"
+          : "border-cyan-200/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025),0_6px_18px_rgba(0,0,0,0.18)] hover:-translate-y-px hover:border-cyan-300/45 hover:bg-cyan-400/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(165,243,252,0.08),0_0_16px_rgba(34,211,238,0.14)]",
       ].join(" ")}
     >
       {icon}
@@ -1238,9 +1238,53 @@ export function VyroCreatorControlStrip({
     <>
       <div className="relative w-full">
         <div className="flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/70 px-3 py-2 shadow-2xl backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4">
-          <div className="flex shrink-0 items-center gap-2 rounded-full bg-red-500 px-3 py-1.5 text-xs font-black text-white shadow-lg">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            ON AIR
+          <div
+            className="relative h-8 w-[96px] shrink-0 overflow-hidden rounded-xl border border-cyan-300/55 bg-black/95 shadow-[inset_0_0_4px_rgba(255,255,255,0.10),inset_0_0_16px_rgba(34,211,238,0.16),0_0_8px_rgba(34,211,238,0.45),0_0_20px_rgba(34,211,238,0.22)]"
+            aria-label="VYRO ON AIR"
+          >
+            <span
+              className="vyro-led-word-vyro absolute inset-0 flex items-center justify-center gap-[2px] font-mono text-[11px] font-black text-cyan-200 [animation:vyro-led-vyro-shell_14s_linear_infinite]"
+              aria-hidden="true"
+            >
+              <span className="vyro-led-vyro-char [animation:vyro-led-vyro-char_14s_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#a5f3fc,0_0_12px_#67e8f9,0_0_20px_#22d3ee,0_0_32px_#06b6d4,0_0_46px_rgba(6,182,212,1),0_0_64px_rgba(6,182,212,0.75)]">
+                V
+              </span>
+              <span className="vyro-led-vyro-char [animation:vyro-led-vyro-char_14s_120ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#a5f3fc,0_0_12px_#67e8f9,0_0_20px_#22d3ee,0_0_32px_#06b6d4,0_0_46px_rgba(6,182,212,1),0_0_64px_rgba(6,182,212,0.75)]">
+                Y
+              </span>
+              <span className="vyro-led-vyro-char [animation:vyro-led-vyro-char_14s_240ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#a5f3fc,0_0_12px_#67e8f9,0_0_20px_#22d3ee,0_0_32px_#06b6d4,0_0_46px_rgba(6,182,212,1),0_0_64px_rgba(6,182,212,0.75)]">
+                R
+              </span>
+              <span className="vyro-led-vyro-char [animation:vyro-led-vyro-char_14s_360ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#a5f3fc,0_0_12px_#67e8f9,0_0_20px_#22d3ee,0_0_32px_#06b6d4,0_0_46px_rgba(6,182,212,1),0_0_64px_rgba(6,182,212,0.75)]">
+                O
+              </span>
+            </span>
+
+            <span
+              className="vyro-led-word-onair absolute inset-0 flex items-center justify-center gap-[1px] rounded-lg border border-emerald-400/60 bg-emerald-400/15 font-mono text-[11px] font-black text-emerald-300 shadow-[inset_0_0_12px_rgba(52,211,153,0.30),0_0_9px_rgba(52,211,153,0.60),0_0_22px_rgba(52,211,153,0.40)] [animation:vyro-led-onair-shell_14s_linear_infinite]"
+              aria-hidden="true"
+            >
+              <span className="vyro-led-onair-char [animation:vyro-led-onair-char_14s_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#d1fae5,0_0_12px_#6ee7b7,0_0_20px_#34d399,0_0_32px_#10b981,0_0_48px_rgba(16,185,129,1),0_0_68px_rgba(16,185,129,0.80)]">
+                O
+              </span>
+              <span className="vyro-led-onair-char [animation:vyro-led-onair-char_14s_120ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#d1fae5,0_0_12px_#6ee7b7,0_0_20px_#34d399,0_0_32px_#10b981,0_0_48px_rgba(16,185,129,1),0_0_68px_rgba(16,185,129,0.80)]">
+                N
+              </span>
+              <span className="ml-[3px] vyro-led-onair-char [animation:vyro-led-onair-char_14s_240ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#d1fae5,0_0_12px_#6ee7b7,0_0_20px_#34d399,0_0_32px_#10b981,0_0_48px_rgba(16,185,129,1),0_0_68px_rgba(16,185,129,0.80)]">
+                A
+              </span>
+              <span className="vyro-led-onair-char [animation:vyro-led-onair-char_14s_360ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#d1fae5,0_0_12px_#6ee7b7,0_0_20px_#34d399,0_0_32px_#10b981,0_0_48px_rgba(16,185,129,1),0_0_68px_rgba(16,185,129,0.80)]">
+                I
+              </span>
+              <span className="vyro-led-onair-char [animation:vyro-led-onair-char_14s_480ms_cubic-bezier(0.22,1,0.36,1)_infinite] [text-shadow:0_0_2px_#ffffff,0_0_4px_#ffffff,0_0_7px_#d1fae5,0_0_12px_#6ee7b7,0_0_20px_#34d399,0_0_32px_#10b981,0_0_48px_rgba(16,185,129,1),0_0_68px_rgba(16,185,129,0.80)]">
+                R
+              </span>
+            </span>
+
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle,rgba(103,232,249,0.55)_0.6px,transparent_0.8px)] [background-size:4px_4px]"
+            />
           </div>
 
           <ControlButton
@@ -1757,6 +1801,205 @@ export function VyroCreatorControlStrip({
           );
         },
       )}
+
+      <style jsx>{`
+        @keyframes vyro-led-vyro-shell {
+          0%,
+          10% {
+            opacity: 1;
+            filter: brightness(1);
+          }
+
+          13% {
+            opacity: 0.38;
+            filter: brightness(0.65);
+          }
+
+          16% {
+            opacity: 1;
+            filter: brightness(1.35);
+          }
+
+          19% {
+            opacity: 0.48;
+            filter: brightness(0.72);
+          }
+
+          22% {
+            opacity: 1;
+            filter: brightness(1.45);
+          }
+
+          25% {
+            opacity: 0.35;
+            filter: brightness(0.62);
+          }
+
+          28% {
+            opacity: 1;
+            filter: brightness(1.5);
+          }
+
+          31% {
+            opacity: 0.55;
+            filter: brightness(0.78);
+          }
+
+          34%,
+          40% {
+            opacity: 1;
+            filter: brightness(1.15);
+          }
+
+          43%,
+          100% {
+            opacity: 0;
+            filter: brightness(0.5);
+          }
+        }
+
+        @keyframes vyro-led-vyro-char {
+          0% {
+            opacity: 0;
+            transform: translateY(8px) scale(0.55);
+            filter: blur(4px);
+          }
+
+          2% {
+            opacity: 0.25;
+            transform: translateY(5px) scale(0.72);
+            filter: blur(3px);
+          }
+
+          4% {
+            opacity: 1;
+            transform: translateY(-1px) scale(1.12);
+            filter: blur(0);
+          }
+
+          6%,
+          36% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+
+          39% {
+            opacity: 0.45;
+            transform: translateY(-3px) scale(0.88);
+            filter: blur(1px);
+          }
+
+          42%,
+          100% {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.58);
+            filter: blur(4px);
+          }
+        }
+
+        @keyframes vyro-led-onair-shell {
+          0%,
+          49% {
+            opacity: 0;
+            filter: brightness(0.5);
+          }
+
+          50%,
+          60% {
+            opacity: 1;
+            filter: brightness(1);
+          }
+
+          63% {
+            opacity: 0.38;
+            filter: brightness(0.65);
+          }
+
+          66% {
+            opacity: 1;
+            filter: brightness(1.4);
+          }
+
+          69% {
+            opacity: 0.45;
+            filter: brightness(0.7);
+          }
+
+          72% {
+            opacity: 1;
+            filter: brightness(1.5);
+          }
+
+          75% {
+            opacity: 0.34;
+            filter: brightness(0.62);
+          }
+
+          78% {
+            opacity: 1;
+            filter: brightness(1.55);
+          }
+
+          81% {
+            opacity: 0.52;
+            filter: brightness(0.76);
+          }
+
+          84%,
+          91% {
+            opacity: 1;
+            filter: brightness(1.18);
+          }
+
+          94%,
+          100% {
+            opacity: 0;
+            filter: brightness(0.5);
+          }
+        }
+
+        @keyframes vyro-led-onair-char {
+          0%,
+          50% {
+            opacity: 0;
+            transform: translateY(8px) scale(0.55);
+            filter: blur(4px);
+          }
+
+          52% {
+            opacity: 0.25;
+            transform: translateY(5px) scale(0.72);
+            filter: blur(3px);
+          }
+
+          54% {
+            opacity: 1;
+            transform: translateY(-1px) scale(1.12);
+            filter: blur(0);
+          }
+
+          56%,
+          87% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+
+          90% {
+            opacity: 0.45;
+            transform: translateY(-3px) scale(0.88);
+            filter: blur(1px);
+          }
+
+          93%,
+          100% {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.58);
+            filter: blur(4px);
+          }
+        }
+      `}</style>
     </>
   );
 }
