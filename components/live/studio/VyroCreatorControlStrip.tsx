@@ -81,6 +81,12 @@ type VyroCreatorControlStripProps = {
   chatContent?: ReactNode;
   searchContent?: ReactNode;
   guestContent?: ReactNode;
+  beautyEnabled: boolean;
+  onBeautyEnabledChange: (enabled: boolean) => void;
+  beautyIntensity: "natural" | "medium" | "strong";
+  onBeautyIntensityChange: (
+    intensity: "natural" | "medium" | "strong",
+  ) => void;
 };
 
 type ControlButtonProps = {
@@ -222,7 +228,54 @@ export function VyroCreatorControlStrip({
   chatContent,
   searchContent,
   guestContent,
+  beautyEnabled,
+  onBeautyEnabledChange,
+  beautyIntensity,
+  onBeautyIntensityChange,
 }: VyroCreatorControlStripProps) {
+  const [beautyMenuOpen, setBeautyMenuOpen] =
+    useState(false);
+
+  const beautyAnchorRef =
+    useRef<HTMLDivElement>(null);
+
+  const beautyMenuRef =
+    useRef<HTMLDivElement>(null);
+
+  const [beautyMenuPosition, setBeautyMenuPosition] =
+    useState({
+      left: 0,
+      top: 0,
+    });
+
+  const toggleBeautyMenu = useCallback(() => {
+    setBeautyMenuOpen((current) => {
+      const next = !current;
+
+      if (next && beautyAnchorRef.current) {
+        const rect =
+          beautyAnchorRef.current.getBoundingClientRect();
+
+        const menuWidth = 280;
+
+        const left = Math.max(
+          8,
+          Math.min(
+            rect.left,
+            window.innerWidth - menuWidth - 8,
+          ),
+        );
+
+        setBeautyMenuPosition({
+          left,
+          top: rect.bottom + 8,
+        });
+      }
+
+      return next;
+    });
+  }, []);
+
   const [
     openPanels,
     setOpenPanels,
@@ -1266,6 +1319,27 @@ export function VyroCreatorControlStrip({
             }
           />
 
+          <div
+            ref={beautyAnchorRef}
+            className="shrink-0"
+          >
+            <ControlButton
+              active={
+                beautyMenuOpen ||
+                beautyEnabled
+              }
+              label="Beauty"
+              icon={
+                <span className="text-sm leading-none">
+                  ✨
+                </span>
+              }
+              onClick={
+                toggleBeautyMenu
+              }
+            />
+          </div>
+
           <ControlButton
             active={
               openPanels.activity
@@ -1330,6 +1404,118 @@ export function VyroCreatorControlStrip({
             {duration}
           </div>
         </div>
+
+        {beautyMenuOpen && (
+          <div
+            ref={beautyMenuRef}
+            className="fixed z-[140] w-[280px] overflow-hidden rounded-2xl border border-white/15 bg-[rgba(7,11,18,0.96)] shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            style={{
+              left:
+                beautyMenuPosition.left,
+              top:
+                beautyMenuPosition.top,
+            }}
+          >
+            <div className="border-b border-white/10 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+                    VYRO Beauty
+                  </p>
+                  <p className="mt-1 text-[11px] text-white/40">
+                    Face Tracking Beauty
+                  </p>
+                </div>
+
+                <span className="text-lg">
+                  ✨
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={
+                  beautyEnabled
+                }
+                onClick={() =>
+                  onBeautyEnabledChange(
+                    !beautyEnabled,
+                  )
+                }
+                className="flex w-full items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.08]"
+              >
+                <div>
+                  <p className="text-sm font-black text-white">
+                    Skin Smooth
+                  </p>
+                  <p className="mt-1 text-[11px] text-white/40">
+                    Suavizado facial en tiempo real
+                  </p>
+                </div>
+
+                <span
+                  className={[
+                    "flex min-w-12 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-black transition",
+                    beautyEnabled
+                      ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-300"
+                      : "border-white/15 bg-white/[0.06] text-white/45",
+                  ].join(" ")}
+                >
+                  {beautyEnabled
+                    ? "ON"
+                    : "OFF"}
+                </span>
+              </button>
+
+              <div className="mt-3 border-t border-white/10 pt-3">
+                <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
+                  Intensity
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["natural", "Natural"],
+                      ["medium", "Medium"],
+                      ["strong", "Strong"],
+                    ] as const
+                  ).map(([value, label]) => {
+                    const selected =
+                      beautyIntensity === value;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={selected}
+                        disabled={!beautyEnabled}
+                        onClick={() =>
+                          onBeautyIntensityChange(
+                            value,
+                          )
+                        }
+                        className={[
+                          "rounded-xl border px-2 py-2 text-[11px] font-black transition",
+                          selected
+                            ? "border-cyan-300/50 bg-cyan-400/15 text-cyan-200"
+                            : "border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:bg-white/[0.07]",
+                          !beautyEnabled
+                            ? "cursor-not-allowed opacity-35"
+                            : "",
+                        ].join(" ")}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {panels.map(
