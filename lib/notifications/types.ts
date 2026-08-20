@@ -6,6 +6,7 @@ export type NotificationType =
   | "withdraw"
   | "academy"
   | "system"
+  | "success"
   | "ai";
 
 export interface Notification {
