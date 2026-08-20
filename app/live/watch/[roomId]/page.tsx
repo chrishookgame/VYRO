@@ -2873,7 +2873,27 @@ export default function LiveWatchPage() {
               </button>
             ) : null}
 
-            <GiftPicker roomId={roomId} />
+            <GiftPicker
+              roomId={roomId}
+              battleRecipients={
+                liveBattle?.status === "active"
+                  ? {
+                      left: {
+                        id:
+                          liveBattle.left.creatorId,
+                        name:
+                          liveBattle.left.creatorName,
+                      },
+                      right: {
+                        id:
+                          liveBattle.right.creatorId,
+                        name:
+                          liveBattle.right.creatorName,
+                      },
+                    }
+                  : null
+              }
+            />
           </div>
         </section>
                 {/* VYRO VIEWER FLOATING CHAT */}

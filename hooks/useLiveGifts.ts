@@ -17,6 +17,7 @@ export interface UseLiveGiftsResult {
   lastSentGift: LiveGiftSendResult | null;
   sendGift: (
     gift: LiveGiftCatalogItem,
+    receiverId?: string | null,
   ) => Promise<LiveGiftSendResult | null>;
   clearGiftError: () => void;
   clearLastSentGift: () => void;
@@ -52,6 +53,7 @@ export function useLiveGifts(
   const sendGift = useCallback(
     async (
       gift: LiveGiftCatalogItem,
+      receiverId?: string | null,
     ): Promise<LiveGiftSendResult | null> => {
       if (!roomId) {
         setError(
@@ -69,6 +71,7 @@ export function useLiveGifts(
           await sendLiveGift(
             roomId,
             gift.code,
+            receiverId,
           );
 
         setLastSentGift(result);

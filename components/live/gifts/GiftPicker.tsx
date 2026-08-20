@@ -19,12 +19,24 @@ import GiftCategoryTabs from "./GiftCategoryTabs";
 import GiftPreview from "./GiftPreview";
 import WalletBalance from "./WalletBalance";
 
+interface BattleGiftRecipient {
+  id: string;
+  name: string;
+}
+
+interface BattleGiftRecipients {
+  left: BattleGiftRecipient;
+  right: BattleGiftRecipient;
+}
+
 interface GiftPickerProps {
   roomId: string;
+  battleRecipients?: BattleGiftRecipients | null;
 }
 
 export default function GiftPicker({
   roomId,
+  battleRecipients = null,
 }: GiftPickerProps) {
   const {
     categories,
@@ -59,6 +71,23 @@ export default function GiftPicker({
   const [confirmOpen, setConfirmOpen] =
     useState(false);
 
+  const [
+    selectedReceiverId,
+    setSelectedReceiverId,
+  ] = useState<string | null>(null);
+
+  const resolvedReceiverId =
+    battleRecipients &&
+    selectedReceiverId &&
+    (
+      selectedReceiverId ===
+        battleRecipients.left.id ||
+      selectedReceiverId ===
+        battleRecipients.right.id
+    )
+      ? selectedReceiverId
+      : null;
+
   const activeCategory =
     selectedCategory ??
     categories[0]?.code ??
@@ -82,8 +111,18 @@ export default function GiftPicker({
       return;
     }
 
+    if (
+      battleRecipients &&
+      !resolvedReceiverId
+    ) {
+      return;
+    }
+
     const result =
-      await sendGift(selectedGift);
+      await sendGift(
+        selectedGift,
+        resolvedReceiverId,
+      );
 
     if (result) {
       setConfirmOpen(false);
@@ -108,6 +147,58 @@ export default function GiftPicker({
           balance={balance}
         />
       </div>
+
+      {battleRecipients ? (
+        <div className="mt-6 rounded-3xl border border-cyan-300/20 bg-black/20 p-4">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+            Battle Gift
+          </p>
+
+          <p className="mt-2 text-sm text-gray-300">
+            Elige el creador que quieres apoyar.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                id: battleRecipients.left.id,
+                name: battleRecipients.left.name,
+                side: "LEFT",
+              },
+              {
+                id: battleRecipients.right.id,
+                name: battleRecipients.right.name,
+                side: "RIGHT",
+              },
+            ].map((recipient) => (
+              <button
+                key={recipient.id}
+                type="button"
+                onClick={() => {
+                  setSelectedReceiverId(
+                    recipient.id,
+                  );
+                }}
+                className={[
+                  "rounded-2xl border px-4 py-4 text-left transition",
+                  resolvedReceiverId ===
+                  recipient.id
+                    ? "border-cyan-300 bg-cyan-300/15 text-white"
+                    : "border-white/10 bg-white/5 text-gray-300 hover:border-cyan-300/40 hover:bg-white/10",
+                ].join(" ")}
+              >
+                <span className="block text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                  {recipient.side}
+                </span>
+
+                <span className="mt-1 block font-black">
+                  {recipient.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <GiftCategoryTabs
@@ -155,7 +246,11 @@ export default function GiftPicker({
           type="button"
           disabled={
             !selectedGift ||
-            sending
+            sending ||
+            Boolean(
+              battleRecipients &&
+              !resolvedReceiverId,
+            )
           }
           onClick={() => {
             setConfirmOpen(true);

@@ -36,6 +36,7 @@ export async function loadGiftPickerData(): Promise<{
 export async function sendLiveGift(
   roomId: string,
   giftCode: string,
+  receiverId?: string | null,
 ): Promise<LiveGiftSendResult> {
   if (!roomId) {
     throw new Error(
@@ -52,5 +53,6 @@ export async function sendLiveGift(
   return sendLiveGiftRecord(
     roomId,
     giftCode,
+    receiverId,
   );
 }

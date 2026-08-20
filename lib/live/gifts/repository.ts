@@ -168,13 +168,22 @@ export async function getCurrentWalletBalance(): Promise<number> {
 export async function sendLiveGiftRecord(
   roomId: string,
   giftCode: string,
+  receiverId?: string | null,
 ): Promise<LiveGiftSendResult> {
+  const rpcArguments = receiverId
+    ? {
+        target_room_id: roomId,
+        target_gift_code: giftCode,
+        target_receiver_id: receiverId,
+      }
+    : {
+        target_room_id: roomId,
+        target_gift_code: giftCode,
+      };
+
   const { data, error } = await supabase.rpc(
     "send_live_gift",
-    {
-      target_room_id: roomId,
-      target_gift_code: giftCode,
-    },
+    rpcArguments,
   );
 
   if (error) {
