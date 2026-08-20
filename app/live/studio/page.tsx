@@ -35,6 +35,14 @@ import { VyroGuestCanvasStage } from "@/components/live/guest/stage/VyroGuestCan
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
 import { LiveRankingPanel } from "@/components/live/ranking";
 import { VyroCreatorControlStrip } from "@/components/live/studio/VyroCreatorControlStrip";
+import { VyroVirtualStudioPanel } from "@/components/live/studio/virtual";
+import {
+  VyroVirtualVideoEngine,
+  type VyroVirtualBackgroundMode,
+  type VyroVirtualBackgroundPlayback,
+  type VyroVirtualBackgroundPreset,
+  type VyroVirtualEffect,
+} from "@/components/live/studio/virtual";
 import {
   useBattleCountdown,
   useBattleInvitations,
@@ -95,6 +103,102 @@ export default function LiveStudioPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const virtualEngineRef =
+    useRef<VyroVirtualVideoEngine | null>(null);
+
+  const [
+    beautyEnabled,
+    setBeautyEnabled,
+  ] = useState(false);
+
+  const handleBeautyEnabledChange = useCallback(
+    (enabled: boolean) => {
+      setBeautyEnabled(enabled);
+      virtualEngineRef.current?.setBeautyEnabled(enabled);
+    },
+    [],
+  );
+
+  const [
+    beautyIntensity,
+    setBeautyIntensity,
+  ] = useState<"natural" | "medium" | "strong">(
+    "natural",
+  );
+
+  const handleBeautyIntensityChange = useCallback(
+    (
+      intensity: "natural" | "medium" | "strong",
+    ) => {
+      setBeautyIntensity(intensity);
+
+      virtualEngineRef.current?.setBeautyIntensity(
+        intensity,
+      );
+    },
+    [],
+  );
+
+  const [
+    virtualEffect,
+    setVirtualEffect,
+  ] = useState<VyroVirtualEffect>("none");
+
+  const handleVirtualEffectChange = useCallback(
+    (effect: VyroVirtualEffect) => {
+      setVirtualEffect(effect);
+      virtualEngineRef.current?.setEffect(effect);
+    },
+    [],
+  );
+
+  const [
+    virtualBackgroundMode,
+    setVirtualBackgroundMode,
+  ] = useState<VyroVirtualBackgroundMode>("original");
+
+  const handleVirtualBackgroundModeChange = useCallback(
+    (mode: VyroVirtualBackgroundMode) => {
+      setVirtualBackgroundMode(mode);
+      virtualEngineRef.current?.setBackgroundMode(mode);
+    },
+    [],
+  );
+
+  const [
+    virtualBackgroundPreset,
+    setVirtualBackgroundPreset,
+  ] = useState<VyroVirtualBackgroundPreset>("original");
+
+  const [
+    virtualBackgroundPlayback,
+    setVirtualBackgroundPlayback,
+  ] = useState<VyroVirtualBackgroundPlayback>("motion");
+
+  const virtualBackgroundPlaybackRef =
+    useRef<VyroVirtualBackgroundPlayback>("motion");
+
+  const handleVirtualBackgroundPlaybackChange = useCallback(
+    (playback: VyroVirtualBackgroundPlayback) => {
+      setVirtualBackgroundPlayback(playback);
+      virtualBackgroundPlaybackRef.current = playback;
+      virtualEngineRef.current?.setBackgroundPlayback(playback);
+    },
+    [],
+  );
+
+  const [
+    virtualSegmentationReady,
+    setVirtualSegmentationReady,
+  ] = useState(false);
+
+  const handleVirtualBackgroundPresetChange = useCallback(
+    (preset: VyroVirtualBackgroundPreset) => {
+      setVirtualBackgroundPreset(preset);
+      virtualEngineRef.current?.setBackgroundPreset(preset);
+    },
+    [],
+  );
   const liveKitRoomRef = useRef<Room | null>(null);
   const liveKitPublishedTracksRef = useRef<LocalTrack[]>([]);
 
@@ -305,6 +409,10 @@ export default function LiveStudioPage() {
 
   useEffect(() => {
     return () => {
+      virtualEngineRef.current?.stop();
+      setVirtualSegmentationReady(false);
+      virtualEngineRef.current = null;
+
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
@@ -358,6 +466,10 @@ export default function LiveStudioPage() {
     setMessage("");
 
     try {
+      virtualEngineRef.current?.stop();
+      setVirtualSegmentationReady(false);
+      virtualEngineRef.current = null;
+
       streamRef.current
         ?.getTracks()
         .forEach((track) => track.stop());
@@ -392,8 +504,46 @@ export default function LiveStudioPage() {
 
       streamRef.current = stream;
 
+      const cameraTrack =
+        stream.getVideoTracks()[0];
+
+      if (!cameraTrack) {
+        throw new Error(
+          "VYRO Virtual Studio no encontro una pista de camara.",
+        );
+      }
+
+      const virtualEngine =
+        new VyroVirtualVideoEngine({
+          effect: virtualEffect,
+          backgroundMode: virtualBackgroundMode,
+          backgroundPreset: virtualBackgroundPreset,
+          backgroundPlayback: virtualBackgroundPlaybackRef.current,
+        });
+
+      virtualEngineRef.current =
+        virtualEngine;
+
+      virtualEngine.setBeautyEnabled(
+        beautyEnabled,
+      );
+
+      virtualEngine.setBeautyIntensity(
+        beautyIntensity,
+      );
+
+      const virtualOutput =
+        await virtualEngine.start(
+          cameraTrack,
+        );
+
+      setVirtualSegmentationReady(
+        virtualEngine.getState().segmentationReady,
+      );
+
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject =
+          virtualOutput.stream;
       }
 
       const devices =
@@ -1216,6 +1366,18 @@ export default function LiveStudioPage() {
                     gifts={
                       dashboard.gifts
                     }
+                    beautyEnabled={
+                      beautyEnabled
+                    }
+                    onBeautyEnabledChange={
+                      handleBeautyEnabledChange
+                    }
+                    beautyIntensity={
+                      beautyIntensity
+                    }
+                    onBeautyIntensityChange={
+                      handleBeautyIntensityChange
+                    }
                     roomId={
                       session?.id ?? null
                     }
@@ -1628,15 +1790,25 @@ export default function LiveStudioPage() {
           </section>
 
           <aside className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:w-[420px] xl:justify-self-center xl:self-start xl:overflow-y-auto xl:overscroll-contain">
+            <div className="mb-5">
+              <VyroVirtualStudioPanel
+                backgroundMode={virtualBackgroundMode}
+                backgroundPreset={virtualBackgroundPreset}
+                backgroundPlayback={virtualBackgroundPlayback}
+                effect={virtualEffect}
+                segmentationReady={virtualSegmentationReady}
+                onBackgroundModeChange={handleVirtualBackgroundModeChange}
+                onBackgroundPresetChange={handleVirtualBackgroundPresetChange}
+                onBackgroundPlaybackChange={handleVirtualBackgroundPlaybackChange}
+                onEffectChange={handleVirtualEffectChange}
+              />
+            </div>
+
             <LiveProductionPanel
               room={liveKitRoom}
               isLive={isLive}
-              guestInvitations={creatorGuestInvitations}
               onPublishedOverlayChange={
                 setCreatorOnAirOverlay
-              }
-              onStageMaxGuestsChange={
-                setCreatorStageMaxGuests
               }
             />
           </aside>
@@ -1802,6 +1974,9 @@ export default function LiveStudioPage() {
             }
             grossRevenue={
               dashboard.grossRevenue
+            }
+            creatorRevenue={
+              dashboard.creatorRevenue
             }
             energy={
               dashboard.energy
