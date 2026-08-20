@@ -19,6 +19,7 @@ export default defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "public/mediapipe/wasm/**",
     "next-env.d.ts",
   ]),
 ]);
