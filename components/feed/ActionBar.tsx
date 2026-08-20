@@ -12,6 +12,7 @@ import {
   Heart,
   MessageCircle,
   Rocket,
+  Share2,
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
@@ -253,6 +254,47 @@ export default function ActionBar({
     setLoadingLike(false);
   }
 
+  async function sharePost() {
+    const shareUrl =
+      `${window.location.origin}/post/${postId}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "VYRO",
+          text: "Mira esta publicación en VYRO.",
+          url: shareUrl,
+        });
+
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        shareUrl,
+      );
+
+      window.alert(
+        "Enlace de VYRO copiado.",
+      );
+    } catch (shareError) {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(
+        "VYRO share error:",
+        shareError,
+      );
+
+      window.alert(
+        "No fue posible compartir esta publicación.",
+      );
+    }
+  }
+
   async function toggleVault() {
     const {
       data: { user },
@@ -374,6 +416,19 @@ export default function ActionBar({
           }
           onClick={() =>
             setBoostOpen(true)
+          }
+        />
+
+        <ActionButton
+          icon={
+            <Share2
+              size={30}
+              className="text-cyan-300"
+            />
+          }
+          label="Share"
+          onClick={() =>
+            void sharePost()
           }
         />
 

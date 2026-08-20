@@ -93,3 +93,52 @@ export async function getFeed(): Promise<FeedVideo[]> {
     };
   });
 }
+
+export async function getPostById(
+  postId: string,
+): Promise<FeedVideo | null> {
+  const { data: post, error: postError } =
+    await supabase
+      .from("posts")
+      .select(
+        "id, user_id, caption, video_url, likes, created_at, priority_boost",
+      )
+      .eq("id", postId)
+      .maybeSingle();
+
+  if (postError) {
+    throw new Error(postError.message);
+  }
+
+  if (!post) {
+    return null;
+  }
+
+  const postRow = post as RankedPostRow;
+
+  const { data: profile } =
+    await supabase
+      .from("profiles")
+      .select("id, username, full_name")
+      .eq("id", postRow.user_id)
+      .maybeSingle();
+
+  const profileRow =
+    profile as ProfileRow | null;
+
+  return {
+    id: postRow.id,
+    creatorId: postRow.user_id,
+    creatorName:
+      profileRow?.username ??
+      profileRow?.full_name ??
+      "Miembro VYRO",
+    description:
+      postRow.caption ?? "",
+    videoUrl: postRow.video_url,
+    likes: postRow.likes ?? 0,
+    createdAt: postRow.created_at,
+    priorityBoost:
+      postRow.priority_boost ?? 0,
+  };
+}
