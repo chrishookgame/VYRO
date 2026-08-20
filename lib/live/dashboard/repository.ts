@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import type {
   LiveDashboardData,
@@ -49,7 +49,7 @@ export async function getLiveDashboardData(
 
     supabase
       .from("live_gifts")
-      .select("amount")
+      .select("id,amount")
       .eq("room_id", roomId),
   ]);
 
@@ -93,6 +93,7 @@ export async function getLiveDashboardData(
     (
       giftsResult.data ?? []
     ) as unknown as Array<{
+      id: string;
       amount: number | string | null;
     }>;
 
@@ -106,6 +107,67 @@ export async function getLiveDashboardData(
     },
     0,
   );
+
+  const giftIds = giftRows.map(
+    (gift) => gift.id,
+  );
+
+  let creatorRevenue = 0;
+
+  if (giftIds.length > 0) {
+    const creatorTransactions =
+      [] as Array<{
+        amount: number | string | null;
+      }>;
+
+    const chunkSize = 100;
+
+    for (
+      let index = 0;
+      index < giftIds.length;
+      index += chunkSize
+    ) {
+      const giftIdChunk = giftIds.slice(
+        index,
+        index + chunkSize,
+      );
+
+      const { data, error } =
+        await supabase
+          .from("wallet_transactions")
+          .select("amount")
+          .eq("type", "live_gift_credit")
+          .in("reference", giftIdChunk);
+
+      if (error) {
+        throw new Error(
+          `No se pudo cargar el revenue del creador: ${error.message}`,
+        );
+      }
+
+      creatorTransactions.push(
+        ...(
+          (data ?? []) as unknown as Array<{
+            amount: number | string | null;
+          }>
+        ),
+      );
+    }
+
+    creatorRevenue =
+      creatorTransactions.reduce(
+        (total, transaction) => {
+          const amount = Number(
+            transaction.amount ?? 0,
+          );
+
+          return Number.isFinite(amount)
+            ? total + amount
+            : total;
+        },
+        0,
+      );
+  }
 
   return {
     roomId,
@@ -125,6 +187,7 @@ export async function getLiveDashboardData(
     messages:
       messagesResult.count ?? 0,
     grossRevenue,
+    creatorRevenue,
     updatedAt:
       counters?.updated_at ?? null,
   };

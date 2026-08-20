@@ -1,4 +1,4 @@
-﻿export interface LiveDashboardData {
+export interface LiveDashboardData {
   roomId: string;
   activeViewers: number;
   peakViewers: number;
@@ -8,6 +8,7 @@
   energy: number;
   messages: number;
   grossRevenue: number;
+  creatorRevenue: number;
   updatedAt: string | null;
 }
 

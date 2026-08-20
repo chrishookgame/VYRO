@@ -23,6 +23,7 @@ const emptyDashboard: LiveDashboardData = {
   energy: 0,
   messages: 0,
   grossRevenue: 0,
+  creatorRevenue: 0,
   updatedAt: null,
 };
 

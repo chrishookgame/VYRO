@@ -19,6 +19,7 @@ interface LiveCommandCenterProps {
   reactions?: number;
   gifts?: number;
   grossRevenue?: number;
+  creatorRevenue?: number;
   energy?: number;
   messages?: number;
   connected?: boolean;
@@ -31,6 +32,7 @@ export default function LiveCommandCenter({
   reactions = 0,
   gifts = 0,
   grossRevenue = 0,
+  creatorRevenue = 0,
   energy = 0,
   messages = 0,
   connected = false,
@@ -105,7 +107,7 @@ export default function LiveCommandCenter({
           <LiveRevenuePanel
             gifts={gifts}
             grossRevenue={grossRevenue}
-            creatorRevenue={0}
+            creatorRevenue={creatorRevenue}
             pendingRevenue={0}
           />
 
