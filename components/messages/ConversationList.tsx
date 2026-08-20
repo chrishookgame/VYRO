@@ -31,6 +31,17 @@ type ConversationItem = {
   otherUserId: string;
   username: string;
   fullName: string;
+  lastMessage: string;
+  unreadCount: number;
+};
+
+type MessagePreviewRow = {
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  message_type: string;
+  read_at: string | null;
+  created_at: string;
 };
 
 type ConversationListProps = {
@@ -173,6 +184,63 @@ export default function ConversationList({
         }
       }
 
+      const conversationIds =
+        rows.map(
+          (conversation) =>
+            conversation.id,
+        );
+
+      const messageMap =
+        new Map<
+          string,
+          MessagePreviewRow[]
+        >();
+
+      if (
+        conversationIds.length > 0
+      ) {
+        const {
+          data: messageData,
+          error: messageError,
+        } = await supabase
+          .from("direct_messages")
+          .select(
+            "conversation_id, sender_id, content, message_type, read_at, created_at",
+          )
+          .in(
+            "conversation_id",
+            conversationIds,
+          )
+          .order("created_at", {
+            ascending: false,
+          });
+
+        if (messageError) {
+          console.error(
+            "VYRO conversation messages error:",
+            messageError,
+          );
+        }
+
+        for (
+          const message of
+            (messageData ??
+              []) as MessagePreviewRow[]
+        ) {
+          const existing =
+            messageMap.get(
+              message.conversation_id,
+            ) ?? [];
+
+          existing.push(message);
+
+          messageMap.set(
+            message.conversation_id,
+            existing,
+          );
+        }
+      }
+
       const formatted =
         rows.map(
           (
@@ -189,6 +257,36 @@ export default function ConversationList({
                 otherUserId,
               );
 
+            const messages =
+              messageMap.get(
+                conversation.id,
+              ) ?? [];
+
+            const latestMessage =
+              messages[0];
+
+            const unreadCount =
+              messages.filter(
+                (message) =>
+                  message.sender_id !==
+                    user.id &&
+                  message.read_at === null,
+              ).length;
+
+            const lastMessage =
+              latestMessage
+                ? latestMessage.message_type ===
+                  "text"
+                  ? latestMessage.content
+                  : latestMessage.message_type ===
+                      "image"
+                    ? "Imagen"
+                    : latestMessage.message_type ===
+                        "video"
+                      ? "Video"
+                      : "Archivo"
+                : "";
+
             return {
               id: conversation.id,
               otherUserId,
@@ -198,6 +296,8 @@ export default function ConversationList({
               fullName:
                 profile?.full_name ??
                 "",
+              lastMessage,
+              unreadCount,
             };
           },
         );
@@ -279,6 +379,12 @@ export default function ConversationList({
                   }
                   fullName={
                     conversation.fullName
+                  }
+                  lastMessage={
+                    conversation.lastMessage
+                  }
+                  unreadCount={
+                    conversation.unreadCount
                   }
                   selected={
                     selectedConversationId ===

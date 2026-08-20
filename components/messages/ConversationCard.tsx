@@ -4,6 +4,8 @@ type ConversationCardProps = {
   conversationId: string;
   username: string;
   fullName: string;
+  lastMessage: string;
+  unreadCount: number;
   selected: boolean;
   onSelect: (
     conversationId: string,
@@ -14,6 +16,8 @@ export default function ConversationCard({
   conversationId,
   username,
   fullName,
+  lastMessage,
+  unreadCount,
   selected,
   onSelect,
 }: ConversationCardProps) {
@@ -38,14 +42,36 @@ export default function ConversationCard({
         {displayInitial}
       </div>
 
-      <div className="min-w-0">
-        <p className="truncate font-bold text-white">
-          @{username}
-        </p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 truncate font-bold text-white">
+            @{username}
+          </p>
+
+          {unreadCount > 0 ? (
+            <span className="flex min-w-6 shrink-0 items-center justify-center rounded-full bg-cyan-400 px-2 py-1 text-xs font-black text-black">
+              {unreadCount > 99
+                ? "99+"
+                : unreadCount}
+            </span>
+          ) : null}
+        </div>
 
         <p className="truncate text-sm text-slate-400">
           {fullName || "Miembro VYRO"}
         </p>
+
+        {lastMessage ? (
+          <p
+            className={
+              unreadCount > 0
+                ? "mt-1 truncate text-sm font-bold text-white"
+                : "mt-1 truncate text-sm text-slate-500"
+            }
+          >
+            {lastMessage}
+          </p>
+        ) : null}
       </div>
     </button>
   );

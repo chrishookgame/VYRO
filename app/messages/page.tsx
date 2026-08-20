@@ -71,6 +71,12 @@ export default function MessagesPage() {
           username={
             selectedUsername
           }
+          onMessagesRead={() => {
+            setRefreshKey(
+              (value) =>
+                value + 1,
+            );
+          }}
         />
       ) : (
         <section className="hidden flex-1 items-center justify-center bg-gradient-to-br from-black via-[#071019] to-black md:flex">

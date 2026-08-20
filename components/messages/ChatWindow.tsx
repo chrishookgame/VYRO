@@ -31,11 +31,13 @@ type MessageRow = {
 type ChatWindowProps = {
   conversationId: string;
   username: string;
+  onMessagesRead?: () => void;
 };
 
 export default function ChatWindow({
   conversationId,
   username,
+  onMessagesRead,
 }: ChatWindowProps) {
   const [messages, setMessages] =
     useState<MessageRow[]>([]);
@@ -177,11 +179,14 @@ export default function ChatWindow({
         user.id,
       );
 
+      onMessagesRead?.();
+
       setLoading(false);
       scrollToBottom();
     }, [
       conversationId,
       markMessagesRead,
+      onMessagesRead,
       scrollToBottom,
     ]);
 
