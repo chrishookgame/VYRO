@@ -2,19 +2,27 @@
 
 import Link from "next/link";
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
 
 import {
   Badge,
+  Button,
   Card,
+  Textarea,
 } from "@/components/ui";
+
+import { supabase } from "@/lib/supabase";
 
 import {
   getSupportUserProfiles,
   getTicketMessages,
   getTickets,
+  sendMessage,
+  subscribeToSupportMessages,
+  unsubscribeSupportChannel,
 } from "@/lib/support";
 
 type TicketRow = {
@@ -82,6 +90,21 @@ export default function AdminSupportTicketPage({
 
   const [error, setError] =
     useState<string | null>(null);
+
+  const [
+    adminReply,
+    setAdminReply,
+  ] = useState("");
+
+  const [
+    sendingReply,
+    setSendingReply,
+  ] = useState(false);
+
+  const [
+    replyError,
+    setReplyError,
+  ] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -209,6 +232,148 @@ export default function AdminSupportTicketPage({
     };
   }, [ticketId]);
 
+  const reloadTicketMessages = useCallback(
+    async (activeTicketId: string) => {
+      const {
+        data,
+        error: messageError,
+      } = await getTicketMessages(
+        activeTicketId,
+      );
+
+      if (messageError) {
+        throw messageError;
+      }
+
+      const messages =
+        (data ?? []) as MessageRow[];
+
+      setDetail((currentDetail) => {
+        if (
+          !currentDetail ||
+          currentDetail.ticket.id !==
+            activeTicketId
+        ) {
+          return currentDetail;
+        }
+
+        return {
+          ...currentDetail,
+          messages,
+        };
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const activeTicketId =
+      ticketId;
+
+    if (!activeTicketId) {
+      return;
+    }
+
+    let active = true;
+
+    const channel =
+      subscribeToSupportMessages(
+        activeTicketId,
+        () => {
+          if (!active) {
+            return;
+          }
+
+          void reloadTicketMessages(
+            activeTicketId,
+          ).catch((realtimeError) => {
+            console.error(
+              "VYRO Admin Support realtime refresh error:",
+              realtimeError,
+            );
+          });
+        },
+      );
+
+    return () => {
+      active = false;
+
+      void unsubscribeSupportChannel(
+        channel,
+      );
+    };
+  }, [
+    reloadTicketMessages,
+    ticketId,
+  ]);
+
+  async function sendAdminReply() {
+    const activeTicketId =
+      ticketId;
+
+    const text =
+      adminReply.trim();
+
+    if (
+      !activeTicketId ||
+      !text
+    ) {
+      return;
+    }
+
+    setSendingReply(true);
+    setReplyError(null);
+
+    try {
+      const {
+        data: { user: adminUser },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (
+        userError ||
+        !adminUser
+      ) {
+        setReplyError(
+          "Debes iniciar sesión como soporte para responder.",
+        );
+        return;
+      }
+
+      const {
+        error: sendError,
+      } = await sendMessage({
+        ticket_id: activeTicketId,
+        sender_id: adminUser.id,
+        message: text,
+      });
+
+      if (sendError) {
+        throw sendError;
+      }
+
+      setAdminReply("");
+
+      await reloadTicketMessages(
+        activeTicketId,
+      );
+    }
+    catch (sendError) {
+      console.error(
+        "VYRO Admin Support send reply error:",
+        sendError,
+      );
+
+      setReplyError(
+        sendError instanceof Error
+          ? sendError.message
+          : "No se pudo enviar la respuesta.",
+      );
+    }
+    finally {
+      setSendingReply(false);
+    }
+  }
   if (loading || !ticketId) {
     return (
       <main className="space-y-6">
@@ -361,38 +526,79 @@ export default function AdminSupportTicketPage({
         </Card.Header>
 
         <Card.Body>
-          {messages.length === 0 ? (
-            <p className="text-slate-400">
-              Este ticket todavía no tiene mensajes.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {messages.map(
-                (message) => (
-                  <article
-                    key={message.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="font-mono text-xs text-cyan-300">
-                        {message.sender_id}
-                      </span>
+          <div className="space-y-6">
+            {messages.length === 0 ? (
+              <p className="text-slate-400">
+                Este ticket todavía no tiene mensajes.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {messages.map(
+                  (message) => (
+                    <article
+                      key={message.id}
+                      className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="font-mono text-xs text-cyan-300">
+                          {message.sender_id}
+                        </span>
 
-                      <span className="text-xs text-slate-500">
-                        {formatDate(
-                          message.created_at,
-                        )}
-                      </span>
-                    </div>
+                        <span className="text-xs text-slate-500">
+                          {formatDate(
+                            message.created_at,
+                          )}
+                        </span>
+                      </div>
 
-                    <p className="mt-4 whitespace-pre-wrap text-slate-200">
-                      {message.message}
-                    </p>
-                  </article>
-                ),
+                      <p className="mt-4 whitespace-pre-wrap text-slate-200">
+                        {message.message}
+                      </p>
+                    </article>
+                  ),
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-slate-800 pt-6">
+              <Textarea
+                label="Responder al usuario"
+                placeholder="Escribe una respuesta desde Soporte VYRO."
+                value={adminReply}
+                onChange={(event) => {
+                  setAdminReply(
+                    event.target.value,
+                  );
+
+                  if (replyError) {
+                    setReplyError(null);
+                  }
+                }}
+                disabled={sendingReply}
+              />
+
+              {replyError && (
+                <p className="mt-3 text-sm text-red-400">
+                  {replyError}
+                </p>
               )}
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={() => {
+                    void sendAdminReply();
+                  }}
+                  loading={sendingReply}
+                  disabled={
+                    sendingReply ||
+                    !adminReply.trim()
+                  }
+                >
+                  Enviar respuesta
+                </Button>
+              </div>
             </div>
-          )}
+          </div>
         </Card.Body>
       </Card>
     </main>

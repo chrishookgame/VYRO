@@ -4,6 +4,7 @@ export async function createTicket(data: {
   user_id: string;
   subject: string;
   category: string;
+  priority?: string;
 }) {
   return await supabase
     .from("support_tickets")
@@ -16,6 +17,18 @@ export async function getTickets() {
   return await supabase
     .from("support_tickets")
     .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
+}
+
+export async function getOwnTickets(
+  userId: string,
+) {
+  return await supabase
+    .from("support_tickets")
+    .select("*")
+    .eq("user_id", userId)
     .order("created_at", {
       ascending: false,
     });
