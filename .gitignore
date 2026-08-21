@@ -53,3 +53,11 @@ OPENAI.txt
 !.env.example
 .vercel
 .env*
+
+# local development backups
+*.bak
+*.tmp
+*.backup
+*.before-*
+*backup
+.backup-*/

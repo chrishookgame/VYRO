@@ -14,10 +14,19 @@ import {
 } from "@/components/ui";
 
 import {
+  useAdminRole,
+} from "@/components/admin/AdminRoleContext";
+
+import {
+  canAccessPage,
   getAdminAuditLogs,
   getAdminUsers,
   getWithdrawRequests,
 } from "@/lib/admin";
+
+import type {
+  Permission,
+} from "@/lib/roles";
 
 import {
   getAdminWalletSnapshot,
@@ -51,36 +60,49 @@ type DashboardState = {
   activity: AuditRow[];
 };
 
-const modules = [
+type AdminModule = {
+  name: string;
+  status: string;
+  href: string;
+  permission: Permission;
+};
+
+const modules: readonly AdminModule[] = [
   {
     name: "Usuarios",
     status: "Operativo",
     href: "/admin/users",
+    permission: "users.read",
   },
   {
     name: "Wallet",
     status: "Operativo",
     href: "/admin/wallet",
+    permission: "wallet.read",
   },
   {
     name: "Retiros",
     status: "Operativo",
     href: "/admin/withdraws",
+    permission: "withdraw.read",
   },
   {
     name: "Soporte",
     status: "Operativo",
     href: "/admin/support",
+    permission: "tickets.read",
   },
   {
     name: "Auditoría",
     status: "Operativo",
     href: "/admin/audit",
+    permission: "reports.read",
   },
   {
     name: "Configuración",
     status: "Operativo",
     href: "/admin/settings",
+    permission: "settings.update",
   },
 ];
 
@@ -132,6 +154,31 @@ function formatAction(
 }
 
 export default function AdminHomePage() {
+  const role = useAdminRole();
+
+  const canUsers =
+    canAccessPage(role, "users.read");
+
+  const canWithdraw =
+    canAccessPage(role, "withdraw.read");
+
+  const canWallet =
+    canAccessPage(role, "wallet.read");
+
+  const canTickets =
+    canAccessPage(role, "tickets.read");
+
+  const canAudit =
+    canAccessPage(role, "reports.read");
+
+  const visibleModules =
+    modules.filter((module) =>
+      canAccessPage(
+        role,
+        module.permission,
+      ),
+    );
+
   const [
     dashboard,
     setDashboard,
@@ -168,11 +215,37 @@ export default function AdminHomePage() {
           ticketResult,
           auditResult,
         ] = await Promise.all([
-          getAdminUsers(),
-          getWithdrawRequests(),
-          getAdminWalletSnapshot(),
-          getTickets(),
-          getAdminAuditLogs(),
+          canUsers
+            ? getAdminUsers()
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
+          canWithdraw
+            ? getWithdrawRequests()
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
+          canWallet
+            ? getAdminWalletSnapshot()
+            : Promise.resolve({
+                wallets: [],
+                transactions: [],
+                profiles: [],
+              }),
+          canTickets
+            ? getTickets()
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
+          canAudit
+            ? getAdminAuditLogs()
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
         ]);
 
         if (usersResult.error) {
@@ -267,7 +340,13 @@ export default function AdminHomePage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [
+    canAudit,
+    canTickets,
+    canUsers,
+    canWallet,
+    canWithdraw,
+  ]);
 
   return (
     <main className="space-y-8">
@@ -294,36 +373,41 @@ export default function AdminHomePage() {
       )}
 
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Usuarios"
-          value={dashboard.users}
-          icon="👥"
-          description="Usuarios registrados"
-        />
+        {canUsers && (
+          <StatCard
+            title="Usuarios"
+            value={dashboard.users}
+            icon="👥"
+            description="Usuarios registrados"
+          />
+        )}
 
-        <StatCard
-          title="Retiros pendientes"
-          value={
-            dashboard
-              .pendingWithdraws
-          }
-          icon="💸"
-          description="Solicitudes por revisar"
-        />
+        {canWithdraw && (
+          <StatCard
+            title="Retiros pendientes"
+            value={dashboard.pendingWithdraws}
+            icon="💸"
+            description="Solicitudes por revisar"
+          />
+        )}
 
-        <StatCard
-          title="Saldo disponible"
-          value={`$${dashboard.availableBalance.toFixed(2)}`}
-          icon="💰"
-          description="Balance disponible en wallets"
-        />
+        {canWallet && (
+          <StatCard
+            title="Saldo disponible"
+            value={`$${dashboard.availableBalance.toFixed(2)}`}
+            icon="💰"
+            description="Balance disponible en wallets"
+          />
+        )}
 
-        <StatCard
-          title="Tickets abiertos"
-          value={dashboard.openTickets}
-          icon="💬"
-          description="Casos pendientes"
-        />
+        {canTickets && (
+          <StatCard
+            title="Tickets abiertos"
+            value={dashboard.openTickets}
+            icon="💬"
+            description="Casos pendientes"
+          />
+        )}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
@@ -365,7 +449,7 @@ export default function AdminHomePage() {
               </Table.Head>
 
               <Table.Body>
-                {modules.map(
+                {visibleModules.map(
                   (module) => (
                     <Table.Row
                       key={
@@ -417,7 +501,7 @@ export default function AdminHomePage() {
 
           <Card.Body>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              {modules.map(
+              {visibleModules.map(
                 (module) => (
                   <Link
                     key={
@@ -445,7 +529,8 @@ export default function AdminHomePage() {
         </Card>
       </section>
 
-      <Card>
+      {canAudit && (
+        <Card>
         <Card.Header>
           <h2 className="text-xl font-bold">
             Actividad reciente
@@ -532,7 +617,8 @@ export default function AdminHomePage() {
             </Table.Body>
           </Table>
         </Card.Body>
-      </Card>
+        </Card>
+      )}
     </main>
   );
 }

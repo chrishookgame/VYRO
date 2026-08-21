@@ -4,6 +4,10 @@ import type {
 
 import { redirect } from "next/navigation";
 
+import {
+  AdminRoleProvider,
+} from "@/components/admin/AdminRoleContext";
+
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
 import {
@@ -70,10 +74,12 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-950">
-      <AdminSidebar />
+      <AdminSidebar role={profile.role} />
 
       <main className="flex-1 overflow-auto p-8">
-        {children}
+        <AdminRoleProvider role={profile.role}>
+          {children}
+        </AdminRoleProvider>
       </main>
     </div>
   );
