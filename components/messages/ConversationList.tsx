@@ -45,6 +45,9 @@ type MessagePreviewRow = {
 };
 
 type ConversationListProps = {
+  initialConversationId?:
+    string | null;
+
   selectedConversationId:
     string | null;
 
@@ -58,6 +61,7 @@ type ConversationListProps = {
 };
 
 export default function ConversationList({
+  initialConversationId,
   selectedConversationId,
   refreshKey,
   onSelectConversation,
@@ -314,6 +318,38 @@ export default function ConversationList({
   }, [
     loadConversations,
     refreshKey,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialConversationId ||
+      selectedConversationId ===
+        initialConversationId
+    ) {
+      return;
+    }
+
+    const initialConversation =
+      conversations.find(
+        (conversation) =>
+          conversation.id ===
+          initialConversationId,
+      );
+
+    if (!initialConversation) {
+      return;
+    }
+
+    onSelectConversation(
+      initialConversation.id,
+      initialConversation.otherUserId,
+      initialConversation.username,
+    );
+  }, [
+    conversations,
+    initialConversationId,
+    onSelectConversation,
+    selectedConversationId,
   ]);
 
   return (

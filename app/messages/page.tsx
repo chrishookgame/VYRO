@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -12,6 +13,13 @@ import ChatWindow from "@/components/messages/ChatWindow";
 import ConversationList from "@/components/messages/ConversationList";
 
 export default function MessagesPage() {
+  const [
+    initialConversationId,
+    setInitialConversationId,
+  ] = useState<string | null>(
+    null,
+  );
+
   const [
     selectedConversationId,
     setSelectedConversationId,
@@ -29,6 +37,17 @@ export default function MessagesPage() {
     refreshKey,
     setRefreshKey,
   ] = useState(0);
+
+  useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    setInitialConversationId(
+      params.get("conversation"),
+    );
+  }, []);
 
   function selectConversation(
     conversationId: string,
@@ -52,6 +71,9 @@ export default function MessagesPage() {
   return (
     <main className="flex h-screen overflow-hidden bg-black text-white">
       <ConversationList
+        initialConversationId={
+          initialConversationId
+        }
         selectedConversationId={
           selectedConversationId
         }
