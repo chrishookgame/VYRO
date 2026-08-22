@@ -10,6 +10,8 @@ export async function getAdminUsers() {
       full_name,
       avatar_url,
       verified,
+      role,
+      account_status,
       created_at
     `)
     .order(
@@ -43,6 +45,25 @@ export async function setAdminUserVerified(
     {
       p_user_id: id,
       p_verified: verified,
+    },
+  );
+
+}
+export type AdminUserAccountStatus =
+  | "active"
+  | "suspended"
+  | "blocked";
+
+export async function setAdminUserStatus(
+  id: string,
+  status: AdminUserAccountStatus,
+) {
+
+  return await supabase.rpc(
+    "admin_set_user_status",
+    {
+      p_user_id: id,
+      p_status: status,
     },
   );
 

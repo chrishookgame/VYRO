@@ -6,24 +6,41 @@ export type AdminUserRow = {
   username: string;
   avatar_url: string | null;
   verified: boolean;
+  role: string;
+  account_status:
+    | "active"
+    | "suspended"
+    | "blocked";
   created_at: string;
 };
 
 type Props = {
   users: AdminUserRow[];
   canUpdateUsers: boolean;
+  currentUserId: string | null;
+  currentAdminRole: string;
   updatingUserId: string | null;
   onToggleVerified: (
     id: string,
     verified: boolean,
+  ) => void;
+  onStatusChange: (
+    id: string,
+    status:
+      | "active"
+      | "suspended"
+      | "blocked",
   ) => void;
 };
 
 export default function AdminUsersTable({
   users,
   canUpdateUsers,
+  currentUserId,
+  currentAdminRole,
   updatingUserId,
   onToggleVerified,
+  onStatusChange,
 }: Props) {
   return (
     <section className="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
@@ -64,6 +81,10 @@ export default function AdminUsersTable({
               </th>
 
               <th className="pb-4">
+                Estado de cuenta
+              </th>
+
+              <th className="pb-4">
                 Acción
               </th>
             </tr>
@@ -73,6 +94,21 @@ export default function AdminUsersTable({
             {users.map((user) => {
               const updating =
                 updatingUserId === user.id;
+
+              const isSelf =
+                currentUserId === user.id;
+
+              const protectedAdmin =
+                currentAdminRole === "admin" &&
+                (
+                  user.role === "admin" ||
+                  user.role === "super_admin"
+                );
+
+              const canChangeStatus =
+                canUpdateUsers &&
+                !isSelf &&
+                !protectedAdmin;
 
               return (
                 <tr
@@ -108,6 +144,24 @@ export default function AdminUsersTable({
                   </td>
 
                   <td>
+                    <span
+                      className={
+                        user.account_status === "active"
+                          ? "font-semibold text-emerald-300"
+                          : user.account_status === "suspended"
+                            ? "font-semibold text-yellow-300"
+                            : "font-semibold text-red-300"
+                      }
+                    >
+                      {user.account_status === "active"
+                        ? "Activo"
+                        : user.account_status === "suspended"
+                          ? "Suspendido"
+                          : "Bloqueado"}
+                    </span>
+                  </td>
+
+                  <td>
                     {canUpdateUsers ? (
                       <button
                         type="button"
@@ -131,6 +185,58 @@ export default function AdminUsersTable({
                         Solo lectura
                       </span>
                     )}
+
+                    {canChangeStatus ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {user.account_status !== "suspended" ? (
+                          <button
+                            type="button"
+                            disabled={updating}
+                            onClick={() =>
+                              onStatusChange(
+                                user.id,
+                                "suspended",
+                              )
+                            }
+                            className="rounded-lg border border-yellow-700 px-3 py-1 text-sm font-semibold text-yellow-300 transition disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Suspender
+                          </button>
+                        ) : null}
+
+                        {user.account_status !== "blocked" ? (
+                          <button
+                            type="button"
+                            disabled={updating}
+                            onClick={() =>
+                              onStatusChange(
+                                user.id,
+                                "blocked",
+                              )
+                            }
+                            className="rounded-lg border border-red-700 px-3 py-1 text-sm font-semibold text-red-300 transition disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Bloquear
+                          </button>
+                        ) : null}
+
+                        {user.account_status !== "active" ? (
+                          <button
+                            type="button"
+                            disabled={updating}
+                            onClick={() =>
+                              onStatusChange(
+                                user.id,
+                                "active",
+                              )
+                            }
+                            className="rounded-lg border border-emerald-700 px-3 py-1 text-sm font-semibold text-emerald-300 transition disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Restaurar
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               );

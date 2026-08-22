@@ -1,4 +1,4 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export type AdminAuditAction =
   | "approve_withdraw"
@@ -8,7 +8,8 @@ export type AdminAuditAction =
   | "block_user"
   | "suspend_user"
   | "delete_user"
-  | "verify_user";
+  | "verify_user"
+  | "restore_user";
 
 export async function createAdminAuditLog(
   adminId: string,

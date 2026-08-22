@@ -19,8 +19,12 @@ import {
 
 import {
   getAdminUsers,
+  setAdminUserStatus,
   setAdminUserVerified,
+  type AdminUserAccountStatus,
 } from "@/lib/admin";
+
+import { supabase } from "@/lib/supabase";
 
 export default function AdminUsersPage() {
   const role = useAdminRole();
@@ -56,12 +60,41 @@ export default function AdminUsersPage() {
     setSuccess,
   ] = useState<string | null>(null);
 
+  const [
+    currentUserId,
+    setCurrentUserId,
+  ] = useState<string | null>(null);
+
   useEffect(() => {
     let active = true;
 
     async function loadUsers() {
       setLoading(true);
       setError(null);
+
+      const {
+        data: {
+          user: authenticatedUser,
+        },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !authenticatedUser) {
+        if (active) {
+          setUsers([]);
+          setCurrentUserId(null);
+          setError(
+            "No fue posible verificar la sesión administrativa.",
+          );
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      setCurrentUserId(
+        authenticatedUser.id,
+      );
 
       const {
         data,
@@ -157,6 +190,93 @@ export default function AdminUsersPage() {
     setUpdatingUserId(null);
   }
 
+  async function handleStatusChange(
+    id: string,
+    status: AdminUserAccountStatus,
+  ) {
+    if (!canUpdateUsers) {
+      setError(
+        "No tienes permiso para modificar usuarios.",
+      );
+      return;
+    }
+
+    if (id === currentUserId) {
+      setError(
+        "No puedes cambiar el estado de tu propia cuenta.",
+      );
+      return;
+    }
+
+    const targetUser =
+      users.find((user) => user.id === id);
+
+    if (!targetUser) {
+      setError(
+        "No fue posible encontrar el usuario.",
+      );
+      return;
+    }
+
+    if (
+      role === "admin" &&
+      (
+        targetUser.role === "admin" ||
+        targetUser.role === "super_admin"
+      )
+    ) {
+      setError(
+        "No tienes permiso para modificar ese administrador.",
+      );
+      return;
+    }
+
+    setUpdatingUserId(id);
+    setError(null);
+    setSuccess(null);
+
+    const {
+      error: updateError,
+    } = await setAdminUserStatus(
+      id,
+      status,
+    );
+
+    if (updateError) {
+      console.error(
+        "Failed to update user account status:",
+        updateError,
+      );
+
+      setError(
+        "No se pudo actualizar el estado de la cuenta.",
+      );
+      setUpdatingUserId(null);
+      return;
+    }
+
+    setUsers((current) =>
+      current.map((user) =>
+        user.id === id
+          ? {
+              ...user,
+              account_status: status,
+            }
+          : user,
+      ),
+    );
+
+    setSuccess(
+      status === "active"
+        ? "Cuenta restaurada correctamente."
+        : status === "suspended"
+          ? "Cuenta suspendida correctamente."
+          : "Cuenta bloqueada correctamente.",
+    );
+
+    setUpdatingUserId(null);
+  }
+
   return (
     <section className="space-y-8">
       {success ? (
@@ -191,9 +311,14 @@ export default function AdminUsersPage() {
         <AdminUsersTable
           users={users}
           canUpdateUsers={canUpdateUsers}
+          currentUserId={currentUserId}
+          currentAdminRole={role}
           updatingUserId={updatingUserId}
           onToggleVerified={
             handleToggleVerified
+          }
+          onStatusChange={
+            handleStatusChange
           }
         />
       ) : null}
