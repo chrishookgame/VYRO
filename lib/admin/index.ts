@@ -1,10 +1,9 @@
-﻿export * from "./settings";
+export * from "./settings";
 
 export * from "./users";
 
 export * from "./withdraws";
 
-export * from "./withdraws";
 
 export * from "./audit";
 
