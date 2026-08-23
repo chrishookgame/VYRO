@@ -20,6 +20,8 @@ import {
 type WithdrawRow = {
   id: string;
   user_id: string;
+  user_name?: string | null;
+  user_full_name?: string | null;
   amount: number | string;
   status: string;
   created_at: string;
@@ -107,7 +109,10 @@ export default function AdminWithdrawsPage() {
       setRequests(
         rows.map((row) => ({
           id: row.id,
-          userName: row.user_id,
+          userName:
+            row.user_name ??
+            row.user_full_name ??
+            row.user_id,
           amount: toAmount(row.amount),
           createdAt: row.created_at,
           status: normalizeStatus(

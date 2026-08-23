@@ -6,6 +6,8 @@ type WithdrawAction =
 export type AdminWithdrawRow = {
   id: string;
   user_id: string;
+  user_name?: string | null;
+  user_full_name?: string | null;
   amount: number | string;
   currency?: string | null;
   payment_method?: string | null;

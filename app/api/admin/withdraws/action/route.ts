@@ -21,6 +21,23 @@ type RequestBody = {
   action?: unknown;
 };
 
+type AdminWithdrawRpcRow = {
+  id: string;
+  user_id: string;
+  amount: number | string;
+  currency: string | null;
+  payment_method: string | null;
+  payment_account: string | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  approved_at: string | null;
+  rejected_at: string | null;
+  paid_at: string | null;
+  approved_by: string | null;
+  transaction_id: string | null;
+};
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -156,9 +173,81 @@ export async function GET() {
       );
     }
 
+    const withdrawRows =
+      (data ?? []) as AdminWithdrawRpcRow[];
+
+    const userIds = [
+      ...new Set(
+        withdrawRows.map(
+          (row) => row.user_id,
+        ),
+      ),
+    ];
+
+    if (userIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    const {
+      data: profiles,
+      error: profilesError,
+    } = await supabase
+      .from("profiles")
+      .select(
+        "id, username, full_name",
+      )
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error(
+        "VYRO withdraw profiles load error:",
+        profilesError,
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "No fue posible cargar los usuarios de los retiros.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const profileById =
+      new Map(
+        (profiles ?? []).map(
+          (profile) => [
+            profile.id,
+            profile,
+          ],
+        ),
+      );
+
+    const enrichedData =
+      withdrawRows.map((row) => {
+        const profile =
+          profileById.get(
+            row.user_id,
+          );
+
+        return {
+          ...row,
+          user_name:
+            profile?.username ??
+            null,
+          user_full_name:
+            profile?.full_name ??
+            null,
+        };
+      });
+
     return NextResponse.json({
       success: true,
-      data: data ?? [],
+      data: enrichedData,
     });
   } catch (error) {
     console.error(
