@@ -1,4 +1,16 @@
-﻿import { getAdminAuditLogs } from "@/lib/admin";
+﻿import { redirect } from "next/navigation";
+
+import {
+  canAccessPage,
+} from "@/lib/admin/permissions";
+import { getAdminAuditLogs } from "@/lib/admin";
+import {
+  rolePermissions,
+  type UserRole,
+} from "@/lib/roles";
+import {
+  createServerSupabaseClient,
+} from "@/lib/supabase-server";
 
 type AdminAuditLog = {
   id: string;
@@ -8,7 +20,52 @@ type AdminAuditLog = {
   details: string | null;
 };
 
+function isUserRole(
+  value: unknown,
+): value is UserRole {
+  return (
+    typeof value === "string" &&
+    Object.prototype.hasOwnProperty.call(
+      rolePermissions,
+      value,
+    )
+  );
+}
+
 export default async function AdminAuditPage() {
+  const supabase =
+    await createServerSupabaseClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect("/login");
+  }
+
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (
+    profileError ||
+    !profile ||
+    !isUserRole(profile.role) ||
+    !canAccessPage(
+      profile.role,
+      "reports.read",
+    )
+  ) {
+    redirect("/admin");
+  }
+
   const { data, error } =
     await getAdminAuditLogs();
 
