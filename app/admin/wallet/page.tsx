@@ -15,6 +15,14 @@ import {
 } from "@/components/ui";
 
 import {
+  useAdminRole,
+} from "@/components/admin/AdminRoleContext";
+
+import {
+  canAccessPage,
+} from "@/lib/admin/permissions";
+
+import {
   getAdminWalletSnapshot,
   type AdminWalletSnapshot,
   type AdminWalletTransactionRow,
@@ -77,6 +85,14 @@ function getMovementStatus(
 }
 
 export default function AdminWalletPage() {
+  const role = useAdminRole();
+
+  const canReadWallet =
+    canAccessPage(
+      role,
+      "wallet.read",
+    );
+
   const [snapshot, setSnapshot] =
     useState<AdminWalletSnapshot>({
       wallets: [],
@@ -92,6 +108,20 @@ export default function AdminWalletPage() {
 
   useEffect(() => {
     let active = true;
+
+    if (!canReadWallet) {
+      setSnapshot({
+        wallets: [],
+        transactions: [],
+        profiles: [],
+      });
+      setError(null);
+      setLoading(false);
+
+      return () => {
+        active = false;
+      };
+    }
 
     async function loadWallet() {
       setLoading(true);
@@ -137,7 +167,7 @@ export default function AdminWalletPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [canReadWallet]);
 
   const walletById =
     useMemo(
@@ -257,6 +287,22 @@ export default function AdminWalletPage() {
 
   const totalMovements =
     movements.length;
+
+  if (!canReadWallet) {
+    return (
+      <section className="space-y-8">
+        <div className="rounded-3xl border border-red-900 bg-red-950/30 p-8 text-white">
+          <h1 className="text-3xl font-bold">
+            Acceso denegado
+          </h1>
+
+          <p className="mt-2 text-slate-400">
+            No tienes permiso para consultar Wallet.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-8">
