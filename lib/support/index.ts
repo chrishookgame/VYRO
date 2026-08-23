@@ -79,5 +79,3 @@ export async function sendMessage(data: {
 }
 
 export * from "./realtime";
-
-export * from "./upload";
