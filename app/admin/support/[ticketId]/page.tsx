@@ -8,9 +8,9 @@ import {
 } from "react";
 
 import {
-  Badge,
   Button,
   Card,
+  Select,
   Textarea,
 } from "@/components/ui";
 
@@ -23,6 +23,9 @@ import {
   sendMessage,
   subscribeToSupportMessages,
   unsubscribeSupportChannel,
+  updateSupportTicket,
+  type SupportTicketPriority,
+  type SupportTicketStatus,
 } from "@/lib/support";
 
 type TicketRow = {
@@ -104,6 +107,26 @@ export default function AdminSupportTicketPage({
   const [
     replyError,
     setReplyError,
+  ] = useState<string | null>(null);
+
+  const [
+    ticketStatus,
+    setTicketStatus,
+  ] = useState<SupportTicketStatus>("open");
+
+  const [
+    ticketPriority,
+    setTicketPriority,
+  ] = useState<SupportTicketPriority>("normal");
+
+  const [
+    savingTicket,
+    setSavingTicket,
+  ] = useState(false);
+
+  const [
+    ticketUpdateFeedback,
+    setTicketUpdateFeedback,
   ] = useState<string | null>(null);
 
   useEffect(() => {
@@ -205,6 +228,14 @@ export default function AdminSupportTicketPage({
               ) ?? null,
             messages,
           });
+
+          setTicketStatus(
+            ticket.status as SupportTicketStatus,
+          );
+
+          setTicketPriority(
+            ticket.priority as SupportTicketPriority,
+          );
 
           setLoading(false);
         }
@@ -374,6 +405,74 @@ export default function AdminSupportTicketPage({
       setSendingReply(false);
     }
   }
+  async function saveTicketManagement() {
+    const activeTicketId =
+      ticketId;
+
+    if (!activeTicketId) {
+      return;
+    }
+
+    setSavingTicket(true);
+    setTicketUpdateFeedback(null);
+
+    try {
+      const {
+        data: updatedTicket,
+        error: updateError,
+      } = await updateSupportTicket(
+        activeTicketId,
+        {
+          status: ticketStatus,
+          priority: ticketPriority,
+        },
+      );
+
+      if (
+        updateError ||
+        !updatedTicket
+      ) {
+        throw (
+          updateError ??
+          new Error(
+            "Supabase no devolvio el ticket actualizado.",
+          )
+        );
+      }
+
+      setDetail((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          ticket:
+            updatedTicket as TicketRow,
+        };
+      });
+
+      setTicketUpdateFeedback(
+        "Ticket actualizado correctamente.",
+      );
+    }
+    catch (updateError) {
+      console.error(
+        "VYRO Admin Support ticket update error:",
+        updateError,
+      );
+
+      setTicketUpdateFeedback(
+        updateError instanceof Error
+          ? updateError.message
+          : "No se pudo actualizar el ticket.",
+      );
+    }
+    finally {
+      setSavingTicket(false);
+    }
+  }
+
   if (loading || !ticketId) {
     return (
       <main className="space-y-6">
@@ -465,32 +564,89 @@ export default function AdminSupportTicketPage({
 
         <Card>
           <Card.Body>
-            <p className="text-sm text-slate-400">
-              Prioridad
-            </p>
-
-            <div className="mt-2">
-              <Badge variant="warning">
-                {ticket.priority}
-              </Badge>
-            </div>
+            <Select
+              label="Prioridad"
+              value={ticketPriority}
+              onChange={(event) =>
+                setTicketPriority(
+                  event.target
+                    .value as SupportTicketPriority,
+                )
+              }
+            >
+              <option value="normal">
+                Normal
+              </option>
+              <option value="high">
+                Alta
+              </option>
+              <option value="urgent">
+                Urgente
+              </option>
+            </Select>
           </Card.Body>
         </Card>
 
         <Card>
           <Card.Body>
-            <p className="text-sm text-slate-400">
-              Estado
-            </p>
-
-            <div className="mt-2">
-              <Badge>
-                {ticket.status}
-              </Badge>
-            </div>
+            <Select
+              label="Estado"
+              value={ticketStatus}
+              onChange={(event) =>
+                setTicketStatus(
+                  event.target
+                    .value as SupportTicketStatus,
+                )
+              }
+            >
+              <option value="open">
+                Abierto
+              </option>
+              <option value="in_review">
+                En revisión
+              </option>
+              <option value="resolved">
+                Resuelto
+              </option>
+              <option value="closed">
+                Cerrado
+              </option>
+            </Select>
           </Card.Body>
         </Card>
       </section>
+
+      <Card>
+        <Card.Header>
+          <h2 className="text-xl font-bold">
+            Gestión del ticket
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-400">
+            Actualiza el estado y la prioridad de esta solicitud.
+          </p>
+        </Card.Header>
+
+        <Card.Body>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-slate-400">
+              {ticketUpdateFeedback ??
+                "Los cambios se guardan en Supabase."}
+            </div>
+
+            <Button
+              onClick={() => {
+                void saveTicketManagement();
+              }}
+              disabled={savingTicket}
+            >
+              {savingTicket
+                ? "Guardando..."
+                : "Guardar cambios"}
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
 
       <Card>
         <Card.Header>

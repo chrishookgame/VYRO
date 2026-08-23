@@ -13,6 +13,34 @@ export async function createTicket(data: {
     .single();
 }
 
+export type SupportTicketStatus =
+  | "open"
+  | "in_review"
+  | "resolved"
+  | "closed";
+
+export type SupportTicketPriority =
+  | "normal"
+  | "high"
+  | "urgent";
+
+export async function updateSupportTicket(
+  ticketId: string,
+  updates: {
+    status?: SupportTicketStatus;
+    priority?: SupportTicketPriority;
+  },
+) {
+  return await supabase
+    .from("support_tickets")
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ticketId)
+    .select()
+    .single();
+}
 export async function getTickets() {
   return await supabase
     .from("support_tickets")
