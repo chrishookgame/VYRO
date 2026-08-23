@@ -162,6 +162,69 @@ export async function proxy(
     );
   }
 
+  let profile:
+    | {
+        role: string;
+        account_status: string;
+      }
+    | null = null;
+
+  if (
+    user &&
+    requiresAuth
+  ) {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("profiles")
+      .select(
+        "role, account_status",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (
+      error ||
+      !data
+    ) {
+      const loginUrl =
+        request.nextUrl.clone();
+
+      loginUrl.pathname =
+        "/login";
+
+      loginUrl.search = "";
+
+      return NextResponse.redirect(
+        loginUrl,
+      );
+    }
+
+    profile = data;
+
+    if (
+      profile.account_status !== "active"
+    ) {
+      const loginUrl =
+        request.nextUrl.clone();
+
+      loginUrl.pathname =
+        "/login";
+
+      loginUrl.search = "";
+
+      loginUrl.searchParams.set(
+        "account",
+        profile.account_status,
+      );
+
+      return NextResponse.redirect(
+        loginUrl,
+      );
+    }
+  }
+
   if (
     matchesRoute(
       pathname,
@@ -169,17 +232,7 @@ export async function proxy(
     ) &&
     user
   ) {
-    const {
-      data: profile,
-      error: profileError,
-    } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-
     if (
-      profileError ||
       !profile ||
       !isUserRole(profile.role) ||
       !canAccessAdmin(profile.role)
