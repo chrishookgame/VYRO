@@ -16,6 +16,8 @@ export type WithdrawAdminItem = {
 
 type Props = {
   requests: WithdrawAdminItem[];
+  canApprove: boolean;
+  canPay: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onPay: (id: string) => void;
@@ -23,6 +25,8 @@ type Props = {
 
 export default function WithdrawAdminPanel({
   requests,
+  canApprove,
+  canPay,
   onApprove,
   onReject,
   onPay,
@@ -83,7 +87,8 @@ export default function WithdrawAdminPanel({
             </div>
 
             <div className="mt-5 flex gap-3">
-              {item.status === "pending" && (
+              {item.status === "pending" &&
+                canApprove && (
                 <>
                   <button
                     onClick={() =>
@@ -105,7 +110,8 @@ export default function WithdrawAdminPanel({
                 </>
               )}
 
-              {item.status === "approved" && (
+              {item.status === "approved" &&
+                canPay && (
                 <button
                   onClick={() =>
                     onPay(item.id)
@@ -116,10 +122,20 @@ export default function WithdrawAdminPanel({
                 </button>
               )}
 
-              {(item.status === "rejected" ||
-                item.status === "paid") && (
+              {(
+                item.status === "rejected" ||
+                item.status === "paid" ||
+                (
+                  item.status === "pending" &&
+                  !canApprove
+                ) ||
+                (
+                  item.status === "approved" &&
+                  !canPay
+                )
+              ) && (
                 <span className="text-sm text-slate-500">
-                  Sin acciones pendientes
+                  Sin acciones disponibles
                 </span>
               )}
             </div>

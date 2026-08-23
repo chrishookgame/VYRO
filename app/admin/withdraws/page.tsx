@@ -11,6 +11,14 @@ import WithdrawAdminPanel, {
 } from "@/components/admin/WithdrawAdminPanel";
 
 import {
+  useAdminRole,
+} from "@/components/admin/AdminRoleContext";
+
+import {
+  hasPermission,
+} from "@/lib/roles";
+
+import {
   approveWithdraw,
   getWithdrawRequests,
   markWithdrawPaid,
@@ -59,6 +67,20 @@ function toAmount(
 }
 
 export default function AdminWithdrawsPage() {
+  const role = useAdminRole();
+
+  const canApprove =
+    hasPermission(
+      role,
+      "withdraw.approve",
+    );
+
+  const canPay =
+    hasPermission(
+      role,
+      "withdraw.pay",
+    );
+
   const [
     requests,
     setRequests,
@@ -189,6 +211,8 @@ export default function AdminWithdrawsPage() {
 
       <WithdrawAdminPanel
         requests={requests}
+        canApprove={canApprove}
+        canPay={canPay}
         onApprove={(id) => {
           void runAction(
             id,
