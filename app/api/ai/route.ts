@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getErrorMessage } from "@/lib/core";
+
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 import { runProvider } from "@/lib/ai/providers";
@@ -268,7 +270,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("VYRO AI API error:", error);
+    console.error("VYRO AI API error:", getErrorMessage(error));
 
     return NextResponse.json(
       {

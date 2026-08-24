@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
+import { getErrorMessage } from "@/lib/core";
+
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 const MAX_PROMPT_LENGTH = 4_000;
@@ -185,7 +187,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(
       "VYRO Image AI error:",
-      error,
+      getErrorMessage(error),
     );
 
     return NextResponse.json(

@@ -4,6 +4,8 @@ import {
 } from "livekit-server-sdk";
 import { NextResponse } from "next/server";
 
+import { getErrorMessage } from "@/lib/core";
+
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 type MediaKind =
@@ -278,7 +280,7 @@ export async function POST(
   } catch (error) {
     console.error(
       "VYRO Host Media Control failed:",
-      error,
+      getErrorMessage(error),
     );
 
     return NextResponse.json(

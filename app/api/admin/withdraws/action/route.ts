@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getErrorMessage } from "@/lib/core";
+
 import {
   createServerSupabaseClient,
 } from "@/lib/supabase-server";
@@ -252,7 +254,7 @@ export async function GET() {
   } catch (error) {
     console.error(
       "VYRO withdraw GET error:",
-      error,
+      getErrorMessage(error),
     );
 
     return NextResponse.json(
@@ -368,7 +370,7 @@ export async function POST(
   } catch (error) {
     console.error(
       "VYRO withdraw action API error:",
-      error,
+      getErrorMessage(error),
     );
 
     return NextResponse.json(
