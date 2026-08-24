@@ -357,7 +357,7 @@ begin
         target_room_id,
         1
     )
-    on conflict (room_id)
+    on conflict on constraint live_room_counters_pkey
     do update set
         total_gifts =
             public.live_room_counters.total_gifts + 1;
@@ -372,7 +372,7 @@ begin
         1,
         selected_gift.price
     )
-    on conflict (room_id)
+    on conflict on constraint live_statistics_pkey
     do update set
         total_gifts =
             public.live_statistics.total_gifts + 1,
@@ -393,7 +393,7 @@ begin
         target_room_id,
         selected_gift.energy_value
     )
-    on conflict (room_id)
+    on conflict on constraint live_energy_states_pkey
     do update set
         current_energy =
             least(
