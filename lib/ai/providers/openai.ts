@@ -5,38 +5,6 @@ import type {
   AIResponse,
 } from "../types";
 
-function buildDevelopmentCourse(
-  request: AIRequest,
-): string {
-  return [
-    "CURSO GENERADO EN MODO DE DESARROLLO",
-    "",
-    `Solicitud: ${request.userPrompt}`,
-    "",
-    "Módulo 1: Fundamentos",
-    "- Introducción al tema",
-    "- Conceptos principales",
-    "- Objetivos de aprendizaje",
-    "",
-    "Módulo 2: Aplicación práctica",
-    "- Ejemplos guiados",
-    "- Actividad práctica",
-    "- Análisis de resultados",
-    "",
-    "Módulo 3: Desarrollo del proyecto",
-    "- Planificación",
-    "- Ejecución",
-    "- Revisión y mejora",
-    "",
-    "Módulo 4: Evaluación",
-    "- Preguntas de comprobación",
-    "- Proyecto final",
-    "- Criterios de evaluación",
-    "",
-    "Esta propuesta fue creada localmente porque OpenAI no tiene créditos disponibles.",
-  ].join("\n");
-}
-
 export async function runOpenAI(
   request: AIRequest,
 ): Promise<AIResponse> {
@@ -91,27 +59,6 @@ export async function runOpenAI(
   } catch (error) {
     console.error("VYRO OpenAI Provider error:", error);
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Error desconocido de OpenAI.";
-
-    const isCreditsError =
-      error instanceof OpenAI.APIError &&
-      error.status === 429 &&
-      message.toLowerCase().includes("credits");
-
-    const mockFallbackEnabled =
-      process.env.NODE_ENV !== "production" &&
-      process.env.VYRO_AI_MOCK_FALLBACK === "true";
-
-    if (isCreditsError && mockFallbackEnabled) {
-      return {
-        success: true,
-        provider: "openai",
-        content: buildDevelopmentCourse(request),
-      };
-    }
 
     return {
       success: false,

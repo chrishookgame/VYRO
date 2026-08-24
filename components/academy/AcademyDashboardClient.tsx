@@ -55,8 +55,7 @@ export function AcademyDashboardClient({
     useState<AcademyCourse | null>(null);
   const [savedCourses, setSavedCourses] =
     useState<AcademyCourse[]>([]);
-  const [developmentContent, setDevelopmentContent] =
-    useState("");
+
   const [error, setError] = useState("");
   const [generating, setGenerating] =
     useState(false);
@@ -85,7 +84,6 @@ export function AcademyDashboardClient({
     setGenerating(true);
     setError("");
     setCourse(null);
-    setDevelopmentContent("");
 
     try {
       const response =
@@ -115,9 +113,14 @@ export function AcademyDashboardClient({
           );
 
         setSavedCourses(updatedCourses);
-      } catch {
-        setDevelopmentContent(
-          response.content,
+      } catch (parsingError) {
+        console.error(
+          "VYRO Academy generated course parsing failed:",
+          parsingError,
+        );
+
+        setError(
+          "VYRO Academy recibió una respuesta que no pudo procesarse como curso.",
         );
       }
     } catch (generationError) {
@@ -140,7 +143,6 @@ export function AcademyDashboardClient({
     selectedCourse: AcademyCourse,
   ) {
     setCourse(selectedCourse);
-    setDevelopmentContent("");
     setError("");
 
     window.scrollTo({
@@ -221,17 +223,6 @@ export function AcademyDashboardClient({
         onSubmit={handleGenerateCourse}
       />
 
-      {developmentContent ? (
-        <section className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <h2 className="text-xl font-bold text-amber-900">
-            Curso generado en modo de desarrollo
-          </h2>
-
-          <pre className="mt-4 whitespace-pre-wrap font-sans text-sm leading-7 text-amber-950">
-            {developmentContent}
-          </pre>
-        </section>
-      ) : null}
 
       {course ? (
         <CoursePreview course={course} />

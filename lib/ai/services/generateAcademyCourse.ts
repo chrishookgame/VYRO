@@ -120,14 +120,6 @@ export async function generateAcademyCourse(
     return response;
   }
 
-  const isDevelopmentResponse =
-    response.content
-      .toLowerCase()
-      .includes("modo de desarrollo");
-
-  if (isDevelopmentResponse) {
-    return response;
-  }
 
   try {
     const academyCourse =
