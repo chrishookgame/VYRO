@@ -216,7 +216,6 @@ export class VyroVirtualVideoEngine {
     try {
       await this.faceLandmarker.initialize();
       this.faceLandmarkerReady = true;
-      console.info("VYRO FACE READY");
     } catch (error) {
       console.error("VYRO FACE INIT ERROR:", error);
       this.faceLandmarkerReady = false;
