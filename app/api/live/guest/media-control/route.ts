@@ -129,7 +129,7 @@ export async function POST(
     if (roomError) {
       console.error(
         "VYRO Host Media Control room validation failed:",
-        roomError,
+        roomError.message,
       );
 
       return NextResponse.json(

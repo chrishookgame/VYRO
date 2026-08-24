@@ -195,7 +195,7 @@ export async function POST(request: Request) {
     if (rateLimitError) {
       console.error(
         "VYRO AI rate limit error:",
-        rateLimitError,
+        rateLimitError.message,
       );
 
       return NextResponse.json(

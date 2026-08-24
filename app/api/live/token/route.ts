@@ -150,7 +150,7 @@ export async function POST(
     if (roomError) {
       console.error(
         "VYRO LiveKit LIVE validation failed:",
-        roomError,
+        roomError.message,
       );
 
       return NextResponse.json(
@@ -292,7 +292,7 @@ export async function POST(
       if (invitationError) {
         console.error(
           "VYRO Guest authorization failed:",
-          invitationError,
+          invitationError.message,
         );
 
         return NextResponse.json(

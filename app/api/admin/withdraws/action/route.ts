@@ -204,7 +204,7 @@ export async function GET() {
     if (profilesError) {
       console.error(
         "VYRO withdraw profiles load error:",
-        profilesError,
+        profilesError.message,
       );
 
       return NextResponse.json(

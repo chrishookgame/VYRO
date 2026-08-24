@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     if (rateLimitError) {
       console.error(
         "VYRO Image AI rate limit error:",
-        rateLimitError,
+        rateLimitError.message,
       );
 
       return NextResponse.json(
