@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { getErrorMessage } from "@/lib/core";
 import {
   useCallback,
   useEffect,
@@ -182,7 +183,7 @@ export default function SupportPage() {
       catch (error) {
         console.error(
           "VYRO Support load error:",
-          error,
+          getErrorMessage(error),
         );
 
         if (active) {
@@ -243,7 +244,7 @@ export default function SupportPage() {
       catch (error) {
         console.error(
           "VYRO Support conversation load error:",
-          error,
+          getErrorMessage(error),
         );
 
         if (active) {
@@ -333,7 +334,7 @@ export default function SupportPage() {
     catch (error) {
       console.error(
         "VYRO Support reply error:",
-        error,
+        getErrorMessage(error),
       );
 
       setFeedback(
@@ -447,7 +448,7 @@ export default function SupportPage() {
     catch (error) {
       console.error(
         "VYRO Support submit error:",
-        error,
+        getErrorMessage(error),
       );
 
       setFeedback(

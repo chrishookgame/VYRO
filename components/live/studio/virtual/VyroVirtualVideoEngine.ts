@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/core";
 import type {
   VyroVirtualBackgroundMode,
   VyroVirtualBackgroundPlayback,
@@ -217,7 +218,7 @@ export class VyroVirtualVideoEngine {
       await this.faceLandmarker.initialize();
       this.faceLandmarkerReady = true;
     } catch (error) {
-      console.error("VYRO FACE INIT ERROR:", error);
+      console.error("VYRO FACE INIT ERROR:", getErrorMessage(error));
       this.faceLandmarkerReady = false;
       this.faceFrame = null;
     }

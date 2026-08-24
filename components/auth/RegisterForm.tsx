@@ -1,5 +1,6 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/core";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -170,7 +171,7 @@ export default function RegisterForm() {
     } catch (error) {
       console.error(
         "VYRO register error:",
-        error,
+        getErrorMessage(error),
       );
 
       setMessage(

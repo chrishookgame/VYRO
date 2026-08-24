@@ -1,5 +1,6 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/core";
 import {
   ChevronLeft,
   LogOut,
@@ -112,7 +113,7 @@ export default function AccountSettings() {
     } catch (error) {
       console.error(
         "VYRO password update unexpected error:",
-        error,
+        getErrorMessage(error),
       );
 
       setSecurityError(
@@ -132,7 +133,7 @@ export default function AccountSettings() {
     } catch (error) {
       console.error(
         "VYRO sign out error:",
-        error,
+        getErrorMessage(error),
       );
     }
   }

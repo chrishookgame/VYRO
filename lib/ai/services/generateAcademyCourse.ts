@@ -1,4 +1,5 @@
-﻿import {
+import { getErrorMessage } from "@/lib/core";
+import {
   createAcademyCourse,
   serializeAcademyCourse,
 } from "../../academy";
@@ -135,7 +136,7 @@ export async function generateAcademyCourse(
   } catch (error) {
     console.error(
       "VYRO Academy Engine failed:",
-      error,
+      getErrorMessage(error),
     );
 
     return {

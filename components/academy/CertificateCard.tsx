@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { getErrorMessage } from "@/lib/core";
 import {
   useEffect,
   useMemo,
@@ -85,7 +86,7 @@ export function CertificateCard({
     } catch (error) {
       console.error(
         "VYRO certificate link copy error:",
-        error,
+        getErrorMessage(error),
       );
 
       window.alert(

@@ -1,5 +1,6 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import NotificationBell from "./NotificationBell";
 import NotificationDropdown from "./NotificationDropdown";
@@ -24,7 +25,7 @@ export default function NotificationCenter() {
       const data = await getNotifications(currentUserId);
       setNotifications(data);
     } catch (error) {
-      console.error("Error al cargar las notificaciones:", error);
+      console.error("Error al cargar las notificaciones:", getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -127,7 +128,7 @@ export default function NotificationCenter() {
         window.location.href = target.action_url;
       }
     } catch (error) {
-      console.error("Error al marcar la notificación:", error);
+      console.error("Error al marcar la notificación:", getErrorMessage(error));
     }
   }
 
@@ -146,7 +147,7 @@ export default function NotificationCenter() {
         })),
       );
     } catch (error) {
-      console.error("Error al marcar todas las notificaciones:", error);
+      console.error("Error al marcar todas las notificaciones:", getErrorMessage(error));
     }
   }
 

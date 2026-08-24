@@ -1,5 +1,6 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/core";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, ChevronLeft } from "lucide-react";
@@ -21,7 +22,7 @@ export default function NotificationsPage() {
       const data = await getNotifications(currentUserId);
       setNotifications(data);
     } catch (error) {
-      console.error("Error al cargar las notificaciones:", error);
+      console.error("Error al cargar las notificaciones:", getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -98,7 +99,7 @@ export default function NotificationsPage() {
           ),
         );
       } catch (error) {
-        console.error("Error al marcar la notificación:", error);
+        console.error("Error al marcar la notificación:", getErrorMessage(error));
         return;
       }
     }
@@ -123,7 +124,7 @@ export default function NotificationsPage() {
         })),
       );
     } catch (error) {
-      console.error("Error al marcar todas las notificaciones:", error);
+      console.error("Error al marcar todas las notificaciones:", getErrorMessage(error));
     }
   }
 
