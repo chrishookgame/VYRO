@@ -1,3 +1,5 @@
+import { getErrorMessage } from "@/lib/core";
+
 import { runAI } from "@/lib/ai/client";
 import type {
   AIRequest,
@@ -65,7 +67,7 @@ export async function generateWithVIC(
 
     return await runAI(aiRequest);
   } catch (error) {
-    console.error("VIC Core Error:", error);
+    console.error("VIC Core Error:", getErrorMessage(error));
 
     return {
       success: false,

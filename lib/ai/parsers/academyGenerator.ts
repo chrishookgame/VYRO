@@ -1,4 +1,6 @@
-﻿import type { GeneratedAcademyCourse } from "@/components/academy/AcademyAIGenerator";
+﻿import { getErrorMessage } from "@/lib/core";
+
+import type { GeneratedAcademyCourse } from "@/components/academy/AcademyAIGenerator";
 
 function isRecord(
   value: unknown,
@@ -95,7 +97,7 @@ export function parseGeneratedAcademyCourse(
   } catch (error) {
     console.error(
       "VYRO Academy JSON parsing failed:",
-      error,
+      getErrorMessage(error),
     );
 
     throw new Error(

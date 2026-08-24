@@ -1,4 +1,6 @@
-﻿import type {
+﻿import { getErrorMessage } from "@/lib/core";
+
+import type {
   AcademyCertificate,
 } from "./certification";
 
@@ -33,7 +35,7 @@ function loadCertificates(): AcademyCertificate[] {
   } catch (error) {
     console.error(
       "VYRO certificate repository read error:",
-      error,
+      getErrorMessage(error),
     );
 
     return [];

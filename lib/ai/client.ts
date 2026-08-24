@@ -1,4 +1,6 @@
-﻿import type {
+﻿import { getErrorMessage } from "@/lib/core";
+
+import type {
   AIRequest,
   AIResponse,
 } from "./types";
@@ -32,7 +34,7 @@ export async function runAI(
   } catch (error) {
     console.error(
       "VYRO AI Engine connection failed:",
-      error,
+      getErrorMessage(error),
     );
 
     return {

@@ -1,3 +1,5 @@
+import { getErrorMessage } from "@/lib/core";
+
 import OpenAI from "openai";
 
 import type {
@@ -57,7 +59,7 @@ export async function runOpenAI(
         : undefined,
     };
   } catch (error) {
-    console.error("VYRO OpenAI Provider error:", error);
+    console.error("VYRO OpenAI Provider error:", getErrorMessage(error));
 
 
     return {

@@ -1,4 +1,6 @@
-﻿import type { AcademyCourse } from "./types";
+﻿import { getErrorMessage } from "@/lib/core";
+
+import type { AcademyCourse } from "./types";
 
 const STORAGE_KEY = "vyro-academy-courses";
 
@@ -28,7 +30,7 @@ export function getSavedAcademyCourses(): AcademyCourse[] {
   } catch (error) {
     console.error(
       "VYRO Academy repository read error:",
-      error,
+      getErrorMessage(error),
     );
 
     return [];
