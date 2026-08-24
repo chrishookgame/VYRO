@@ -379,13 +379,6 @@ export class VyroVirtualVideoEngine {
           performance.now(),
         );
 
-      if (this.faceFrame) {
-        console.debug(
-          "VYRO FACE TRACKING:",
-          this.faceFrame.landmarks.length,
-          "landmarks",
-        );
-      }
     } else {
       this.faceFrame = null;
     }
