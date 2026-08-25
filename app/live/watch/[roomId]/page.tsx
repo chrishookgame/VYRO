@@ -559,6 +559,7 @@ export default function LiveWatchPage() {
     connected,
     lastUpdate,
     lastReactionUpdate,
+    lastGiftUpdate,
     counterVersion,
     reactionVersion,
     giftVersion,
@@ -1157,7 +1158,7 @@ export default function LiveWatchPage() {
   const {
     activeGift,
     queuedGifts,
-  } = useLiveGiftOverlay(lastUpdate);
+  } = useLiveGiftOverlay(lastGiftUpdate);
 
   const {
     engineState:

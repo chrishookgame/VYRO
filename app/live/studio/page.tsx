@@ -31,6 +31,7 @@ import {
 import { LiveChatPanel } from "@/components/live/chat";
 import { LiveCommandCenter } from "@/components/live/command-center";
 import { LiveGuestControlCenter } from "@/components/live/guest";
+import { GiftOverlay } from "@/components/live/gifts";
 import { VyroGuestCanvasStage } from "@/components/live/guest/stage/VyroGuestCanvasStage";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
 import { LiveRankingPanel } from "@/components/live/ranking";
@@ -54,6 +55,8 @@ import {
   useLiveGuestInvitations,
   useLiveGuestRequests,
   useLiveSession,
+  useLiveGiftOverlay,
+  useLiveRealtime,
 } from "@/hooks";
 import {
   createLiveBattleSeries,
@@ -210,6 +213,22 @@ export default function LiveStudioPage() {
     endSession,
     clearError: clearSessionError,
   } = useLiveSession();
+
+  const {
+    lastGiftUpdate:
+      studioLastGiftUpdate,
+  } = useLiveRealtime(
+    session?.id ?? null,
+  );
+
+  const {
+    activeGift:
+      studioActiveGift,
+    queuedGifts:
+      studioQueuedGifts,
+  } = useLiveGiftOverlay(
+    studioLastGiftUpdate,
+  );
 
   const creatorGuestInvitations =
     useLiveGuestInvitations();
@@ -1246,6 +1265,19 @@ export default function LiveStudioPage() {
                 maxGuests={creatorStageMaxGuests}
                 layoutMode={creatorGuestLayoutMode}
               />
+
+              {isLive ? (
+                <div className="pointer-events-none absolute inset-0 z-40">
+                  <GiftOverlay
+                    gift={
+                      studioActiveGift
+                    }
+                    queuedGifts={
+                      studioQueuedGifts
+                    }
+                  />
+                </div>
+              ) : null}
 
               {isLive &&
               creatorOnAirOverlay.visible ? (

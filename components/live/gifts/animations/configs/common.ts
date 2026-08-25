@@ -34,7 +34,7 @@ export const commonGiftConfigurations: Record<
   rose: {
     animationKey: "rose",
     rarity: "common",
-    durationMs: 2400,
+    durationMs: 4000,
 
     audio: {
       soundKey: "vyro_rose",

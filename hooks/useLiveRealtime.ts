@@ -12,6 +12,7 @@ export interface UseLiveRealtimeResult {
   connected: boolean;
   lastUpdate: LiveRealtimeUpdate | null;
   lastReactionUpdate: LiveRealtimeUpdate | null;
+  lastGiftUpdate: LiveRealtimeUpdate | null;
   counterVersion: number;
   reactionVersion: number;
   giftVersion: number;
@@ -30,6 +31,8 @@ export function useLiveRealtime(
   const [lastReactionUpdate, setLastReactionUpdate] =
     useState<LiveRealtimeUpdate | null>(null);
 
+  const [lastGiftUpdate, setLastGiftUpdate] =
+    useState<LiveRealtimeUpdate | null>(null);
   const [counterVersion, setCounterVersion] = useState(0);
   const [reactionVersion, setReactionVersion] = useState(0);
   const [giftVersion, setGiftVersion] = useState(0);
@@ -66,6 +69,20 @@ export function useLiveRealtime(
 
         if (update.type === "event") {
           setEventVersion((value) => value + 1);
+
+          const payload =
+            update.payload as {
+              new?: {
+                event_type?: unknown;
+              };
+            };
+
+          if (
+            payload.new?.event_type ===
+            "gift_sent"
+          ) {
+            setLastGiftUpdate(update);
+          }
         }
       },
       (isConnected) => {
@@ -83,6 +100,7 @@ export function useLiveRealtime(
     connected,
     lastUpdate,
     lastReactionUpdate,
+    lastGiftUpdate,
     counterVersion,
     reactionVersion,
     giftVersion,
