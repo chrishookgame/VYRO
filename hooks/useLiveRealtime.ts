@@ -68,9 +68,10 @@ export function useLiveRealtime(
           setEventVersion((value) => value + 1);
         }
       },
+      (isConnected) => {
+        setConnected(isConnected);
+      },
     );
-
-    setConnected(true);
 
     return () => {
       setConnected(false);

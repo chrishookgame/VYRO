@@ -15,6 +15,7 @@ export interface LiveRealtimeUpdate {
 export function subscribeToLiveRoom(
   roomId: string,
   onUpdate: (update: LiveRealtimeUpdate) => void,
+  onStatus?: (connected: boolean) => void,
 ) {
   const channel = supabase
     .channel(`vyro-live:${roomId}`)
@@ -101,7 +102,11 @@ export function subscribeToLiveRoom(
     )
 
 
-    .subscribe();
+    .subscribe((status) => {
+      onStatus?.(
+        status === "SUBSCRIBED",
+      );
+    });
 
   return channel;
 }
