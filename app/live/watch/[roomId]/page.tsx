@@ -1602,22 +1602,6 @@ export default function LiveWatchPage() {
 
   return (
     <>
-      <div
-        aria-hidden={
-          !visualCoordination.showGiftOverlay
-        }
-        style={{
-          display:
-            visualCoordination.showGiftOverlay
-              ? "contents"
-              : "none",
-        }}
-      >
-        <GiftOverlay
-          gift={activeGift}
-          queuedGifts={queuedGifts}
-        />
-      </div>
 
       {visualCoordination.showUniverseOverlay ? (
         <UniverseLiveOverlay
@@ -2076,6 +2060,15 @@ export default function LiveWatchPage() {
               <LiveViewerMedia
                 roomId={roomId}
               />
+
+              {visualCoordination.showGiftOverlay ? (
+                <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]">
+                  <GiftOverlay
+                    gift={activeGift}
+                    queuedGifts={queuedGifts}
+                  />
+                </div>
+              ) : null}
 
               {isGuestOnStage ? (
                 <LiveGuestStageOverlay

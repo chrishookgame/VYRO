@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   GiftAnimationConfiguration,
 } from "./types";
 
@@ -34,7 +34,7 @@ export const premiumGiftConfigurations: Record<
   dragon: {
     animationKey: "dragon",
     rarity: "mythic",
-    durationMs: 9000,
+    durationMs: 21000,
 
     audio: {
       soundKey: "vyro_dragon",

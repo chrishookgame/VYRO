@@ -212,9 +212,11 @@ export function useLiveGiftOverlay(
           currentQueue.slice(1),
         );
       },
-      rarityDurations[
-        activeGift.rarity
-      ],
+      activeGift.animationKey === "dragon"
+        ? 21000
+        : rarityDurations[
+            activeGift.rarity
+          ],
     );
 
     return () => {

@@ -152,9 +152,14 @@ export default function GiftOverlay({
       return;
     }
 
-    playVyroGiftSound(
-      activeGift,
-    );
+    if (
+      activeGift.animationKey !==
+      "dragon"
+    ) {
+      playVyroGiftSound(
+        activeGift,
+      );
+    }
   }, [activeGift]);
 
   return (
