@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { VYRO_LIVE_VISUAL_LAYER } from "@/components/live/visualcoordination/GlobalVisualLayerPolicy";
 
@@ -154,7 +154,9 @@ export default function GiftOverlay({
 
     if (
       activeGift.animationKey !==
-      "dragon"
+        "dragon" &&
+      activeGift.animationKey !==
+        "golden_palace"
     ) {
       playVyroGiftSound(
         activeGift,

@@ -59,7 +59,7 @@ export const premiumGiftConfigurations: Record<
   golden_palace: {
     animationKey: "golden_palace",
     rarity: "mythic",
-    durationMs: 9500,
+    durationMs: 8000,
 
     audio: {
       soundKey: "vyro_golden_palace",

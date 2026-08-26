@@ -214,7 +214,9 @@ export function useLiveGiftOverlay(
       },
       activeGift.animationKey === "dragon"
         ? 21000
-        : rarityDurations[
+        : activeGift.animationKey === "golden_palace"
+          ? 8000
+          : rarityDurations[
             activeGift.rarity
           ],
     );

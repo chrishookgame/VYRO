@@ -1,11 +1,15 @@
-﻿"use client";
+"use client";
+
+import {
+  useEffect,
+  useRef,
+} from "react";
 
 import type {
   GiftAnimationComponentProps,
 } from "../types";
 
 import {
-  AnimationLayout,
   GlowEffect,
   ParticleSystem,
   ScreenFlash,
@@ -16,21 +20,96 @@ import {
   getGiftAnimationConfiguration,
 } from "../configs";
 
+const GOLDEN_PALACE_VIDEO_SRC =
+  "/visuals/gifts/golden-palace/vyro-golden-palace-cinematic.mp4";
+
 export default function GoldenPalaceAnimation({
   gift,
 }: GiftAnimationComponentProps) {
+  const videoRef =
+    useRef<HTMLVideoElement>(null);
 
   const config =
     getGiftAnimationConfiguration(
       gift.animationKey,
     );
 
+  useEffect(() => {
+    const video =
+      videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+
+    try {
+      video.currentTime = 0;
+    } catch {
+      // Metadata puede no estar listo todavía.
+    }
+
+    video.load();
+
+    const startPlayback = () => {
+      const currentVideo =
+        videoRef.current;
+
+      if (!currentVideo) {
+        return;
+      }
+
+      void currentVideo
+        .play()
+        .catch(() => {
+          // El navegador puede retrasar play()
+          // hasta que el recurso esté listo.
+        });
+    };
+
+    startPlayback();
+
+    video.addEventListener(
+      "loadeddata",
+      startPlayback,
+    );
+
+    video.addEventListener(
+      "canplay",
+      startPlayback,
+    );
+
+    return () => {
+      video.removeEventListener(
+        "loadeddata",
+        startPlayback,
+      );
+
+      video.removeEventListener(
+        "canplay",
+        startPlayback,
+      );
+
+      video.pause();
+    };
+  }, [gift.id]);
+
   return (
-    <AnimationLayout
-      rarity={gift.rarity}
-      title={gift.name}
-      subtitle={`${gift.amount.toLocaleString("es-419")} VYRO · ⚡ +${gift.energyAdded.toLocaleString("es-419")}`}
-    >
+    <div className="pointer-events-none absolute inset-0 z-[100] overflow-hidden bg-black">
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-cover"
+        src={GOLDEN_PALACE_VIDEO_SRC}
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-amber-950/20" />
 
       <GlowEffect
         className={
@@ -40,7 +119,8 @@ export default function GoldenPalaceAnimation({
 
       <ScreenFlash
         intensity={
-          config.visual.flashIntensity === "none"
+          config.visual.flashIntensity ===
+          "none"
             ? "soft"
             : config.visual.flashIntensity
         }
@@ -59,33 +139,39 @@ export default function GoldenPalaceAnimation({
         soundKey={
           config.audio.soundKey
         }
+        volume={
+          config.audio.volume
+        }
+        pitch={
+          config.audio.pitch
+        }
       />
 
-      <div className="relative flex min-h-80 items-center justify-center overflow-hidden">
+      <div className="absolute inset-x-0 bottom-0 z-30 flex justify-center px-6 pb-8 md:pb-12">
+        <div className="max-w-3xl text-center">
+          <p className="text-xs font-black uppercase tracking-[0.42em] text-amber-200 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] md:text-sm">
+            VYRO CINEMATIC GIFT
+          </p>
 
-        <div className="absolute h-72 w-72 rounded-full bg-yellow-300/20 blur-3xl animate-pulse"/>
+          <h2 className="mt-3 text-4xl font-black text-white drop-shadow-[0_4px_24px_rgba(0,0,0,1)] md:text-7xl">
+            {gift.name}
+          </h2>
 
-        <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-yellow-300 via-amber-500 to-yellow-100"/>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <span className="rounded-full border border-amber-300/30 bg-black/55 px-5 py-2 text-xs font-black uppercase tracking-[0.22em] text-amber-100 backdrop-blur-md">
+              VYRO Golden Palace
+            </span>
 
-        <div className="relative text-[10rem] md:text-[13rem] animate-bounce drop-shadow-[0_0_80px_rgba(255,215,0,.8)]">
-          🏰
+            <span className="rounded-full border border-yellow-300/30 bg-black/55 px-5 py-2 text-xs font-black uppercase tracking-[0.22em] text-yellow-100 backdrop-blur-md">
+              Mythic
+            </span>
+          </div>
+
+          <p className="mt-4 text-sm font-black text-amber-100 drop-shadow-[0_2px_12px_rgba(0,0,0,1)] md:text-base">
+            {gift.amount.toLocaleString("es-419")} VYRO · +{gift.energyAdded.toLocaleString("es-419")}
+          </p>
         </div>
-
       </div>
-
-      <div className="mt-5 flex justify-center gap-3 flex-wrap">
-
-        <span className="rounded-full border border-yellow-300/30 bg-yellow-300/10 px-5 py-2 text-xs font-black uppercase tracking-[0.25em] text-yellow-100">
-          Golden Palace
-        </span>
-
-        <span className="rounded-full border border-white/10 bg-black/20 px-5 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/80">
-          Mythic
-        </span>
-
-      </div>
-
-    </AnimationLayout>
+    </div>
   );
-
 }

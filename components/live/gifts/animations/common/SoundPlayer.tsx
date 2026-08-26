@@ -21,6 +21,14 @@ const audioLayersBySoundKey: Record<
   string,
   VyroAudioLayer[]
 > = {
+  vyro_golden_palace: [
+    {
+      src: "/audio/gifts/golden-palace/golden-palace-cinematic.mp3",
+      delayMs: 0,
+      volumeScale: 1,
+    },
+  ],
+
   vyro_dragon: [
     {
       src: "/audio/gifts/dragon/dragon-wings.mp3",
