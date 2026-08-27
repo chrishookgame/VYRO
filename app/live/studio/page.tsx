@@ -293,6 +293,12 @@ export default function LiveStudioPage() {
     useState("");
   const [settingsOpen, setSettingsOpen] =
     useState(false);
+  const [studioMasterOpen, setStudioMasterOpen] =
+    useState(true);
+  const [
+    controlCenterMasterOpen,
+    setControlCenterMasterOpen,
+  ] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
@@ -1246,6 +1252,196 @@ export default function LiveStudioPage() {
 
         <div className="mx-auto mt-8 grid w-full grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-7">
           <section className="min-w-0">
+            <div className="mb-4 rounded-2xl border border-cyan-300/20 bg-[#071019]/95 p-3 shadow-[0_15px_50px_rgba(0,0,0,0.35)]">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+                    VYRO LIVE CONTROL
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    Controles principales del Studio
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStudioMasterOpen(
+                      (current) => !current,
+                    );
+
+                    if (studioMasterOpen) {
+                      setSettingsOpen(false);
+                    }
+                  }}
+                  aria-expanded={studioMasterOpen}
+                  className={`shrink-0 rounded-xl border px-5 py-2.5 text-xs font-black uppercase tracking-[0.14em] transition ${
+                    studioMasterOpen
+                      ? "border-cyan-300/50 bg-cyan-300 text-black shadow-[0_0_25px_rgba(103,232,249,0.22)]"
+                      : "border-white/15 bg-white/[0.06] text-white hover:border-cyan-300/40"
+                  }`}
+                >
+                  {studioMasterOpen
+                    ? "MASTER ON"
+                    : "MASTER"}
+                </button>
+              </div>
+
+              {studioMasterOpen ? (
+                <div className="mt-3">
+                  <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    <button
+                      type="button"
+                      onClick={toggleCamera}
+                      className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {cameraEnabled ? (
+                        <Camera className="mx-auto text-cyan-400" />
+                      ) : (
+                        <CameraOff className="mx-auto text-red-400" />
+                      )}
+
+                      <span className="mt-2 block text-sm font-semibold">
+                        {cameraEnabled ? "Cámara activa" : "Cámara apagada"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={toggleMicrophone}
+                      className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
+                    >
+                      {microphoneEnabled ? (
+                        <Mic className="mx-auto text-cyan-400" />
+                      ) : (
+                        <MicOff className="mx-auto text-red-400" />
+                      )}
+
+                      <span className="mt-2 block text-sm font-semibold">
+                        {microphoneEnabled ? "Micrófono activo" : "Micrófono apagado"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void shareScreen();
+                      }}
+                      disabled={!devicesReady}
+                      className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <MonitorUp className="mx-auto text-cyan-400" />
+
+                      <span className="mt-2 block text-sm font-semibold">
+                        {screenShareEnabled ? "Detener pantalla" : "Compartir pantalla"}
+                      </span>
+                    </button>
+
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettingsOpen(
+                            (current) => !current,
+                          );
+                        }}
+                        className="w-full rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
+                      >
+                        <Settings className="mx-auto text-cyan-400" />
+
+                        <span className="mt-2 block text-sm font-semibold">
+                          Ajustes
+                        </span>
+                      </button>
+
+                      {settingsOpen ? (
+                        <div className="absolute bottom-full right-0 z-50 mb-3 w-[360px] rounded-3xl border border-cyan-500/30 bg-[#0B1220] p-5 text-left shadow-2xl">
+                          <h3 className="font-black text-white">
+                            Dispositivos VYRO LIVE
+                          </h3>
+
+                          <p className="mt-1 text-xs text-gray-400">
+                            Controla qué cámara y micrófono usa tu Studio.
+                          </p>
+
+                          <label className="mt-5 block">
+                            <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
+                              Cámara
+                            </span>
+
+                            <select
+                              value={selectedCameraId}
+                              onChange={(event) => {
+                                setSelectedCameraId(
+                                  event.target.value,
+                                );
+                              }}
+                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
+                            >
+                              {availableCameras.map(
+                                (device, index) => (
+                                  <option
+                                    key={device.deviceId}
+                                    value={device.deviceId}
+                                  >
+                                    {device.label ||
+                                      `Cámara ${index + 1}`}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          </label>
+
+                          <label className="mt-4 block">
+                            <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
+                              Micrófono
+                            </span>
+
+                            <select
+                              value={selectedMicrophoneId}
+                              onChange={(event) => {
+                                setSelectedMicrophoneId(
+                                  event.target.value,
+                                );
+                              }}
+                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
+                            >
+                              {availableMicrophones.map(
+                                (device, index) => (
+                                  <option
+                                    key={device.deviceId}
+                                    value={device.deviceId}
+                                  >
+                                    {device.label ||
+                                      `Micrófono ${index + 1}`}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void startDevices(
+                                selectedCameraId,
+                                selectedMicrophoneId,
+                              );
+
+                              setSettingsOpen(false);
+                            }}
+                            className="mt-5 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-black transition hover:bg-cyan-400"
+                          >
+                            Aplicar dispositivos
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <div className="relative flex min-h-[500px] xl:min-h-[560px] items-center justify-center overflow-hidden rounded-3xl border border-cyan-500/20 bg-black">
               <video
                 ref={videoRef}
@@ -1575,156 +1771,6 @@ export default function LiveStudioPage() {
               ) : null}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <button
-                type="button"
-                onClick={toggleCamera}
-                className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {cameraEnabled ? (
-                  <Camera className="mx-auto text-cyan-400" />
-                ) : (
-                  <CameraOff className="mx-auto text-red-400" />
-                )}
-
-                <span className="mt-2 block text-sm font-semibold">
-                  {cameraEnabled ? "Cámara activa" : "Cámara apagada"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleMicrophone}
-                className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
-              >
-                {microphoneEnabled ? (
-                  <Mic className="mx-auto text-cyan-400" />
-                ) : (
-                  <MicOff className="mx-auto text-red-400" />
-                )}
-
-                <span className="mt-2 block text-sm font-semibold">
-                  {microphoneEnabled ? "Micrófono activo" : "Micrófono apagado"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  void shareScreen();
-                }}
-                disabled={!devicesReady}
-                className="rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <MonitorUp className="mx-auto text-cyan-400" />
-
-                <span className="mt-2 block text-sm font-semibold">
-                  {screenShareEnabled ? "Detener pantalla" : "Compartir pantalla"}
-                </span>
-              </button>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettingsOpen(
-                      (current) => !current,
-                    );
-                  }}
-                  className="w-full rounded-2xl border border-white/10 bg-[#111827] p-4 transition hover:border-cyan-400"
-                >
-                  <Settings className="mx-auto text-cyan-400" />
-
-                  <span className="mt-2 block text-sm font-semibold">
-                    Ajustes
-                  </span>
-                </button>
-
-                {settingsOpen ? (
-                  <div className="absolute bottom-full right-0 z-50 mb-3 w-[360px] rounded-3xl border border-cyan-500/30 bg-[#0B1220] p-5 text-left shadow-2xl">
-                    <h3 className="font-black text-white">
-                      Dispositivos VYRO LIVE
-                    </h3>
-
-                    <p className="mt-1 text-xs text-gray-400">
-                      Controla qué cámara y micrófono usa tu Studio.
-                    </p>
-
-                    <label className="mt-5 block">
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
-                        Cámara
-                      </span>
-
-                      <select
-                        value={selectedCameraId}
-                        onChange={(event) => {
-                          setSelectedCameraId(
-                            event.target.value,
-                          );
-                        }}
-                        className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
-                      >
-                        {availableCameras.map(
-                          (device, index) => (
-                            <option
-                              key={device.deviceId}
-                              value={device.deviceId}
-                            >
-                              {device.label ||
-                                `Cámara ${index + 1}`}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    </label>
-
-                    <label className="mt-4 block">
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-cyan-400">
-                        Micrófono
-                      </span>
-
-                      <select
-                        value={selectedMicrophoneId}
-                        onChange={(event) => {
-                          setSelectedMicrophoneId(
-                            event.target.value,
-                          );
-                        }}
-                        className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-sm text-white outline-none focus:border-cyan-400"
-                      >
-                        {availableMicrophones.map(
-                          (device, index) => (
-                            <option
-                              key={device.deviceId}
-                              value={device.deviceId}
-                            >
-                              {device.label ||
-                                `Micrófono ${index + 1}`}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void startDevices(
-                          selectedCameraId,
-                          selectedMicrophoneId,
-                        );
-
-                        setSettingsOpen(false);
-                      }}
-                      className="mt-5 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-black transition hover:bg-cyan-400"
-                    >
-                      Aplicar dispositivos
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
             <div className="mx-auto mt-6 grid w-full gap-5 md:grid-cols-2">
 <div className="min-w-0 rounded-3xl border border-cyan-500/20 bg-[#0B1220] p-6">
               <div className="flex items-center gap-3">
@@ -1847,133 +1893,174 @@ export default function LiveStudioPage() {
         </div>
 
 
-        <div className="mt-8 w-full">
+                    <section className="mt-8 w-full">
+              <div className="overflow-hidden rounded-3xl border border-cyan-400/20 bg-[#071019]/95 shadow-[0_20px_70px_rgba(0,0,0,0.4)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setControlCenterMasterOpen(
+                      (current) => !current,
+                    );
+                  }}
+                  aria-expanded={controlCenterMasterOpen}
+                  className="flex w-full items-center justify-between gap-5 p-5 text-left transition hover:bg-white/[0.03] md:p-6"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-300">
+                      VYRO PRODUCTION CONTROL
+                    </p>
+
+                    <h2 className="mt-1 text-xl font-black text-white md:text-2xl">
+                      LIVE Control Center
+                    </h2>
+
+                    <p className="mt-1 text-xs font-semibold text-gray-400 md:text-sm">
+                      Battle · Ranking · Intelligence · Monetization
+                    </p>
+                  </div>
+
+                  <div
+                    className={`shrink-0 rounded-xl border px-5 py-3 text-xs font-black uppercase tracking-[0.14em] transition ${
+                      controlCenterMasterOpen
+                        ? "border-cyan-300/50 bg-cyan-300 text-black shadow-[0_0_25px_rgba(103,232,249,0.2)]"
+                        : "border-white/15 bg-white/[0.06] text-white"
+                    }`}
+                  >
+                    {controlCenterMasterOpen
+                      ? "MASTER ON"
+                      : "MASTER"}
+                  </div>
+                </button>
+
+                {controlCenterMasterOpen ? (
+                  <div className="border-t border-white/10 px-4 pb-6 md:px-6">
+<div className="mt-8 w-full">
           <BattleStudio
-            disabled={
-              !session ||
-              battleInvitationsLoading ||
-              creatingBattleSeries ||
-              battleSeriesProcessing
-            }
-            onCreateSeries={(config) => {
-              void handleCreateBattleSeries(
-                config,
-              );
-            }}
+                  disabled={
+                    !session ||
+                    battleInvitationsLoading ||
+                    creatingBattleSeries ||
+                    battleSeriesProcessing
+                  }
+                  onCreateSeries={(config) => {
+                    void handleCreateBattleSeries(
+                      config,
+                    );
+                  }}
           />
         </div>
 
         {activeBattleSeries ? (
           <section className="mt-10 overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-[#07111D] text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 p-6 md:p-8">
-              <div>
-                <div className="flex items-center gap-3 text-fuchsia-300">
-                  <Trophy size={22} />
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 p-6 md:p-8">
+                    <div>
+                      <div className="flex items-center gap-3 text-fuchsia-300">
+                        <Trophy size={22} />
 
-                  <p className="text-xs font-black uppercase tracking-[0.24em]">
-                    VYRO Battle Series
-                  </p>
-                </div>
+                        <p className="text-xs font-black uppercase tracking-[0.24em]">
+                          VYRO Battle Series
+                        </p>
+                      </div>
 
-                <h2 className="mt-3 text-2xl font-black">
-                  Estado de la serie
-                </h2>
-              </div>
+                      <h2 className="mt-3 text-2xl font-black">
+                        Estado de la serie
+                      </h2>
+                    </div>
 
-              <div className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-4 py-2 text-sm font-black uppercase tracking-[0.14em] text-fuchsia-200">
-                {activeBattleSeries.status}
-              </div>
-            </div>
+                    <div className="rounded-full border border-fuchsia-400/30 bg-fuchsia-400/10 px-4 py-2 text-sm font-black uppercase tracking-[0.14em] text-fuchsia-200">
+                      {activeBattleSeries.status}
+                    </div>
+                  </div>
 
-            <div className="grid gap-4 p-6 md:grid-cols-3 md:p-8">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                <div className="flex items-center gap-3 text-cyan-300">
-                  <Swords size={20} />
+                  <div className="grid gap-4 p-6 md:grid-cols-3 md:p-8">
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                      <div className="flex items-center gap-3 text-cyan-300">
+                        <Swords size={20} />
 
-                  <p className="text-xs font-black uppercase tracking-[0.18em]">
-                    Ronda
-                  </p>
-                </div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em]">
+                          Ronda
+                        </p>
+                      </div>
 
-                <p className="mt-4 text-3xl font-black">
-                  {activeBattleSeries.currentPosition}
-                  <span className="text-white/35">
-                    /{activeBattleSeries.config.totalBattles}
-                  </span>
-                </p>
-              </div>
+                      <p className="mt-4 text-3xl font-black">
+                        {activeBattleSeries.currentPosition}
+                        <span className="text-white/35">
+                          /{activeBattleSeries.config.totalBattles}
+                        </span>
+                      </p>
+                    </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                <div className="flex items-center gap-3 text-violet-300">
-                  <Clock3 size={20} />
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                      <div className="flex items-center gap-3 text-violet-300">
+                        <Clock3 size={20} />
 
-                  <p className="text-xs font-black uppercase tracking-[0.18em]">
-                    Countdown
-                  </p>
-                </div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em]">
+                          Countdown
+                        </p>
+                      </div>
 
-                <p
-                  aria-live="polite"
-                  className="mt-4 text-3xl font-black tabular-nums"
-                >
-                  {battleCountdownPhase === "idle"
-                    ? "--:--"
-                    : battleSeriesCountdown.label}
-                </p>
-              </div>
+                      <p
+                        aria-live="polite"
+                        className="mt-4 text-3xl font-black tabular-nums"
+                      >
+                        {battleCountdownPhase === "idle"
+                          ? "--:--"
+                          : battleSeriesCountdown.label}
+                      </p>
+                    </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
-                  Batalla actual
-                </p>
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+                        Batalla actual
+                      </p>
 
-                <p className="mt-4 text-xl font-black">
-                  {activeBattle?.status ??
-                    "Esperando"}
-                </p>
+                      <p className="mt-4 text-xl font-black">
+                        {activeBattle?.status ??
+                          "Esperando"}
+                      </p>
 
-                <p className="mt-2 truncate text-xs text-white/35">
-                  {activeBattle?.id ??
-                    "Sin batalla asignada"}
-                </p>
-              </div>
-            </div>
+                      <p className="mt-2 truncate text-xs text-white/35">
+                        {activeBattle?.id ??
+                          "Sin batalla asignada"}
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="border-t border-white/10 px-6 py-5 md:px-8">
-              <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-white/60">
-                {battleSeriesProcessing ? (
-                  <>
-                    <LoaderCircle
-                      size={18}
-                      className="animate-spin text-fuchsia-300"
-                    />
+                  <div className="border-t border-white/10 px-6 py-5 md:px-8">
+                    <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-white/60">
+                      {battleSeriesProcessing ? (
+                        <>
+                          <LoaderCircle
+                            size={18}
+                            className="animate-spin text-fuchsia-300"
+                          />
 
-                    <span>
-                      Procesando cambio de ronda...
-                    </span>
-                  </>
-                ) : battleCountdownPhase ===
-                  "intermission" ? (
-                  <span>
-                    Intermedio activo. La siguiente ronda comenzará automáticamente.
-                  </span>
-                ) : battleCountdownPhase ===
-                  "active" ? (
-                  <span>
-                    Battle activa y sincronizada en tiempo real.
-                  </span>
-                ) : activeBattleSeries.status ===
-                  "finished" ? (
-                  <span>
-                    Battle Series finalizada.
-                  </span>
-                ) : (
-                  <span>
-                    Battle Series preparada.
-                  </span>
-                )}
-              </div>
-            </div>
+                          <span>
+                            Procesando cambio de ronda...
+                          </span>
+                        </>
+                      ) : battleCountdownPhase ===
+                        "intermission" ? (
+                        <span>
+                          Intermedio activo. La siguiente ronda comenzará automáticamente.
+                        </span>
+                      ) : battleCountdownPhase ===
+                        "active" ? (
+                        <span>
+                          Battle activa y sincronizada en tiempo real.
+                        </span>
+                      ) : activeBattleSeries.status ===
+                        "finished" ? (
+                        <span>
+                          Battle Series finalizada.
+                        </span>
+                      ) : (
+                        <span>
+                          Battle Series preparada.
+                        </span>
+                      )}
+                    </div>
+                  </div>
           </section>
         ) : null}
 
@@ -1981,48 +2068,56 @@ export default function LiveStudioPage() {
 
         {session ? (
           <div className="mt-8">
-            <LiveRankingPanel
-              roomId={session.id}
-            />
+                  <LiveRankingPanel
+                    roomId={session.id}
+                  />
           </div>
         ) : null}
 
         <div className="mt-8">
           <LiveCommandCenter
-            activeViewers={
-              dashboard.activeViewers
-            }
-            peakViewers={
-              dashboard.peakViewers
-            }
-            totalJoins={
-              dashboard.totalJoins
-            }
-            reactions={
-              dashboard.reactions
-            }
-            gifts={
-              dashboard.gifts
-            }
-            grossRevenue={
-              dashboard.grossRevenue
-            }
-            creatorRevenue={
-              dashboard.creatorRevenue
-            }
-            energy={
-              dashboard.energy
-            }
-            messages={
-              dashboard.messages
-            }
-            connected={
-              isLive &&
-              Boolean(session) &&
-              dashboardConnected
-            }
+                  activeViewers={
+                    dashboard.activeViewers
+                  }
+                  peakViewers={
+                    dashboard.peakViewers
+                  }
+                  totalJoins={
+                    dashboard.totalJoins
+                  }
+                  reactions={
+                    dashboard.reactions
+                  }
+                  gifts={
+                    dashboard.gifts
+                  }
+                  grossRevenue={
+                    dashboard.grossRevenue
+                  }
+                  creatorRevenue={
+                    dashboard.creatorRevenue
+                  }
+                  energy={
+                    dashboard.energy
+                  }
+                  messages={
+                    dashboard.messages
+                  }
+                  connected={
+                    isLive &&
+                    Boolean(session) &&
+                    dashboardConnected
+                  }
           />
         </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-white/10 px-5 py-3 text-xs font-semibold text-gray-500 md:px-6">
+                    Battle Studio, Ranking y Command Center están recogidos.
+                  </div>
+                )}
+              </div>
+            </section>
       </section>
     </main>
   );
