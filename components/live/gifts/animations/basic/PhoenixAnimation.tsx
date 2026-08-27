@@ -8,18 +8,18 @@ import GiftPresentationStage from "../common/GiftPresentationStage";
 import SoundPlayer from "../common/SoundPlayer";
 import VyroGiftFxStage from "../common/VyroGiftFxStage";
 
-export default function RoseAnimation({
+export default function PhoenixAnimation({
   gift,
 }: GiftAnimationComponentProps) {
   return (
     <GiftPresentationStage>
       <VyroGiftFxStage
-        theme="rose"
+        theme="phoenix"
         title={gift.name}
-        subtitle="Pétalos de energía positiva"
-        symbol="🌹"
+        subtitle="Renacimiento de fuego VYRO"
+        symbol="🔥"
       >
-        <SoundPlayer soundKey="rose" />
+        <SoundPlayer soundKey="phoenix" />
       </VyroGiftFxStage>
     </GiftPresentationStage>
   );

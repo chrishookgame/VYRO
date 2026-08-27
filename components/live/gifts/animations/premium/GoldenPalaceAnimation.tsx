@@ -9,6 +9,8 @@ import type {
   GiftAnimationComponentProps,
 } from "../types";
 
+import GiftPresentationStage from "../common/GiftPresentationStage";
+
 import {
   GlowEffect,
   ParticleSystem,
@@ -98,7 +100,8 @@ export default function GoldenPalaceAnimation({
   }, [gift.id]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[100] overflow-hidden bg-black">
+    <GiftPresentationStage>
+      <div className="pointer-events-none absolute inset-0 z-[100] overflow-hidden bg-black">
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
@@ -172,6 +175,7 @@ export default function GoldenPalaceAnimation({
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </GiftPresentationStage>
   );
 }

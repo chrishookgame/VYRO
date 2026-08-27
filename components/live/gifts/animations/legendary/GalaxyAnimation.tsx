@@ -8,18 +8,18 @@ import GiftPresentationStage from "../common/GiftPresentationStage";
 import SoundPlayer from "../common/SoundPlayer";
 import VyroGiftFxStage from "../common/VyroGiftFxStage";
 
-export default function RoseAnimation({
+export default function GalaxyAnimation({
   gift,
 }: GiftAnimationComponentProps) {
   return (
     <GiftPresentationStage>
       <VyroGiftFxStage
-        theme="rose"
+        theme="galaxy"
         title={gift.name}
-        subtitle="Pétalos de energía positiva"
-        symbol="🌹"
+        subtitle="Explosión estelar del Universo VYRO"
+        symbol="🌌"
       >
-        <SoundPlayer soundKey="rose" />
+        <SoundPlayer soundKey="galaxy" />
       </VyroGiftFxStage>
     </GiftPresentationStage>
   );

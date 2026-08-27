@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type {
   PropsWithChildren,
@@ -7,6 +7,8 @@ import type {
 import type {
   LiveGiftRarity,
 } from "@/lib/live";
+
+import GiftPresentationStage from "./GiftPresentationStage";
 
 interface AnimationLayoutProps
   extends PropsWithChildren {
@@ -38,9 +40,10 @@ export default function AnimationLayout({
   children,
 }: AnimationLayoutProps) {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-black/30 p-6 backdrop-blur-[2px]">
-      <section
-        className={`relative w-full max-w-2xl overflow-hidden rounded-[2.75rem] border p-8 text-center shadow-[0_35px_140px_rgba(0,0,0,0.7)] ${rarityStyles[rarity]}`}
+    <GiftPresentationStage>
+      <div className="relative flex h-full w-full items-end justify-center px-3 pb-3" data-vyro-layout="VYRO_STANDARD_GIFT_PRESENTATION">
+        <section
+        className={`relative w-full max-w-xl overflow-hidden rounded-[1.75rem] border px-5 py-4 text-center shadow-[0_20px_70px_rgba(0,0,0,0.55)] backdrop-blur-md ${rarityStyles[rarity]}`}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.16),transparent_68%)]" />
 
@@ -61,7 +64,8 @@ export default function AnimationLayout({
             </p>
           ) : null}
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </GiftPresentationStage>
   );
 }

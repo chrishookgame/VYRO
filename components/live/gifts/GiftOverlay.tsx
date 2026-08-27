@@ -156,7 +156,9 @@ export default function GiftOverlay({
       activeGift.animationKey !==
         "dragon" &&
       activeGift.animationKey !==
-        "golden_palace"
+        "golden_palace" &&
+      activeGift.animationKey !==
+        "space_shuttle"
     ) {
       playVyroGiftSound(
         activeGift,

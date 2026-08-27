@@ -4,11 +4,9 @@ import type {
   GiftAnimationComponentProps,
 } from "../types";
 
+import GiftPresentationStage from "../common/GiftPresentationStage";
+
 import {
-  AnimationLayout,
-  GlowEffect,
-  ParticleSystem,
-  ScreenFlash,
   SoundPlayer,
 } from "../common";
 
@@ -25,78 +23,41 @@ export default function SpaceShuttleAnimation({
     );
 
   return (
-    <AnimationLayout
-      rarity={gift.rarity}
-      title={gift.name}
-      subtitle={`${gift.amount.toLocaleString("es-419")} VYRO · ⚡ +${gift.energyAdded.toLocaleString("es-419")}`}
-    >
-      <GlowEffect
-        className={
-          config.visual.glowClassName
-        }
-      />
-
-      <ScreenFlash
-        intensity={
-          config.visual.flashIntensity ===
-          "none"
-            ? "soft"
-            : config.visual.flashIntensity
-        }
-      />
-
-      <ParticleSystem
-        symbols={
-          config.particles.symbols
-        }
-        count={
-          config.particles.count
-        }
+    <GiftPresentationStage>
+      <div className="pointer-events-none absolute inset-0 z-[120] overflow-hidden bg-black">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        src="/visuals/gifts/space-shuttle/vyro-space-shuttle-cinematic.mp4"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
       />
 
       <SoundPlayer
         soundKey={
           config.audio.soundKey
         }
+        volume={
+          config.audio.volume
+        }
+        pitch={
+          config.audio.pitch
+        }
       />
 
-      <div className="relative flex min-h-80 items-center justify-center overflow-hidden rounded-[2rem]">
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-950 via-[#050816] to-black" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center px-4">
+        <div className="rounded-full border border-white/20 bg-black/55 px-6 py-3 text-center shadow-2xl backdrop-blur-md">
+          <div className="text-sm font-black uppercase tracking-[0.28em] text-white">
+            {gift.name}
+          </div>
 
-        <div className="absolute left-[8%] top-[12%] animate-pulse text-3xl">
-          ⭐
-        </div>
-
-        <div className="absolute right-[10%] top-[20%] animate-pulse text-4xl">
-          ✨
-        </div>
-
-        <div className="absolute left-[20%] top-[34%] animate-pulse text-2xl opacity-70">
-          ⭐
-        </div>
-
-        <div className="absolute bottom-0 left-1/2 h-48 w-24 -translate-x-1/2 rounded-full bg-orange-400/70 blur-3xl" />
-
-        <div className="absolute bottom-8 left-1/2 h-28 w-16 -translate-x-1/2 rounded-full bg-yellow-200/80 blur-2xl" />
-
-        <div className="relative animate-bounce text-[10rem] drop-shadow-[0_0_70px_rgba(56,189,248,0.8)] md:text-[13rem]">
-          🚀
-        </div>
-
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-6xl drop-shadow-[0_0_35px_rgba(249,115,22,0.9)]">
-          🔥
+          <div className="mt-1 text-xs font-bold text-white/80">
+            {gift.amount.toLocaleString("es-419")} VYRO
+          </div>
         </div>
       </div>
-
-      <div className="relative mt-5 flex flex-wrap justify-center gap-3">
-        <span className="rounded-full border border-sky-300/30 bg-sky-300/10 px-5 py-2 text-xs font-black uppercase tracking-[0.25em] text-sky-100">
-          Space Launch
-        </span>
-
-        <span className="rounded-full border border-white/10 bg-black/20 px-5 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/80">
-          Mythic
-        </span>
       </div>
-    </AnimationLayout>
+    </GiftPresentationStage>
   );
 }

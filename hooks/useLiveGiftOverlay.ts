@@ -216,7 +216,9 @@ export function useLiveGiftOverlay(
         ? 21000
         : activeGift.animationKey === "golden_palace"
           ? 8000
-          : rarityDurations[
+          : activeGift.animationKey === "space_shuttle"
+            ? 10000
+            : rarityDurations[
             activeGift.rarity
           ],
     );

@@ -21,6 +21,13 @@ const audioLayersBySoundKey: Record<
   string,
   VyroAudioLayer[]
 > = {
+  vyro_space_shuttle: [
+    {
+      src: "/audio/gifts/space-shuttle/space-shuttle-cinematic.mp3",
+      delayMs: 0,
+      volumeScale: 1,
+    },
+  ],
   vyro_golden_palace: [
     {
       src: "/audio/gifts/golden-palace/golden-palace-cinematic.mp3",
