@@ -8,20 +8,12 @@ import {
 
 import {
   advanceBattleSeriesRound,
-  finishLiveBattleSeries,
   getActiveLiveBattleSeries,
   getLiveBattleSeriesById,
   type LiveBattleSeriesDetails,
 } from "@/lib/live-battle-series";
 
 import { supabase } from "@/lib/supabase";
-
-export interface FinishLiveBattleSeriesInput {
-  winnerId: string | null;
-  leftWins: number;
-  rightWins: number;
-  draws: number;
-}
 
 export interface UseLiveBattleSeriesResult {
   details: LiveBattleSeriesDetails | null;
@@ -34,9 +26,6 @@ export interface UseLiveBattleSeriesResult {
   refresh: () => Promise<void>;
   advanceRound: (
     battleId: string,
-  ) => Promise<LiveBattleSeriesDetails | null>;
-  finishSeries: (
-    input: FinishLiveBattleSeriesInput,
   ) => Promise<LiveBattleSeriesDetails | null>;
 }
 
@@ -116,42 +105,6 @@ export function useLiveBattleSeries(
           seriesError instanceof Error
             ? seriesError.message
             : "No se pudo avanzar la Battle Series.",
-        );
-
-        return null;
-      }
-    },
-    [details],
-  );
-
-  const finishSeries = useCallback(
-    async (
-      input: FinishLiveBattleSeriesInput,
-    ) => {
-      if (!details) {
-        return null;
-      }
-
-      setError("");
-
-      try {
-        const nextDetails =
-          await finishLiveBattleSeries(
-            details.row.id,
-            input.winnerId,
-            input.leftWins,
-            input.rightWins,
-            input.draws,
-          );
-
-        setDetails(nextDetails);
-
-        return nextDetails;
-      } catch (seriesError) {
-        setError(
-          seriesError instanceof Error
-            ? seriesError.message
-            : "No se pudo finalizar la Battle Series.",
         );
 
         return null;
@@ -244,6 +197,5 @@ export function useLiveBattleSeries(
     error,
     refresh,
     advanceRound,
-    finishSeries,
   };
 }

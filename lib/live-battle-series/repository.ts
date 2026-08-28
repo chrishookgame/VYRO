@@ -9,7 +9,6 @@ import type {
   CreateLiveBattleSeriesInput,
   LiveBattleSeriesDetails,
   LiveBattleSeriesRow,
-  UpdateLiveBattleSeriesInput,
 } from "./types";
 
 function createRounds(
@@ -200,91 +199,6 @@ export async function getActiveLiveBattleSeries(
     : null;
 }
 
-export async function updateLiveBattleSeries(
-  seriesId: string,
-  input: UpdateLiveBattleSeriesInput,
-): Promise<LiveBattleSeriesDetails> {
-  const values: Record<
-    string,
-    unknown
-  > = {};
-
-  if (input.status !== undefined) {
-    values.status = input.status;
-  }
-
-  if (
-    input.currentPosition !==
-    undefined
-  ) {
-    values.current_position =
-      input.currentPosition;
-  }
-
-  if (input.leftWins !== undefined) {
-    values.left_wins =
-      input.leftWins;
-  }
-
-  if (input.rightWins !== undefined) {
-    values.right_wins =
-      input.rightWins;
-  }
-
-  if (input.draws !== undefined) {
-    values.draws =
-      input.draws;
-  }
-
-  if (input.winnerId !== undefined) {
-    values.winner_id =
-      input.winnerId;
-  }
-
-  if (input.startedAt !== undefined) {
-    values.started_at =
-      input.startedAt;
-  }
-
-  if (
-    input.nextBattleAt !==
-    undefined
-  ) {
-    values.next_battle_at =
-      input.nextBattleAt;
-  }
-
-  if (input.finishedAt !== undefined) {
-    values.finished_at =
-      input.finishedAt;
-  }
-
-  if (
-    input.cancelledAt !==
-    undefined
-  ) {
-    values.cancelled_at =
-      input.cancelledAt;
-  }
-
-  const { data, error } = await supabase
-    .from("live_battle_series")
-    .update(values)
-    .eq("id", seriesId)
-    .select("*")
-    .single();
-
-  if (error) {
-    throw new Error(
-      `No se pudo actualizar la Battle Series: ${error.message}`,
-    );
-  }
-
-  return mapDetails(
-    data as LiveBattleSeriesRow,
-  );
-}
-
 interface StartLiveBattleRoundRpcRow {
   series_id: string;
   battle_id: string;
@@ -392,25 +306,4 @@ export async function advanceBattleSeriesRound(
   }
 
   return updatedSeries;
-}
-export function finishLiveBattleSeries(
-  seriesId: string,
-  winnerId: string | null,
-  leftWins: number,
-  rightWins: number,
-  draws: number,
-): Promise<LiveBattleSeriesDetails> {
-  return updateLiveBattleSeries(
-    seriesId,
-    {
-      status: "finished",
-      winnerId,
-      leftWins,
-      rightWins,
-      draws,
-      nextBattleAt: null,
-      finishedAt:
-        new Date().toISOString(),
-    },
-  );
 }

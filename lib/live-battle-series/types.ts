@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   BattleSeriesConfig,
   BattleSeriesState,
 } from "@/components/live/battle";
@@ -44,19 +44,6 @@ export interface CreateLiveBattleSeriesInput {
   invitationId?: string | null;
   config: BattleSeriesConfig;
   scheduledAt?: string | null;
-}
-
-export interface UpdateLiveBattleSeriesInput {
-  status?: LiveBattleSeriesStatus;
-  currentPosition?: number;
-  leftWins?: number;
-  rightWins?: number;
-  draws?: number;
-  winnerId?: string | null;
-  startedAt?: string | null;
-  nextBattleAt?: string | null;
-  finishedAt?: string | null;
-  cancelledAt?: string | null;
 }
 
 export interface LiveBattleSeriesDetails {
