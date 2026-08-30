@@ -2389,7 +2389,9 @@ export default function LiveStudioPage() {
                   <div className="border-t border-white/10 px-4 pb-6 md:px-6">
 <div className="mt-8 w-full">
           <BattleStudio
-
+                  roomId={
+                    session?.id ?? null
+                  }
                   disabled={
                     !session ||
                     battleInvitationsLoading ||

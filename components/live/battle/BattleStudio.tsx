@@ -20,6 +20,7 @@ import type {
 import BattleInvitationPanel from "./BattleInvitationPanel";
 
 interface BattleStudioProps {
+  roomId?: string | null;
   disabled?: boolean;
   onCreateSeries?: (
     config: BattleSeriesConfig,
@@ -70,6 +71,7 @@ function formatDuration(
 }
 
 export default function BattleStudio({
+  roomId,
   disabled = false,
   onCreateSeries,
 }: BattleStudioProps) {
@@ -377,7 +379,11 @@ export default function BattleStudio({
       </section>
 
       <div className="mt-8">
-        <BattleInvitationPanel />
+        <BattleInvitationPanel
+          roomId={roomId}
+          seriesConfig={config}
+          disabled={disabled}
+        />
       </div>
     </>
   );

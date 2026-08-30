@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -12,8 +12,10 @@ import {
   LoaderCircle,
   Mail,
   Radio,
+  Search,
   Send,
   Swords,
+  UserRound,
   X,
 } from "lucide-react";
 
@@ -24,6 +26,25 @@ import {
 import type {
   BattleInvitation,
 } from "@/lib/battle-invitations";
+
+import { supabase } from "@/lib/supabase";
+
+import type {
+  BattleSeriesConfig,
+} from "./BattleScheduler";
+
+interface RivalSearchResult {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface BattleInvitationPanelProps {
+  roomId?: string | null;
+  seriesConfig: BattleSeriesConfig;
+  disabled?: boolean;
+}
 
 function getProfileName(
   invitation: BattleInvitation,
@@ -261,13 +282,18 @@ function InvitationCard({
   );
 }
 
-export default function BattleInvitationPanel() {
+export default function BattleInvitationPanel({
+  roomId,
+  seriesConfig,
+  disabled = false,
+}: BattleInvitationPanelProps) {
   const {
     received,
     sent,
     loading,
     connected,
     error,
+    sendInvitation,
     acceptInvitation,
     declineInvitation,
     cancelInvitation,
@@ -282,6 +308,21 @@ export default function BattleInvitationPanel() {
   const [actionError, setActionError] =
     useState("");
 
+  const [rivalQuery, setRivalQuery] =
+    useState("");
+
+  const [rivalResults, setRivalResults] =
+    useState<RivalSearchResult[]>([]);
+
+  const [selectedRival, setSelectedRival] =
+    useState<RivalSearchResult | null>(null);
+
+  const [searchingRivals, setSearchingRivals] =
+    useState(false);
+
+  const [sendingInvitation, setSendingInvitation] =
+    useState(false);
+
   useEffect(() => {
     const intervalId =
       window.setInterval(() => {
@@ -294,6 +335,140 @@ export default function BattleInvitationPanel() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    const cleanQuery =
+      rivalQuery.trim();
+
+    if (
+      cleanQuery.length < 2 ||
+      selectedRival
+    ) {
+      setRivalResults([]);
+      setSearchingRivals(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const timeoutId =
+      window.setTimeout(() => {
+        void (async () => {
+          setSearchingRivals(true);
+          setActionError("");
+
+          try {
+            const {
+              data: {
+                user,
+              },
+              error: userError,
+            } = await supabase.auth.getUser();
+
+            if (userError || !user) {
+              throw new Error(
+                "Debes iniciar sesión para buscar un rival.",
+              );
+            }
+
+            const {
+              data,
+              error: searchError,
+            } = await supabase
+              .from("profiles")
+              .select(
+                "id,username,full_name,avatar_url",
+              )
+              .neq("id", user.id)
+              .ilike(
+                "username",
+                `%${cleanQuery}%`,
+              )
+              .limit(10);
+
+            if (searchError) {
+              throw new Error(
+                `No se pudo buscar rivales: ${searchError.message}`,
+              );
+            }
+
+            if (!cancelled) {
+              setRivalResults(
+                (data ??
+                  []) as RivalSearchResult[],
+              );
+            }
+          } catch (searchError) {
+            if (!cancelled) {
+              setRivalResults([]);
+              setActionError(
+                searchError instanceof Error
+                  ? searchError.message
+                  : "No se pudo buscar el rival.",
+              );
+            }
+          } finally {
+            if (!cancelled) {
+              setSearchingRivals(false);
+            }
+          }
+        })();
+      }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    rivalQuery,
+    selectedRival,
+  ]);
+
+  const handleSendInvitation =
+    useCallback(async () => {
+      if (!roomId) {
+        setActionError(
+          "Primero debes crear o iniciar una sala VYRO LIVE.",
+        );
+        return;
+      }
+
+      if (!selectedRival) {
+        setActionError(
+          "Selecciona un rival para enviar la invitación.",
+        );
+        return;
+      }
+
+      setSendingInvitation(true);
+      setActionError("");
+
+      try {
+        await sendInvitation({
+          roomId,
+          receiverId:
+            selectedRival.id,
+          seriesConfig,
+        });
+
+        setSelectedRival(null);
+        setRivalQuery("");
+        setRivalResults([]);
+      } catch (invitationError) {
+        setActionError(
+          invitationError instanceof Error
+            ? invitationError.message
+            : "No se pudo enviar la invitación de batalla.",
+        );
+      } finally {
+        setSendingInvitation(false);
+      }
+    }, [
+      roomId,
+      selectedRival,
+      sendInvitation,
+      seriesConfig,
+    ]);
 
   const activeReceived =
     useMemo(
@@ -388,6 +563,164 @@ export default function BattleInvitationPanel() {
                 : "Conectando Realtime"}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div className="border-b border-white/10 p-6 md:p-8">
+        <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/[0.05] p-5">
+          <div className="flex items-center gap-3 text-fuchsia-300">
+            <Swords size={20} />
+
+            <h3 className="font-black">
+              Invitar rival
+            </h3>
+          </div>
+
+          <p className="mt-2 text-sm text-white/45">
+            Busca un usuario real de VYRO y envíale la configuración actual de esta Battle Series.
+          </p>
+
+          <div className="relative mt-5">
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35"
+            />
+
+            <input
+              type="search"
+              value={rivalQuery}
+              disabled={
+                disabled ||
+                sendingInvitation
+              }
+              onChange={(event) => {
+                setRivalQuery(
+                  event.target.value,
+                );
+                setSelectedRival(null);
+              }}
+              placeholder="Buscar rival por username..."
+              className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-11 pr-4 font-bold text-white outline-none transition placeholder:text-white/25 focus:border-fuchsia-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+
+          {searchingRivals ? (
+            <div className="mt-3 flex items-center gap-2 text-sm text-white/45">
+              <LoaderCircle
+                size={17}
+                className="animate-spin"
+              />
+              Buscando usuarios...
+            </div>
+          ) : null}
+
+          {!selectedRival &&
+          rivalQuery.trim().length >= 2 &&
+          !searchingRivals ? (
+            <div className="mt-3 space-y-2">
+              {rivalResults.length > 0 ? (
+                rivalResults.map(
+                  (rival) => (
+                    <button
+                      key={rival.id}
+                      type="button"
+                      disabled={
+                        disabled ||
+                        sendingInvitation
+                      }
+                      onClick={() => {
+                        setSelectedRival(
+                          rival,
+                        );
+                        setRivalQuery(
+                          rival.username,
+                        );
+                        setRivalResults([]);
+                      }}
+                      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-left transition hover:border-fuchsia-400/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <UserRound
+                          size={20}
+                          className="text-fuchsia-300"
+                        />
+
+                        <div>
+                          <p className="font-black text-white">
+                            {rival.full_name?.trim() ||
+                              rival.username}
+                          </p>
+
+                          <p className="text-sm text-white/40">
+                            @{rival.username}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-fuchsia-300">
+                        Seleccionar
+                      </span>
+                    </button>
+                  ),
+                )
+              ) : (
+                <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-white/40">
+                  No encontramos usuarios con ese username.
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {selectedRival ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] p-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+                  Rival seleccionado
+                </p>
+
+                <p className="mt-1 font-black text-white">
+                  {selectedRival.full_name?.trim() ||
+                    selectedRival.username}
+                </p>
+
+                <p className="text-sm text-white/40">
+                  @{selectedRival.username}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  disabled ||
+                  sendingInvitation ||
+                  !roomId
+                }
+                onClick={() => {
+                  void handleSendInvitation();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-400 px-5 py-3 font-black text-black transition hover:bg-fuchsia-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sendingInvitation ? (
+                  <LoaderCircle
+                    size={18}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Send size={18} />
+                )}
+
+                {sendingInvitation
+                  ? "Enviando..."
+                  : "Enviar invitación Battle"}
+              </button>
+            </div>
+          ) : null}
+
+          {!roomId ? (
+            <p className="mt-4 text-sm font-bold text-amber-200">
+              Inicia una sala VYRO LIVE para poder enviar invitaciones Battle.
+            </p>
+          ) : null}
         </div>
       </div>
 
