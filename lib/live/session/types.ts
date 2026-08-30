@@ -1,4 +1,7 @@
-﻿export type LiveSessionStatus =
+import type {
+  VyroLivePresentationState,
+} from "@/lib/live/presentation/protocol";
+export type LiveSessionStatus =
   | "scheduled"
   | "live"
   | "active"
@@ -15,6 +18,7 @@ export interface LiveSession {
   startedAt: string | null;
   endedAt: string | null;
   createdAt: string;
+  presentationState: VyroLivePresentationState | null;
 }
 
 export interface CreateLiveSessionInput {
@@ -32,4 +36,5 @@ export interface LiveSessionRow {
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+  presentation_state: unknown;
 }

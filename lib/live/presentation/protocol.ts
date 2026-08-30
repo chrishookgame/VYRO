@@ -27,7 +27,7 @@ export type VyroStageState = {
 export const DEFAULT_VYRO_STAGE_STATE:
   VyroStageState = {
     enabled: false,
-    maxGuests: 1,
+    maxGuests: 10,
     layout: "auto",
     hostMode: "fullscreen",
   };
@@ -119,13 +119,19 @@ export function encodeVyroPresentation(
   );
 }
 
-export function decodeVyroPresentation(
-  payload: Uint8Array,
+export function parseVyroPresentationState(
+  value: unknown,
 ): VyroLivePresentationState | null {
   try {
-    const raw = JSON.parse(
-      new TextDecoder().decode(payload),
-    ) as Partial<VyroLivePresentationState>;
+    if (
+      !value ||
+      typeof value !== "object"
+    ) {
+      return null;
+    }
+
+    const raw =
+      value as Partial<VyroLivePresentationState>;
 
     if (
       raw.version !== 1 ||
@@ -162,7 +168,7 @@ export function decodeVyroPresentation(
           Math.round(
             finiteNumberOrDefault(
               rawStage.maxGuests,
-              1,
+              10,
             ),
           ),
           1,
@@ -233,6 +239,22 @@ export function decodeVyroPresentation(
           ? raw.sentAt
           : Date.now(),
     };
+  }
+  catch {
+    return null;
+  }
+}
+
+export function decodeVyroPresentation(
+  payload: Uint8Array,
+): VyroLivePresentationState | null {
+  try {
+    const raw =
+      JSON.parse(
+        new TextDecoder().decode(payload),
+      ) as unknown;
+
+    return parseVyroPresentationState(raw);
   }
   catch {
     return null;

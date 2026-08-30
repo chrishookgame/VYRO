@@ -1,4 +1,9 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+
+import {
+  parseVyroPresentationState,
+  type VyroLivePresentationState,
+} from "@/lib/live/presentation/protocol";
 
 export interface LiveRoomDetails {
   id: string;
@@ -9,6 +14,8 @@ export interface LiveRoomDetails {
   startedAt: string | null;
   endedAt: string | null;
   createdAt: string;
+  presentationState:
+    VyroLivePresentationState | null;
   host: {
     username: string;
     fullName: string | null;
@@ -33,6 +40,7 @@ interface LiveRoomRow {
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+  presentation_state: unknown;
 }
 
 interface ProfileRow {
@@ -68,6 +76,7 @@ export async function getLiveRoomDetails(
         "started_at",
         "ended_at",
         "created_at",
+        "presentation_state",
       ].join(","),
     )
     .eq("id", roomId)
@@ -140,6 +149,10 @@ export async function getLiveRoomDetails(
     startedAt: room.started_at,
     endedAt: room.ended_at,
     createdAt: room.created_at,
+    presentationState:
+      parseVyroPresentationState(
+        room.presentation_state,
+      ),
     host: profile
       ? {
           username: profile.username,

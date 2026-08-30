@@ -63,6 +63,7 @@ import {
   getActiveLiveBattleSeries,
   startLiveBattleRound,
 } from "@/lib/live-battle-series";
+import type { VyroLiveScene } from "@/lib/live/presentation/protocol";
 
 type CreatorOnAirOverlay = {
   visible: boolean;
@@ -70,6 +71,14 @@ type CreatorOnAirOverlay = {
   title: string;
   message: string;
   cta: string;
+};
+
+type CreatorFloatingReaction = {
+  id: string;
+  emoji: string;
+  x: number;
+  drift: number;
+  scale: number;
 };
 
 function formatDuration(totalSeconds: number) {
@@ -83,6 +92,11 @@ function formatDuration(totalSeconds: number) {
 }
 
 export default function LiveStudioPage() {
+  const [
+    creatorPresentationScene,
+    setCreatorPresentationScene,
+  ] = useState<VyroLiveScene>("focus");
+
   const [
     creatorOnAirOverlay,
     setCreatorOnAirOverlay,
@@ -204,6 +218,8 @@ export default function LiveStudioPage() {
   );
   const liveKitRoomRef = useRef<Room | null>(null);
   const liveKitPublishedTracksRef = useRef<LocalTrack[]>([]);
+  const liveRecoveryAttemptedRef = useRef<string | null>(null);
+  const liveRecoveryInFlightRef = useRef<string | null>(null);
 
   const {
     session,
@@ -214,12 +230,150 @@ export default function LiveStudioPage() {
     clearError: clearSessionError,
   } = useLiveSession();
 
+  useEffect(() => {
+    const persistedOverlay =
+      session?.presentationState?.overlay;
+
+    if (!persistedOverlay) {
+      return;
+    }
+
+    setCreatorOnAirOverlay({
+      visible: persistedOverlay.visible,
+      eyebrow: persistedOverlay.eyebrow,
+      title: persistedOverlay.title,
+      message: persistedOverlay.message,
+      cta: persistedOverlay.cta,
+    });
+  }, [
+    session?.id,
+    session?.presentationState?.sentAt,
+    session?.presentationState?.overlay,
+  ]);
+
   const {
     lastGiftUpdate:
       studioLastGiftUpdate,
+    lastReactionUpdate:
+      studioLastReactionUpdate,
   } = useLiveRealtime(
     session?.id ?? null,
   );
+
+  const [
+    creatorFloatingReactions,
+    setCreatorFloatingReactions,
+  ] = useState<CreatorFloatingReaction[]>([]);
+
+  const displayedCreatorReactionIdsRef =
+    useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!studioLastReactionUpdate) {
+      return;
+    }
+
+    const payload =
+      studioLastReactionUpdate.payload as {
+        new?: {
+          id?: string;
+          reaction_type?: string;
+        };
+      };
+
+    const reactionType =
+      payload.new?.reaction_type;
+
+    const reactionId =
+      payload.new?.id;
+
+    if (
+      !reactionType ||
+      !reactionId
+    ) {
+      return;
+    }
+
+    if (
+      displayedCreatorReactionIdsRef.current.has(
+        reactionId,
+      )
+    ) {
+      return;
+    }
+
+    const reactionEmojiByType: Record<string, string> = {
+      like: "\u{1F44D}",
+      love: "\u2764\uFE0F",
+      fire: "\u{1F525}",
+      wow: "\u{1F62E}",
+      celebrate: "\u{1F389}",
+      support: "\u{1F44F}",
+      vyro_energy: "\u26A1",
+    };
+
+    const reactionEmoji =
+      reactionEmojiByType[reactionType];
+
+    if (!reactionEmoji) {
+      return;
+    }
+
+    displayedCreatorReactionIdsRef.current.add(
+      reactionId,
+    );
+
+    const visualSeed =
+      reactionId.split("").reduce(
+        (seed, character) =>
+          (
+            seed * 31 +
+            character.charCodeAt(0)
+          ) % 100000,
+        7,
+      );
+
+    const visualReaction: CreatorFloatingReaction = {
+      id: reactionId,
+      emoji: reactionEmoji,
+      x:
+        68 +
+        (visualSeed % 2500) / 100,
+      drift:
+        -30 +
+        ((visualSeed * 7) % 6000) / 100,
+      scale:
+        0.9 +
+        ((visualSeed * 13) % 45) / 100,
+    };
+
+    setCreatorFloatingReactions((current) => [
+      ...current.slice(-18),
+      visualReaction,
+    ]);
+
+    const removeTimeout =
+      window.setTimeout(() => {
+        setCreatorFloatingReactions((current) =>
+          current.filter(
+            (item) =>
+              item.id !== reactionId,
+          ),
+        );
+      }, 2600);
+
+    const releaseTimeout =
+      window.setTimeout(() => {
+        displayedCreatorReactionIdsRef.current.delete(
+          reactionId,
+        );
+      }, 10000);
+
+    return () => {
+      window.clearTimeout(removeTimeout);
+      window.clearTimeout(releaseTimeout);
+    };
+  }, [studioLastReactionUpdate]);
 
   const {
     activeGift:
@@ -262,6 +416,7 @@ export default function LiveStudioPage() {
     sent: sentBattleInvitations,
     loading: battleInvitationsLoading,
     error: battleInvitationsError,
+
   } = useBattleInvitations();
 
   const {
@@ -1142,6 +1297,204 @@ export default function LiveStudioPage() {
     }
   }
 
+  useEffect(() => {
+    if (
+      !session ||
+      (
+        session.status !== "live" &&
+        session.status !== "active"
+      ) ||
+      liveRecoveryAttemptedRef.current === session.id ||
+      liveRecoveryInFlightRef.current === session.id
+    ) {
+      return;
+    }
+
+    const recoveredSession = session;
+
+    liveRecoveryInFlightRef.current =
+      recoveredSession.id;
+
+    let cancelled = false;
+
+    async function recoverActiveLiveMedia() {
+      let room: Room | null = null;
+      const publishedTracks: LocalTrack[] = [];
+
+      try {
+        await startDevices();
+
+        if (cancelled) {
+          return;
+        }
+
+        const localStream = streamRef.current;
+
+        if (!localStream) {
+          throw new Error(
+            "VYRO recupero la sesion LIVE, pero no pudo recuperar la camara y el microfono.",
+          );
+        }
+
+        const response = await fetch(
+          "/api/live/token",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              roomId: recoveredSession.id,
+              role: "host",
+            }),
+          },
+        );
+
+        const payload = (await response.json()) as {
+          success: boolean;
+          token?: string;
+          url?: string;
+          error?: string;
+        };
+
+        if (
+          !response.ok ||
+          !payload.success ||
+          !payload.token ||
+          !payload.url
+        ) {
+          throw new Error(
+            payload.error ||
+              "No fue posible recuperar el acceso al Media Core.",
+          );
+        }
+
+        room = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+
+        await room.connect(
+          payload.url,
+          payload.token,
+        );
+
+        if (cancelled) {
+          await room.disconnect();
+          return;
+        }
+
+        const videoTrack =
+          localStream.getVideoTracks()[0];
+
+        const audioTrack =
+          localStream.getAudioTracks()[0];
+
+        if (!videoTrack) {
+          throw new Error(
+            "No existe una pista de camara para recuperar VYRO LIVE.",
+          );
+        }
+
+        const publishedVideo =
+          await room.localParticipant.publishTrack(
+            videoTrack,
+            {
+              name: "vyro-camera",
+              source: Track.Source.Camera,
+              simulcast: true,
+            },
+          );
+
+        if (publishedVideo.track) {
+          publishedTracks.push(
+            publishedVideo.track,
+          );
+        }
+
+        if (audioTrack) {
+          const publishedAudio =
+            await room.localParticipant.publishTrack(
+              audioTrack,
+              {
+                name: "vyro-microphone",
+                source: Track.Source.Microphone,
+              },
+            );
+
+          if (publishedAudio.track) {
+            publishedTracks.push(
+              publishedAudio.track,
+            );
+          }
+        }
+
+        if (cancelled) {
+          await room.disconnect();
+          return;
+        }
+
+        liveKitRoomRef.current = room;
+        setLiveKitRoom(room);
+
+        liveKitPublishedTracksRef.current =
+          publishedTracks;
+
+        liveRecoveryAttemptedRef.current =
+          recoveredSession.id;
+
+        liveRecoveryInFlightRef.current = null;
+
+        setIsLive(true);
+
+        setMessage(
+          `VYRO LIVE recuperado y reconectado. Sala: ${recoveredSession.id}`,
+        );
+      } catch (recoveryError) {
+        if (room) {
+          await room.disconnect();
+        }
+
+        liveKitRoomRef.current = null;
+        setLiveKitRoom(null);
+        liveKitPublishedTracksRef.current = [];
+
+        if (
+          liveRecoveryInFlightRef.current ===
+          recoveredSession.id
+        ) {
+          liveRecoveryInFlightRef.current = null;
+        }
+
+        console.error(
+          "VYRO LIVE Media Core recovery failed:",
+          recoveryError,
+        );
+
+        setError(
+          recoveryError instanceof Error
+            ? recoveryError.message
+            : "No fue posible recuperar VYRO LIVE Media Core.",
+        );
+      }
+    }
+
+    void recoverActiveLiveMedia();
+
+    return () => {
+      cancelled = true;
+
+      if (
+        liveRecoveryInFlightRef.current ===
+        recoveredSession.id
+      ) {
+        liveRecoveryInFlightRef.current = null;
+      }
+    };
+    // Recovery must run only when the persisted LIVE session changes.
+    // startDevices intentionally uses the media settings captured by this run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
   async function stopLive() {
     setError("");
     setMessage("");
@@ -1442,14 +1795,107 @@ export default function LiveStudioPage() {
                 </div>
               ) : null}
             </div>
-            <div className="relative flex min-h-[500px] xl:min-h-[560px] items-center justify-center overflow-hidden rounded-3xl border border-cyan-500/20 bg-black">
+            <div
+              data-vyro-scene={creatorPresentationScene}
+              className="relative flex min-h-[500px] xl:min-h-[560px] items-center justify-center overflow-hidden rounded-3xl border border-cyan-500/20 bg-black"
+            >
               <video
                 ref={videoRef}
                 autoPlay
                 muted
                 playsInline
-                className="h-full min-h-[500px] xl:min-h-[560px] w-full object-cover"
+                className={
+                  creatorPresentationScene === "cinema"
+                    ? "h-auto max-h-[430px] xl:max-h-[470px] w-[94%] aspect-video object-cover shadow-[0_20px_60px_rgba(0,0,0,0.55)] transition-all duration-500 ease-out"
+                    : creatorPresentationScene === "portrait"
+                      ? "h-[500px] xl:h-[560px] w-auto max-w-full aspect-[9/16] object-cover transition-all duration-500 ease-out"
+                      : creatorPresentationScene === "spotlight"
+                        ? "h-full min-h-[500px] xl:min-h-[560px] w-full scale-[1.22] object-cover transition-all duration-500 ease-out"
+                        : "h-full min-h-[500px] xl:min-h-[560px] w-full scale-100 object-cover transition-all duration-500 ease-out"
+                }
               />
+
+
+              {isLive ? (
+                <>
+                  <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[inherit]">
+                    {creatorFloatingReactions.map(
+                      (reaction) => (
+                        <span
+                          key={reaction.id}
+                          aria-hidden="true"
+                          className="vyro-creator-floating-reaction absolute bottom-[12%] text-4xl drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] sm:text-5xl"
+                          style={{
+                            left: `${reaction.x}%`,
+                            transform: `translateX(-50%) scale(${reaction.scale})`,
+                            ["--vyro-reaction-drift" as string]:
+                              `${reaction.drift}px`,
+                          }}
+                        >
+                          {reaction.emoji}
+                        </span>
+                      ),
+                    )}
+                  </div>
+
+                  <style>{`
+                    @keyframes vyro-creator-reaction-float {
+                      0% {
+                        opacity: 0;
+                        transform:
+                          translate3d(-50%, 20px, 0)
+                          scale(0.65);
+                      }
+
+                      12% {
+                        opacity: 1;
+                      }
+
+                      55% {
+                        opacity: 1;
+                      }
+
+                      100% {
+                        opacity: 0;
+                        transform:
+                          translate3d(
+                            calc(
+                              -50% +
+                              var(--vyro-reaction-drift)
+                            ),
+                            -260px,
+                            0
+                          )
+                          scale(1.35);
+                      }
+                    }
+
+                    .vyro-creator-floating-reaction {
+                      animation:
+                        vyro-creator-reaction-float
+                        2.6s
+                        cubic-bezier(
+                          0.22,
+                          0.75,
+                          0.2,
+                          1
+                        )
+                        forwards;
+                      will-change:
+                        transform,
+                        opacity;
+                    }
+
+                    @media (
+                      prefers-reduced-motion: reduce
+                    ) {
+                      .vyro-creator-floating-reaction {
+                        animation-duration: 0.8s;
+                      }
+                    }
+                  `}</style>
+                </>
+              ) : null}
 
               <VyroGuestCanvasStage
                 room={liveKitRoom}
@@ -1884,9 +2330,16 @@ export default function LiveStudioPage() {
 
             <LiveProductionPanel
               room={liveKitRoom}
+              roomId={session?.id ?? null}
               isLive={isLive}
+              initialPresentationState={
+                session?.presentationState ?? null
+              }
               onPublishedOverlayChange={
                 setCreatorOnAirOverlay
+              }
+              onPublishedSceneChange={
+                setCreatorPresentationScene
               }
             />
           </aside>
@@ -1936,6 +2389,7 @@ export default function LiveStudioPage() {
                   <div className="border-t border-white/10 px-4 pb-6 md:px-6">
 <div className="mt-8 w-full">
           <BattleStudio
+
                   disabled={
                     !session ||
                     battleInvitationsLoading ||

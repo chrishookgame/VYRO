@@ -2059,6 +2059,9 @@ export default function LiveWatchPage() {
             <div className="relative">
               <LiveViewerMedia
                 roomId={roomId}
+                initialPresentationState={
+                  room.presentationState
+                }
               />
 
               {visualCoordination.showGiftOverlay ? (

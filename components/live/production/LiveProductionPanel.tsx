@@ -9,6 +9,7 @@ import {
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -20,6 +21,10 @@ import {
   type VyroLiveScene,
 } from "@/lib/live/presentation/protocol";
 
+import {
+  updateLivePresentationState,
+} from "@/lib/live/session/service";
+
 type CreatorOnAirOverlay = {
   visible: boolean;
   eyebrow: string;
@@ -30,9 +35,15 @@ type CreatorOnAirOverlay = {
 
 type LiveProductionPanelProps = {
   room: Room | null;
+  roomId: string | null;
   isLive: boolean;
+  initialPresentationState:
+    VyroLivePresentationState | null;
   onPublishedOverlayChange?: (
     overlay: CreatorOnAirOverlay,
+  ) => void;
+  onPublishedSceneChange?: (
+    scene: VyroLiveScene,
   ) => void;
 };
 
@@ -73,8 +84,11 @@ const sceneOptions: {
 
 export function LiveProductionPanel({
   room,
+  roomId,
   isLive,
+  initialPresentationState,
   onPublishedOverlayChange,
+  onPublishedSceneChange,
 }: LiveProductionPanelProps) {
 
 
@@ -97,17 +111,18 @@ export function LiveProductionPanel({
   const [overlayVisible, setOverlayVisible] =
     useState(false);
 
-  const [stageEnabled] =
+  const [stageEnabled, setStageEnabled] =
     useState(false);
 
-  const [stageMaxGuests] = useState(10);
+  const [stageMaxGuests, setStageMaxGuests] =
+    useState(10);
 
-  const [stageLayout] =
+  const [stageLayout, setStageLayout] =
     useState<"auto" | "grid" | "spotlight">(
       "auto",
     );
 
-  const [stageHostMode] =
+  const [stageHostMode, setStageHostMode] =
     useState<"fullscreen" | "window" | "pip">(
       "fullscreen",
     );
@@ -140,6 +155,95 @@ export function LiveProductionPanel({
     remoteParticipants,
     setRemoteParticipants,
   ] = useState<RemoteParticipant[]>([]);
+
+  const hydratedPresentationKeyRef =
+    useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      !roomId ||
+      !initialPresentationState
+    ) {
+      return;
+    }
+
+    const hydrationKey =
+      `${roomId}:${initialPresentationState.sentAt}`;
+
+    if (
+      hydratedPresentationKeyRef.current ===
+      hydrationKey
+    ) {
+      return;
+    }
+
+    hydratedPresentationKeyRef.current =
+      hydrationKey;
+
+    setScene(
+      initialPresentationState.scene,
+    );
+
+    onPublishedSceneChange?.(
+      initialPresentationState.scene,
+    );
+
+    setStageEnabled(
+      initialPresentationState.stage.enabled,
+    );
+
+    setStageMaxGuests(
+      initialPresentationState.stage.maxGuests,
+    );
+
+    setStageLayout(
+      initialPresentationState.stage.layout,
+    );
+
+    setStageHostMode(
+      initialPresentationState.stage.hostMode,
+    );
+
+    setFreeCameraEnabled(
+      initialPresentationState.freeCamera.enabled,
+    );
+
+    setFreeCameraX(
+      initialPresentationState.freeCamera.x,
+    );
+
+    setFreeCameraY(
+      initialPresentationState.freeCamera.y,
+    );
+
+    setFreeCameraZoom(
+      initialPresentationState.freeCamera.zoom,
+    );
+
+    setOverlayVisible(
+      initialPresentationState.overlay.visible,
+    );
+
+    setEyebrow(
+      initialPresentationState.overlay.eyebrow,
+    );
+
+    setTitle(
+      initialPresentationState.overlay.title,
+    );
+
+    setMessage(
+      initialPresentationState.overlay.message,
+    );
+
+    setCta(
+      initialPresentationState.overlay.cta,
+    );
+  }, [
+    initialPresentationState,
+    onPublishedSceneChange,
+    roomId,
+  ]);
 
   useEffect(() => {
     if (!room || !isLive) {
@@ -377,6 +481,17 @@ export function LiveProductionPanel({
         },
       );
 
+      if (!roomId) {
+        throw new Error(
+          "No existe roomId para guardar la presentación LIVE.",
+        );
+      }
+
+      await updateLivePresentationState(
+        roomId,
+        state,
+      );
+
       onPublishedOverlayChange?.({
         visible: nextOverlayVisible,
         eyebrow: preview.eyebrow,
@@ -455,11 +570,25 @@ export function LiveProductionPanel({
           },
         );
 
+        if (!roomId) {
+          throw new Error(
+            "No existe roomId para guardar Auto Director.",
+          );
+        }
+
+        await updateLivePresentationState(
+          roomId,
+          state,
+        );
+
         if (cancelled) {
           return;
         }
 
         setScene(autoDirectorScene);
+        onPublishedSceneChange?.(
+          autoDirectorScene,
+        );
 
         setStatus(
           `Auto Director: ${autoDirectorScene.toUpperCase()}`,
@@ -494,9 +623,11 @@ export function LiveProductionPanel({
     freeCameraY,
     freeCameraZoom,
     isLive,
+    onPublishedSceneChange,
     overlayVisible,
     preview,
     room,
+    roomId,
     scene,
     stageEnabled,
     stageHostMode,
@@ -507,6 +638,7 @@ export function LiveProductionPanel({
     nextScene: VyroLiveScene,
   ) {
     setScene(nextScene);
+    onPublishedSceneChange?.(nextScene);
 
     await publishState({
       scene: nextScene,

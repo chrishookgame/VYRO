@@ -24,6 +24,8 @@ import {
 
 type LiveViewerMediaProps = {
   roomId: string;
+  initialPresentationState:
+    VyroLivePresentationState | null;
 };
 
 type TokenResponse = {
@@ -35,6 +37,7 @@ type TokenResponse = {
 
 export function LiveViewerMedia({
   roomId,
+  initialPresentationState,
 }: LiveViewerMediaProps) {
   const videoContainerRef =
     useRef<HTMLDivElement>(null);
@@ -79,12 +82,14 @@ export function LiveViewerMedia({
     setPresentationState,
   ] =
     useState<VyroLivePresentationState>(
-      DEFAULT_VYRO_PRESENTATION_STATE,
+      initialPresentationState ??
+        DEFAULT_VYRO_PRESENTATION_STATE,
     );
 
   const presentationStateRef =
     useRef<VyroLivePresentationState>(
-      DEFAULT_VYRO_PRESENTATION_STATE,
+      initialPresentationState ??
+        DEFAULT_VYRO_PRESENTATION_STATE,
     );
 
   const renderedPresentationRef =

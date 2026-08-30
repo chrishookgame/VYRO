@@ -1,4 +1,9 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+
+import {
+  parseVyroPresentationState,
+  type VyroLivePresentationState,
+} from "@/lib/live/presentation/protocol";
 
 import type {
   CreateLiveSessionInput,
@@ -19,6 +24,10 @@ function mapLiveSession(
     startedAt: row.started_at,
     endedAt: row.ended_at,
     createdAt: row.created_at,
+    presentationState:
+      parseVyroPresentationState(
+        row.presentation_state,
+      ),
   };
 }
 
@@ -45,6 +54,7 @@ export async function createLiveSessionRecord(
         "started_at",
         "ended_at",
         "created_at",
+        "presentation_state",
       ].join(","),
     )
     .single();
@@ -76,6 +86,7 @@ export async function getRecoverableLiveSessionRecord(
         "started_at",
         "ended_at",
         "created_at",
+        "presentation_state",
       ].join(","),
     )
     .eq("host_id", hostId)
@@ -131,6 +142,7 @@ export async function startLiveSessionRecord(
         "started_at",
         "ended_at",
         "created_at",
+        "presentation_state",
       ].join(","),
     )
     .single();
@@ -169,6 +181,7 @@ export async function endLiveSessionRecord(
         "started_at",
         "ended_at",
         "created_at",
+        "presentation_state",
       ].join(","),
     )
     .single();
@@ -182,4 +195,25 @@ export async function endLiveSessionRecord(
   return mapLiveSession(
     data as unknown as LiveSessionRow,
   );
+}
+export async function updateLivePresentationStateRecord(
+  roomId: string,
+  hostId: string,
+  presentationState: VyroLivePresentationState,
+): Promise<void> {
+  const { error } = await supabase
+    .from("live_rooms")
+    .update({
+      presentation_state: presentationState,
+    })
+    .eq("id", roomId)
+    .eq("host_id", hostId)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(
+      `No se pudo guardar el estado de presentación LIVE: ${error.message}`,
+    );
+  }
 }

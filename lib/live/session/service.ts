@@ -1,11 +1,16 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 import {
   createLiveSessionRecord,
   endLiveSessionRecord,
   getRecoverableLiveSessionRecord,
   startLiveSessionRecord,
+  updateLivePresentationStateRecord,
 } from "./repository";
+
+import type {
+  VyroLivePresentationState,
+} from "@/lib/live/presentation/protocol";
 
 import type {
   CreateLiveSessionInput,
@@ -109,5 +114,24 @@ export async function endLiveSession(
   return endLiveSessionRecord(
     roomId,
     hostId,
+  );
+}
+export async function updateLivePresentationState(
+  roomId: string,
+  presentationState: VyroLivePresentationState,
+): Promise<void> {
+  if (!roomId) {
+    throw new Error(
+      "No existe una sala LIVE para guardar la presentación.",
+    );
+  }
+
+  const hostId =
+    await getAuthenticatedUserId();
+
+  await updateLivePresentationStateRecord(
+    roomId,
+    hostId,
+    presentationState,
   );
 }
