@@ -7,6 +7,7 @@ import {
   Grip,
   Heart,
   MessageCircle,
+  Bell,
   Search,
   UserPlus,
   Users,
@@ -22,6 +23,7 @@ import {
   type ReactNode,
 } from "react";
 
+import FollowButton from "@/components/feed/FollowButton";
 import type {
   LiveChatMessage,
 } from "@/lib/live";
@@ -34,7 +36,8 @@ type CreatorPanel =
   | "gifts"
   | "activity"
   | "search"
-  | "guests";
+  | "guests"
+  | "requests";
 
 type PanelPosition = {
   x: number;
@@ -81,6 +84,8 @@ type VyroCreatorControlStripProps = {
   chatContent?: ReactNode;
   searchContent?: ReactNode;
   guestContent?: ReactNode;
+  requestsContent?: ReactNode;
+  requestsCount?: number;
   beautyEnabled: boolean;
   onBeautyEnabledChange: (enabled: boolean) => void;
   beautyIntensity: "natural" | "medium" | "strong";
@@ -129,6 +134,10 @@ const initialPositions: Record<
     x: 280,
     y: 180,
   },
+  requests: {
+    x: 610,
+    y: 180,
+  },
 };
 
 const emptyOpenPanels: Record<
@@ -142,6 +151,7 @@ const emptyOpenPanels: Record<
   activity: false,
   search: false,
   guests: false,
+  requests: false,
 };
 
 const panelTitles: Record<
@@ -155,6 +165,7 @@ const panelTitles: Record<
   activity: "Activity LIVE",
   search: "Buscar LIVE",
   guests: "Guests LIVE",
+  requests: "Solicitudes LIVE",
 };
 
 const reactionIcons: Record<
@@ -228,6 +239,8 @@ export function VyroCreatorControlStrip({
   chatContent,
   searchContent,
   guestContent,
+  requestsContent,
+  requestsCount = 0,
   beautyEnabled,
   onBeautyEnabledChange,
   beautyIntensity,
@@ -303,6 +316,7 @@ export function VyroCreatorControlStrip({
     activity: false,
     search: false,
     guests: false,
+    requests: false,
   });
 
   const [
@@ -325,12 +339,13 @@ export function VyroCreatorControlStrip({
     activity: 104,
     search: 105,
     guests: 106,
+    requests: 107,
   });
 
   const [
     ,
     setTopZ,
-  ] = useState(106);
+  ] = useState(107);
 
   const [
     reactionFeed,
@@ -466,6 +481,7 @@ export function VyroCreatorControlStrip({
     activity: { width: 430, height: null },
     search: { width: 430, height: null },
     guests: { width: 430, height: null },
+    requests: { width: 430, height: null },
   });
 
   const resizeRef = useRef<{
@@ -1021,21 +1037,31 @@ export function VyroCreatorControlStrip({
                       </p>
                     </div>
 
-                    <time className="shrink-0 text-[10px] text-white/35">
-                      {new Intl.DateTimeFormat(
-                        "es-419",
-                        {
-                          hour:
-                            "2-digit",
-                          minute:
-                            "2-digit",
-                        },
-                      ).format(
-                        new Date(
-                          reaction.created_at,
-                        ),
-                      )}
-                    </time>
+                    <div className="flex shrink-0 items-center gap-2">
+
+                      <div className="[&>div>button]:h-8 [&>div>button]:min-h-0 [&>div>button]:rounded-md [&>div>button]:px-3 [&>div>button]:py-1 [&>div>button]:text-xs">
+                        <FollowButton
+                          creatorId={reaction.user_id}
+                          ownLabel={null}
+                        />
+                      </div>
+
+                      <time className="text-[10px] text-white/35">
+                        {new Intl.DateTimeFormat(
+                          "es-419",
+                          {
+                            hour:
+                              "2-digit",
+                            minute:
+                              "2-digit",
+                          },
+                        ).format(
+                          new Date(
+                            reaction.created_at,
+                          ),
+                        )}
+                      </time>
+                    </div>
                   </div>
                 ),
               )}
@@ -1217,6 +1243,18 @@ export function VyroCreatorControlStrip({
             )}
           </div>
         </div>
+      );
+    }
+
+    if (
+      panel === "requests"
+    ) {
+      return (
+        requestsContent ?? (
+          <div className="p-5 text-sm text-white/45">
+            No hay solicitudes pendientes.
+          </div>
+        )
       );
     }
 
@@ -1435,6 +1473,25 @@ export function VyroCreatorControlStrip({
             onClick={() =>
               togglePanel(
                 "guests",
+              )
+            }
+          />
+
+          <ControlButton
+            active={
+              openPanels.requests
+            }
+            label="Solicitudes"
+            value={requestsCount}
+            icon={
+              <Bell
+                size={14}
+                className="text-amber-300"
+              />
+            }
+            onClick={() =>
+              togglePanel(
+                "requests",
               )
             }
           />

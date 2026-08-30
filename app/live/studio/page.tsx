@@ -416,7 +416,8 @@ export default function LiveStudioPage() {
     sent: sentBattleInvitations,
     loading: battleInvitationsLoading,
     error: battleInvitationsError,
-
+    acceptInvitation: acceptBattleInvitation,
+    declineInvitation: declineBattleInvitation,
   } = useBattleInvitations();
 
   const {
@@ -2091,6 +2092,148 @@ export default function LiveStudioPage() {
                         compact
                       />
                     }
+                    requestsCount={
+                      receivedBattleInvitations.filter(
+                        (invitation) =>
+                          invitation.status === "pending" &&
+                          invitation.roomId === session?.id,
+                      ).length +
+                      creatorGuestRequests.requests.filter(
+                        (request) =>
+                          request.status === "pending",
+                      ).length
+                    }
+                    requestsContent={
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] px-4 py-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">
+                            Solicitudes en vivo
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/45">
+                            Battle y solicitudes para subir al LIVE.
+                          </p>
+                        </div>
+
+                        {receivedBattleInvitations
+                          .filter(
+                            (invitation) =>
+                              invitation.status === "pending" &&
+                              invitation.roomId === session?.id,
+                          )
+                          .map((invitation) => (
+                            <div
+                              key={`battle-${invitation.id}`}
+                              className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/[0.06] p-3"
+                            >
+                              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-300">
+                                Battle
+                              </p>
+
+                              <p className="mt-1 text-sm font-black text-white">
+                                {invitation.sender?.full_name ||
+                                  invitation.sender?.username ||
+                                  "Usuario VYRO"}
+                              </p>
+
+                              <p className="mt-1 text-xs text-white/55">
+                                quiere iniciar una Battle contigo.
+                              </p>
+
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void declineBattleInvitation(
+                                      invitation.id,
+                                    );
+                                  }}
+                                  className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-black text-white/70"
+                                >
+                                  Rechazar
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void acceptBattleInvitation(
+                                      invitation.id,
+                                    );
+                                  }}
+                                  className="rounded-xl border border-fuchsia-300/35 bg-fuchsia-300/15 px-3 py-2 text-xs font-black text-fuchsia-100"
+                                >
+                                  Aceptar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                        {creatorGuestRequests.requests
+                          .filter(
+                            (request) =>
+                              request.status === "pending",
+                          )
+                          .map((request) => (
+                            <div
+                              key={`guest-${request.id}`}
+                              className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-3"
+                            >
+                              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-300">
+                                Subir al LIVE
+                              </p>
+
+                              <p className="mt-1 text-sm font-black text-white">
+                                {request.requesterFullName ||
+                                  request.requesterUsername ||
+                                  "Usuario VYRO"}
+                              </p>
+
+                              <p className="mt-1 text-xs text-white/55">
+                                solicita participar en tu LIVE.
+                              </p>
+
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void creatorGuestRequests.declineRequest(
+                                      request.id,
+                                    );
+                                  }}
+                                  className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-black text-white/70"
+                                >
+                                  Rechazar
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void creatorGuestRequests.approveRequest(
+                                      request.id,
+                                    );
+                                  }}
+                                  className="rounded-xl border border-cyan-300/35 bg-cyan-300/15 px-3 py-2 text-xs font-black text-cyan-100"
+                                >
+                                  Aprobar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                        {receivedBattleInvitations.filter(
+                          (invitation) =>
+                            invitation.status === "pending" &&
+                            invitation.roomId === session?.id,
+                        ).length === 0 &&
+                        creatorGuestRequests.requests.filter(
+                          (request) =>
+                            request.status === "pending",
+                        ).length === 0 ? (
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm text-white/45">
+                            No hay solicitudes pendientes.
+                          </div>
+                        ) : null}
+                      </div>
+                    }
                     guestContent={
                       <div className="space-y-3">
                         <div className="rounded-2xl border border-cyan-300/20 bg-black/35 px-4 py-3">
@@ -2174,12 +2317,10 @@ export default function LiveStudioPage() {
                           guestInvitations={
                             creatorGuestInvitations
                           }
-                          guestRequests={
-                            creatorGuestRequests
-                          }
                         />
                       </div>
-                    }                    duration={
+                    }
+                    duration={
                       formatDuration(
                         liveDuration,
                       )
@@ -2279,7 +2420,6 @@ export default function LiveStudioPage() {
                   roomId={session?.id ?? null}
                   disabled={!session}
                   guestInvitations={creatorGuestInvitations}
-                  guestRequests={creatorGuestRequests}
                 />
               ) : (
                 <p className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.05] px-4 py-3 text-sm leading-6 text-cyan-100/70">

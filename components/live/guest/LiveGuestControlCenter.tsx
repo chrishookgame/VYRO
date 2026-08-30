@@ -22,7 +22,6 @@ import {
 
 import type {
   UseLiveGuestInvitationsResult,
-  UseLiveGuestRequestsResult,
 } from "@/hooks";
 
 import {
@@ -40,7 +39,6 @@ type LiveGuestControlCenterProps = {
   roomId: string | null;
   disabled?: boolean;
   guestInvitations: UseLiveGuestInvitationsResult;
-  guestRequests: UseLiveGuestRequestsResult;
 };
 
 function getGuestName(
@@ -68,7 +66,6 @@ export function LiveGuestControlCenter({
   roomId,
   disabled = false,
   guestInvitations,
-  guestRequests,
 }: LiveGuestControlCenterProps) {
   const {
     sent,
@@ -82,19 +79,18 @@ export function LiveGuestControlCenter({
     returnGuestToWaiting,
   } = guestInvitations;
 
-  const {
-    requests,
-    loading: requestsLoading,
-    connected: requestsConnected,
-    error: requestError,
-    approveRequest,
-    declineRequest,
-  } = guestRequests;
 
   const [
     open,
     setOpen,
   ] = useState(false);
+
+  const [
+    activeSection,
+    setActiveSection,
+  ] = useState<
+    "invite" | "stage"
+  >("invite");
 
   const [
     query,
@@ -263,19 +259,6 @@ export function LiveGuestControlCenter({
     searchUsers,
   ]);
 
-  const pendingRequests =
-    useMemo(
-      () =>
-        requests.filter(
-          (request) =>
-            request.roomId === roomId &&
-            request.status === "pending",
-        ),
-      [
-        requests,
-        roomId,
-      ],
-    );
   const roomInvitations =
     useMemo(
       () =>
@@ -421,38 +404,6 @@ export function LiveGuestControlCenter({
     }
   }
 
-  async function resolveGuestRequest(
-    requestId: string,
-    action: "approve" | "decline",
-  ) {
-    setProcessingId(requestId);
-    setLocalError("");
-    setLocalMessage("");
-
-    try {
-      if (action === "approve") {
-        await approveRequest(requestId);
-
-        setLocalMessage(
-          "Solicitud Guest aprobada.",
-        );
-      } else {
-        await declineRequest(requestId);
-
-        setLocalMessage(
-          "Solicitud Guest rechazada.",
-        );
-      }
-    } catch (requestActionError) {
-      setLocalError(
-        requestActionError instanceof Error
-          ? requestActionError.message
-          : "No fue posible resolver la solicitud Guest.",
-      );
-    } finally {
-      setProcessingId(null);
-    }
-  }
   async function moveGuestFromControlToStage(
     invitationId: string,
     currentStageStatus: "waiting" | "on_stage",
@@ -481,12 +432,13 @@ export function LiveGuestControlCenter({
         invitation.stageStatus === "on_stage",
     );
   return (
-    <div className="mt-5">
+    <div className="mt-3">
+      {activeSection === "stage" ? (
       <div
         className="
-          mb-4
+          mb-2
           overflow-hidden
-          rounded-[24px]
+          rounded-xl
           border
           border-cyan-400/20
           bg-gradient-to-br
@@ -502,8 +454,8 @@ export function LiveGuestControlCenter({
             justify-between
             border-b
             border-white/10
-            px-4
-            py-4
+            px-3
+            py-2.5
           "
         >
           <div>
@@ -545,10 +497,10 @@ export function LiveGuestControlCenter({
             <div
               className="
                 flex
-                min-h-24
+                min-h-14
                 items-center
                 justify-center
-                rounded-2xl
+                rounded-lg
                 border
                 border-dashed
                 border-white/10
@@ -559,11 +511,11 @@ export function LiveGuestControlCenter({
             >
               <div>
                 <Users
-                  size={22}
+                  size={18}
                   className="mx-auto text-slate-600"
                 />
 
-                <p className="mt-2 text-sm font-bold text-slate-400">
+                <p className="mt-1 text-xs font-bold text-slate-400">
                   Stage preparado
                 </p>
 
@@ -653,31 +605,69 @@ export function LiveGuestControlCenter({
           )}
         </div>
       </div>
-      <button
-        type="button"
-        disabled={
-          disabled ||
-          !roomId
-        }
-        onClick={() => {
-          setOpen(
-            (current) =>
-              !current,
-          );
-
-          if (open) {
-            resetComposer();
+      ) : null}
+      <div className="flex items-center gap-1 border-b border-white/10 px-1">
+        <button
+          type="button"
+          disabled={
+            disabled ||
+            !roomId
           }
-        }}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <UserPlus size={18} />
-        Invite Guests
-      </button>
+          onClick={() => {
+            if (
+              open &&
+              activeSection === "invite"
+            ) {
+              setOpen(false);
+              resetComposer();
+              return;
+            }
+
+            setActiveSection("invite");
+            setOpen(true);
+          }}
+          className={
+            activeSection === "invite" &&
+            open
+              ? "relative flex h-9 items-center justify-center gap-1.5 rounded-lg border border-cyan-300/60 bg-cyan-400/15 px-3 text-sm font-black text-cyan-100 shadow-[inset_0_0_0_1px_rgba(165,243,252,0.06)] transition hover:bg-cyan-400/20"
+              : "relative flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.05] px-3 text-sm font-black text-slate-200 transition hover:border-white/25 hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          }
+        >
+          <UserPlus size={14} />
+          <span>Invitar</span>
+        </button>
+
+
+        <button
+          type="button"
+          disabled={
+            disabled ||
+            !roomId
+          }
+          onClick={() => {
+            setActiveSection("stage");
+            setOpen(true);
+          }}
+          className={
+            activeSection === "stage" &&
+            open
+              ? "relative flex h-9 items-center justify-center gap-1.5 rounded-lg border border-emerald-300/60 bg-emerald-400/15 px-3 text-sm font-black text-emerald-100 shadow-[inset_0_0_0_1px_rgba(167,243,208,0.05)] transition hover:bg-emerald-400/20"
+              : "relative flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.05] px-3 text-sm font-black text-slate-200 transition hover:border-white/25 hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          }
+        >
+          <Users size={14} />
+
+          <span>Stage</span>
+
+          <span className="rounded-full bg-emerald-300/10 px-1.5 py-0.5 text-xs font-black text-emerald-200">
+            {onStageInvitations.length}/10
+          </span>
+        </button>
+      </div>
 
       {open ? (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-[#070D16]">
-          <div className="flex items-center justify-between border-b border-white/10 p-4">
+        <div className="mt-1.5 overflow-hidden rounded-lg border border-white/10 bg-[#070D16]">
+          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
             <div>
               <div className="flex items-center gap-2">
                 <Users
@@ -686,12 +676,12 @@ export function LiveGuestControlCenter({
                 />
 
                 <h3 className="font-black text-white">
-                  Guest Control
+                  {activeSection === "invite" ? "Invitar Guest" : "Stage"}
                 </h3>
               </div>
 
               <p className="mt-1 text-xs text-slate-400">
-                Invita participantes y controla sus fuentes multimedia.
+                {activeSection === "invite" ? "Invita participantes al LIVE." : "Administra participantes en vivo."}
               </p>
             </div>
 
@@ -709,8 +699,10 @@ export function LiveGuestControlCenter({
             />
           </div>
 
-          <div className="space-y-4 p-4">
-            {!selectedUser ? (
+          <div className="space-y-3 px-3 py-3">
+            {activeSection === "invite" ? (
+              <>
+                {!selectedUser ? (
               <>
                 <div className="relative">
                   <Search
@@ -958,157 +950,15 @@ export function LiveGuestControlCenter({
                 {localMessage}
               </p>
             ) : null}
+              </>
+            ) : null}
 
-            <div className="border-t border-white/10 pt-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                    Solicitudes para subir
-                  </p>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    Personas que quieren participar como Guest.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      requestsConnected
-                        ? "h-2.5 w-2.5 rounded-full bg-emerald-400"
-                        : "h-2.5 w-2.5 rounded-full bg-slate-600"
-                    }
-                    title={
-                      requestsConnected
-                        ? "Solicitudes Guest conectadas"
-                        : "Solicitudes Guest desconectadas"
-                    }
-                  />
-
-                  <span className="text-xs font-bold text-slate-400">
-                    {pendingRequests.length}
-                  </span>
-                </div>
-              </div>
-
-              {requestsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <LoaderCircle
-                    size={15}
-                    className="animate-spin"
-                  />
-                  Cargando solicitudes...
-                </div>
-              ) : pendingRequests.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  No hay solicitudes pendientes.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {pendingRequests.map((request) => {
-                    const requestName =
-                      request.requesterFullName?.trim() ||
-                      (
-                        request.requesterUsername
-                          ? `@${request.requesterUsername}`
-                          : "Miembro VYRO"
-                      );
-
-                    return (
-                      <div
-                        key={request.id}
-                        className="rounded-xl border border-cyan-400/15 bg-cyan-500/[0.05] p-3"
-                      >
-                        <div className="flex items-start gap-3">
-                          {request.requesterAvatarUrl ? (
-                            <Image
-                              src={request.requesterAvatarUrl}
-                              alt={requestName}
-                              width={40}
-                              height={40}
-                              unoptimized
-                              className="h-10 w-10 shrink-0 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-black text-cyan-200">
-                              {requestName
-                                .slice(0, 1)
-                                .toUpperCase()}
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-bold text-white">
-                              {requestName}
-                            </p>
-
-                            {request.requesterUsername ? (
-                              <p className="truncate text-xs text-cyan-300">
-                                @{request.requesterUsername}
-                              </p>
-                            ) : null}
-
-                            {request.message ? (
-                              <p className="mt-2 rounded-lg bg-black/20 px-3 py-2 text-sm leading-5 text-slate-300">
-                                {request.message}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            disabled={
-                              processingId === request.id
-                            }
-                            onClick={() => {
-                              void resolveGuestRequest(
-                                request.id,
-                                "decline",
-                              );
-                            }}
-                            className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-black text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {processingId === request.id
-                              ? "Procesando..."
-                              : "Rechazar"}
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={
-                              processingId === request.id
-                            }
-                            onClick={() => {
-                              void resolveGuestRequest(
-                                request.id,
-                                "approve",
-                              );
-                            }}
-                            className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {processingId === request.id
-                              ? "Procesando..."
-                              : "Aprobar"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {requestError ? (
-                <p className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">
-                  {requestError}
-                </p>
-              ) : null}
-            </div>
-            <div className="border-t border-white/10 pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-                  Invitados del LIVE
+            {activeSection === "stage" ? (
+              <div className="border-t border-white/10 pt-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                    Invitados del LIVE
                 </p>
 
                 <span className="text-xs text-slate-500">
@@ -1261,7 +1111,8 @@ export function LiveGuestControlCenter({
                   )}
                 </div>
               )}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
