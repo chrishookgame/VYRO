@@ -1120,6 +1120,76 @@ export function VyroCreatorControlStrip({
       searchQuery,
     ]);
 
+  const activityFeed = useMemo(() => {
+    const chatActivity = chatMessages.map(
+      (message) => ({
+        id: `chat:${message.id}`,
+        type: "chat" as const,
+        userId: message.userId,
+        createdAt: message.createdAt,
+        username:
+          message.profile?.username ?? null,
+        fullName:
+          message.profile?.fullName ?? null,
+        avatarUrl:
+          message.profile?.avatarUrl ?? null,
+        detail: message.message,
+      }),
+    );
+
+    const reactionActivity = reactionFeed.map(
+      (reaction) => ({
+        id: `reaction:${reaction.id}`,
+        type: "reaction" as const,
+        userId: reaction.user_id,
+        createdAt: reaction.created_at,
+        username:
+          reaction.profile?.username ?? null,
+        fullName:
+          reaction.profile?.full_name ?? null,
+        avatarUrl:
+          reaction.profile?.avatar_url ?? null,
+        detail:
+          reactionIcons[reaction.reaction_type] ??
+          "Reaction",
+      }),
+    );
+
+    const giftActivity = giftHistory.map(
+      (gift) => ({
+        id: `gift:${gift.id}`,
+        type: "gift" as const,
+        userId: gift.senderId,
+        createdAt: gift.createdAt,
+        username: gift.username,
+        fullName: gift.fullName,
+        avatarUrl: gift.avatarUrl,
+        detail: `${gift.giftIcon} ${gift.giftName}`,
+      }),
+    );
+
+    return [
+      ...chatActivity,
+      ...reactionActivity,
+      ...giftActivity,
+    ]
+      .filter(
+        (item) =>
+          typeof item.userId === "string" &&
+          item.userId.length > 0,
+      )
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() -
+          new Date(left.createdAt).getTime(),
+      )
+      .slice(0, 40);
+  }, [
+    chatMessages,
+    giftHistory,
+    reactionFeed,
+  ]);
+
   function renderPanelContent(
     panel: CreatorPanel,
   ): ReactNode {
@@ -1527,6 +1597,124 @@ export function VyroCreatorControlStrip({
                 {gifts}
               </p>
             </div>
+          </div>
+
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+                  Actividad reciente
+                </p>
+
+                <p className="mt-1 text-[11px] text-white/40">
+                  Chat, Reactions y Gifts de este LIVE.
+                </p>
+              </div>
+
+              <span className="rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-2.5 py-1 text-[10px] font-black text-emerald-200">
+                {activityFeed.length}
+              </span>
+            </div>
+
+            {activityFeed.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm text-white/45">
+                Todavia no hay actividad individual en este LIVE.
+              </div>
+            ) : (
+              <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {activityFeed.map((item) => {
+                  const displayName =
+                    item.fullName?.trim() ||
+                    item.username?.trim() ||
+                    "Usuario";
+
+                  const username =
+                    item.username?.trim()
+                      ? `@${item.username.trim()}`
+                      : null;
+
+                  const activityLabel =
+                    item.type === "chat"
+                      ? "Chat"
+                      : item.type === "reaction"
+                        ? "Reaction"
+                        : "Gift";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+                        {item.avatarUrl ? (
+                          <span
+                            role="img"
+                            aria-label={displayName}
+                            className="h-full w-full bg-cover bg-center"
+                            style={{
+                              backgroundImage:
+                                `url("${item.avatarUrl}")`,
+                            }}
+                          />
+                        ) : (
+                          <span className="text-sm font-black text-white/70">
+                            {displayName
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-white">
+                          {displayName}
+                        </p>
+
+                        <p className="truncate text-[11px] text-white/45">
+                          {username
+                            ? `${username} · `
+                            : ""}
+                          {activityLabel} · {item.detail}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProfileUserId(
+                              item.userId,
+                            )
+                          }
+                          className="h-8 rounded-md border border-cyan-300/25 bg-cyan-300/[0.08] px-3 text-xs font-black text-cyan-200 transition hover:border-cyan-300/50 hover:bg-cyan-300/[0.14]"
+                        >
+                          Perfil
+                        </button>
+
+                        <div className="[&>div>button]:h-8 [&>div>button]:min-h-0 [&>div>button]:rounded-md [&>div>button]:px-3 [&>div>button]:py-1 [&>div>button]:text-xs">
+                          <FollowButton
+                            creatorId={item.userId}
+                            ownLabel={null}
+                          />
+                        </div>
+
+                        <time className="text-[10px] text-white/35">
+                          {new Intl.DateTimeFormat(
+                            "es-419",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          ).format(
+                            new Date(item.createdAt),
+                          )}
+                        </time>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       );
