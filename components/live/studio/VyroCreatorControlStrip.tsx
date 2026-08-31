@@ -53,6 +53,19 @@ type ReactionProfile = {
   avatar_url: string | null;
 };
 
+type GiftHistoryItem = {
+  id: string;
+  senderId: string;
+  giftType: string;
+  giftName: string;
+  giftIcon: string;
+  amount: number;
+  createdAt: string;
+  username: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+};
+
 type ReactionFeedRow = {
   id: string;
   user_id: string;
@@ -82,6 +95,7 @@ type VyroCreatorControlStripProps = {
   reactions: number;
   messages: number;
   gifts: number;
+  giftUpdateSignal?: unknown;
   duration: string;
   chatMessages?: LiveChatMessage[];
   chatContent?: ReactElement<{
@@ -243,6 +257,7 @@ export function VyroCreatorControlStrip({
   reactions,
   messages,
   gifts,
+  giftUpdateSignal,
   duration,
   chatMessages = [],
   chatContent,
@@ -396,6 +411,177 @@ export function VyroCreatorControlStrip({
     reactionFeedConnected,
     setReactionFeedConnected,
   ] = useState(false);
+
+  const [
+    giftHistory,
+    setGiftHistory,
+  ] = useState<GiftHistoryItem[]>([]);
+
+  const [
+    giftHistoryLoading,
+    setGiftHistoryLoading,
+  ] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGiftHistory = async () => {
+      if (!roomId) {
+        setGiftHistory([]);
+        setGiftHistoryLoading(false);
+        return;
+      }
+
+      setGiftHistoryLoading(true);
+
+      try {
+        const { data: giftRows, error: giftError } =
+          await supabase
+            .from("live_gifts")
+            .select(
+              "id,sender_id,gift_type,amount,created_at",
+            )
+            .eq("room_id", roomId)
+            .order("created_at", {
+              ascending: false,
+            })
+            .limit(25);
+
+        if (giftError) {
+          throw giftError;
+        }
+
+        const rows = giftRows ?? [];
+
+        const senderIds = Array.from(
+          new Set(
+            rows
+              .map((row) => row.sender_id)
+              .filter(
+                (value): value is string =>
+                  typeof value === "string" &&
+                  value.length > 0,
+              ),
+          ),
+        );
+
+        const giftCodes = Array.from(
+          new Set(
+            rows
+              .map((row) => row.gift_type)
+              .filter(
+                (value): value is string =>
+                  typeof value === "string" &&
+                  value.length > 0,
+              ),
+          ),
+        );
+
+        const [
+          profileResult,
+          catalogResult,
+        ] = await Promise.all([
+          senderIds.length > 0
+            ? supabase
+                .from("profiles")
+                .select(
+                  "id,username,full_name,avatar_url",
+                )
+                .in("id", senderIds)
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
+          giftCodes.length > 0
+            ? supabase
+                .from("live_gift_catalog")
+                .select("code,name,icon")
+                .in("code", giftCodes)
+            : Promise.resolve({
+                data: [],
+                error: null,
+              }),
+        ]);
+
+        if (profileResult.error) {
+          throw profileResult.error;
+        }
+
+        if (catalogResult.error) {
+          throw catalogResult.error;
+        }
+
+        const profileMap = new Map(
+          (profileResult.data ?? []).map(
+            (profile) => [
+              profile.id,
+              profile,
+            ],
+          ),
+        );
+
+        const catalogMap = new Map(
+          (catalogResult.data ?? []).map(
+            (gift) => [
+              gift.code,
+              gift,
+            ],
+          ),
+        );
+
+        const history: GiftHistoryItem[] =
+          rows.map((row) => {
+            const profile =
+              profileMap.get(row.sender_id);
+
+            const catalogGift =
+              catalogMap.get(row.gift_type);
+
+            return {
+              id: row.id,
+              senderId: row.sender_id,
+              giftType: row.gift_type,
+              giftName:
+                catalogGift?.name ??
+                row.gift_type,
+              giftIcon:
+                catalogGift?.icon ?? "Gift",
+              amount: Number(row.amount ?? 0),
+              createdAt: row.created_at,
+              username:
+                profile?.username ?? null,
+              fullName:
+                profile?.full_name ?? null,
+              avatarUrl:
+                profile?.avatar_url ?? null,
+            };
+          });
+
+        if (!cancelled) {
+          setGiftHistory(history);
+        }
+      } catch (error) {
+        console.error(
+          "No se pudo cargar el historial LIVE de Gifts.",
+          error,
+        );
+
+        if (!cancelled) {
+          setGiftHistory([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setGiftHistoryLoading(false);
+        }
+      }
+    };
+
+    void loadGiftHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, giftUpdateSignal]);
 
   const [
     searchQuery,
@@ -1151,17 +1337,143 @@ export function VyroCreatorControlStrip({
     ) {
       return (
         <div className="p-5">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">
-            Gifts LIVE
-          </p>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">
+                Gifts LIVE
+              </p>
 
-          <p className="mt-3 text-4xl font-black text-white">
-            {gifts}
-          </p>
+              <p className="mt-2 text-sm text-white/45">
+                Personas que enviaron regalos durante esta transmisión.
+              </p>
+            </div>
 
-          <p className="mt-2 text-sm text-white/45">
-            Regalos registrados durante esta transmisión.
-          </p>
+            <p className="text-3xl font-black text-white">
+              {gifts}
+            </p>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {giftHistoryLoading &&
+            giftHistory.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/45">
+                Cargando Gifts LIVE...
+              </div>
+            ) : giftHistory.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/45">
+                Todavía no hay Gifts en este LIVE.
+              </div>
+            ) : (
+              giftHistory.map((gift) => {
+                const displayName =
+                  gift.fullName?.trim() ||
+                  gift.username?.trim() ||
+                  "Usuario";
+
+                const username =
+                  gift.username?.trim()
+                    ? `@${gift.username.trim()}`
+                    : null;
+
+                return (
+                  <div
+                    key={gift.id}
+                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+                      {gift.avatarUrl ? (
+                        <span
+                          role="img"
+                          aria-label={displayName}
+                          className="h-full w-full bg-cover bg-center"
+                          style={{
+                            backgroundImage:
+                              `url("${gift.avatarUrl}")`,
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm font-black text-white/70">
+                          {displayName
+                            .slice(0, 1)
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black text-white">
+                        {displayName}
+                      </p>
+
+                      {username ? (
+                        <p className="truncate text-xs text-white/45">
+                          {username}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-1 flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 text-base">
+                          {gift.giftIcon}
+                        </span>
+
+                        <span className="truncate text-xs font-bold text-amber-200">
+                          {gift.giftName}
+                        </span>
+
+                        <span className="shrink-0 text-[10px] text-white/35">
+                          {gift.amount.toLocaleString(
+                            "es-419",
+                            {
+                              maximumFractionDigits: 2,
+                            },
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProfileUserId(
+                              gift.senderId,
+                            )
+                          }
+                          className="h-8 rounded-md border border-cyan-300/25 bg-cyan-300/[0.08] px-3 text-xs font-black text-cyan-200 transition hover:border-cyan-300/50 hover:bg-cyan-300/[0.14]"
+                        >
+                          Perfil
+                        </button>
+
+                        <div className="[&>div>button]:h-8 [&>div>button]:min-h-0 [&>div>button]:rounded-md [&>div>button]:px-3 [&>div>button]:py-1 [&>div>button]:text-xs">
+                          <FollowButton
+                            creatorId={
+                              gift.senderId
+                            }
+                            ownLabel={null}
+                          />
+                        </div>
+                      </div>
+
+                      <time className="text-[10px] text-white/35">
+                        {new Intl.DateTimeFormat(
+                          "es-419",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        ).format(
+                          new Date(
+                            gift.createdAt,
+                          ),
+                        )}
+                      </time>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       );
     }

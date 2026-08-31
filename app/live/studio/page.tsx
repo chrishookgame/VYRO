@@ -2041,6 +2041,9 @@ export default function LiveStudioPage() {
                     gifts={
                       dashboard.gifts
                     }
+                    giftUpdateSignal={
+                      studioLastGiftUpdate
+                    }
                     beautyEnabled={
                       beautyEnabled
                     }
