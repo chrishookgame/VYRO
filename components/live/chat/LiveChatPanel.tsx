@@ -12,7 +12,6 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import Link from "next/link";
 
 import FollowButton from "@/components/feed/FollowButton";
 import {
@@ -32,6 +31,7 @@ interface LiveChatPanelProps {
   creatorActions?: {
     roomId: string;
     currentUserId: string;
+    onOpenProfile?: (userId: string) => void;
   };
   onSendMessage: (
     content: string,
@@ -42,12 +42,14 @@ interface CreatorMessageActionsProps {
   roomId: string;
   userId: string;
   profileName: string;
+  onOpenProfile?: (userId: string) => void;
 }
 
 function CreatorMessageActions({
   roomId,
   userId,
   profileName,
+  onOpenProfile,
 }: CreatorMessageActionsProps) {
   const [
     inviteState,
@@ -105,12 +107,16 @@ function CreatorMessageActions({
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2">
-      <Link
-        href={`/profile/${userId}`}
-        className="inline-flex h-8 items-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-[11px] font-black text-white/75 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-cyan-200"
+      <button
+        type="button"
+        onClick={() => {
+          onOpenProfile?.(userId);
+        }}
+        disabled={!onOpenProfile}
+        className="inline-flex h-8 items-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-[11px] font-black text-white/75 transition hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-cyan-200 disabled:cursor-default disabled:opacity-50"
       >
         Perfil
-      </Link>
+      </button>
 
       <div className="[&>button]:h-8 [&>button]:min-h-0 [&>button]:rounded-lg [&>button]:px-3 [&>button]:py-1 [&>button]:text-[11px]">
         <FollowButton
@@ -383,6 +389,9 @@ export default function LiveChatPanel({
                         }
                         userId={message.userId}
                         profileName={profileName}
+                        onOpenProfile={
+                          creatorActions.onOpenProfile
+                        }
                       />
                     ) : null}
                   </div>

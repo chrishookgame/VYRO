@@ -14,12 +14,14 @@ import {
   X,
 } from "lucide-react";
 import {
+  cloneElement,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactElement,
   type ReactNode,
 } from "react";
 
@@ -82,7 +84,13 @@ type VyroCreatorControlStripProps = {
   gifts: number;
   duration: string;
   chatMessages?: LiveChatMessage[];
-  chatContent?: ReactNode;
+  chatContent?: ReactElement<{
+    creatorActions?: {
+      roomId: string;
+      currentUserId: string;
+      onOpenProfile?: (userId: string) => void;
+    };
+  }>;
   searchContent?: ReactNode;
   guestContent?: ReactNode;
   requestsContent?: ReactNode;
@@ -1118,14 +1126,23 @@ export function VyroCreatorControlStrip({
     if (
       panel === "messages"
     ) {
+      if (chatContent) {
+        return cloneElement(chatContent, {
+          creatorActions: chatContent.props.creatorActions
+            ? {
+                ...chatContent.props.creatorActions,
+                onOpenProfile: setProfileUserId,
+              }
+            : undefined,
+        });
+      }
+
       return (
-        chatContent ?? (
-          <div className="p-5">
-            <p className="text-sm text-white/50">
-              {messages} mensajes registrados.
-            </p>
-          </div>
-        )
+        <div className="p-5">
+          <p className="text-sm text-white/50">
+            {messages} mensajes registrados.
+          </p>
+        </div>
       );
     }
 
