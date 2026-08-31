@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import FollowButton from "@/components/feed/FollowButton";
+import PublicCreatorProfile from "@/components/profile/PublicCreatorProfile";
 import type {
   LiveChatMessage,
 } from "@/lib/live";
@@ -248,6 +249,37 @@ export function VyroCreatorControlStrip({
 }: VyroCreatorControlStripProps) {
   const [beautyMenuOpen, setBeautyMenuOpen] =
     useState(false);
+
+  const [
+    profileUserId,
+    setProfileUserId,
+  ] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profileUserId) {
+      return;
+    }
+
+    const handleProfileEscape = (
+      event: KeyboardEvent,
+    ) => {
+      if (event.key === "Escape") {
+        setProfileUserId(null);
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleProfileEscape,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleProfileEscape,
+      );
+    };
+  }, [profileUserId]);
 
   const beautyAnchorRef =
     useRef<HTMLDivElement>(null);
@@ -1039,6 +1071,18 @@ export function VyroCreatorControlStrip({
 
                     <div className="flex shrink-0 items-center gap-2">
 
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProfileUserId(
+                            reaction.user_id,
+                          )
+                        }
+                        className="h-8 rounded-md border border-cyan-300/25 bg-cyan-300/[0.08] px-3 text-xs font-black text-cyan-200 transition hover:border-cyan-300/50 hover:bg-cyan-300/[0.14]"
+                      >
+                        Perfil
+                      </button>
+
                       <div className="[&>div>button]:h-8 [&>div>button]:min-h-0 [&>div>button]:rounded-md [&>div>button]:px-3 [&>div>button]:py-1 [&>div>button]:text-xs">
                         <FollowButton
                           creatorId={reaction.user_id}
@@ -1274,6 +1318,42 @@ export function VyroCreatorControlStrip({
 
   return (
     <>
+      {profileUserId ? (
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Perfil VYRO"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setProfileUserId(null);
+            }
+          }}
+        >
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-cyan-300/20 bg-[#070b12] shadow-[0_30px_100px_rgba(0,0,0,0.75)]">
+            <button
+              type="button"
+              onClick={() =>
+                setProfileUserId(null)
+              }
+              className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/70 text-white transition hover:border-cyan-300/50 hover:text-cyan-200"
+              aria-label="Cerrar perfil"
+              title="Cerrar perfil"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="p-3 sm:p-5">
+              <PublicCreatorProfile
+                userId={profileUserId}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="relative w-full">
         <div className="flex w-full items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/70 px-3 py-2 shadow-2xl backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4">
           <div
