@@ -1475,6 +1475,7 @@ export default function LiveWatchPage() {
     loading: presenceLoading,
     error: presenceError,
     counters: presenceCounters,
+    leaveRoom: leavePresenceRoom,
   } = useLivePresence(roomId);
 
   const {
@@ -1835,13 +1836,20 @@ export default function LiveWatchPage() {
       <main className="min-h-screen bg-[#05070A] px-6 py-8 text-white md:px-10">
       <section className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link
-            href="/live"
+          <button
+            type="button"
+            onClick={() => {
+              void leavePresenceRoom().then((leftRoom) => {
+                if (leftRoom) {
+                  window.location.assign("/live");
+                }
+              });
+            }}
             className="inline-flex items-center gap-2 font-semibold text-cyan-400 transition hover:text-cyan-300"
           >
             <ArrowLeft size={18} />
             Volver a VYRO LIVE
-          </Link>
+          </button>
 
           <div
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold ${
@@ -2039,22 +2047,6 @@ export default function LiveWatchPage() {
             </div>
           ) : null}
 
-          {isGuestWaiting ? (
-            <LiveGuestWaitingPreview
-              canUseCamera={
-                activeGuestInvitation
-                  ?.permissions
-                  .canPublishCamera ??
-                false
-              }
-              canUseMicrophone={
-                activeGuestInvitation
-                  ?.permissions
-                  .canPublishMicrophone ??
-                false
-              }
-            />
-          ) : null}
 
             <div className="relative">
               <LiveViewerMedia
@@ -2063,6 +2055,25 @@ export default function LiveWatchPage() {
                   room.presentationState
                 }
               />
+
+              {isGuestWaiting ? (
+                <div className="absolute right-3 top-3 z-30 w-[min(300px,calc(100%-1.5rem))] sm:right-4 sm:top-4">
+                  <LiveGuestWaitingPreview
+                    canUseCamera={
+                      activeGuestInvitation
+                        ?.permissions
+                        .canPublishCamera ??
+                      false
+                    }
+                    canUseMicrophone={
+                      activeGuestInvitation
+                        ?.permissions
+                        .canPublishMicrophone ??
+                      false
+                    }
+                  />
+                </div>
+              ) : null}
 
               {visualCoordination.showGiftOverlay ? (
                 <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[inherit]">
