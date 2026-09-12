@@ -33,6 +33,10 @@ import type {
   BattleSeriesConfig,
 } from "./BattleScheduler";
 
+import {
+  BattleMediaBridge,
+} from "./BattleMediaBridge";
+
 interface RivalSearchResult {
   id: string;
   username: string;
@@ -496,6 +500,23 @@ export default function BattleInvitationPanel({
       [sent],
     );
 
+  const acceptedReceivedBattle =
+    useMemo(
+      () =>
+        received.find(
+          (invitation) =>
+            invitation.status ===
+              "accepted" &&
+            Boolean(roomId) &&
+            invitation.roomId ===
+              roomId,
+        ) ?? null,
+      [
+        received,
+        roomId,
+      ],
+    );
+
   const runAction = useCallback(
     async (
       invitationId: string,
@@ -520,7 +541,16 @@ export default function BattleInvitationPanel({
   );
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-[#07111D] text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+    <>
+      {acceptedReceivedBattle &&
+      roomId ? (
+        <BattleMediaBridge
+          roomId={roomId}
+          source="invitation-panel"
+        />
+      ) : null}
+
+      <section className="overflow-hidden rounded-[2rem] border border-fuchsia-400/20 bg-[#07111D] text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
       <div className="border-b border-white/10 p-6 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -844,6 +874,7 @@ export default function BattleInvitationPanel({
           {actionError || error}
         </div>
       ) : null}
-    </section>
+      </section>
+    </>
   );
 }

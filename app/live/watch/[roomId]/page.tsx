@@ -89,6 +89,11 @@ import {
 import { LiveGuestWaitingPreview } from "@/components/live/guest/LiveGuestWaitingPreview";
 import { LiveGuestRequestButton } from "@/components/live/guest/LiveGuestRequestButton";
 import { useLiveGuestInvitations } from "@/hooks/useLiveGuestInvitations";
+import { useBattleInvitations } from "@/hooks/useBattleInvitations";
+import {
+  BattleMediaBridge,
+  type BattleMediaControls,
+} from "@/components/live/battle/BattleMediaBridge";
 import { LiveViewerMedia } from "@/components/live/media/LiveViewerMedia";
 import { LiveLeaderboardPanel } from "@/components/live/leaderboard";
 import { LiveRankingPanel } from "@/components/live/ranking";
@@ -177,6 +182,49 @@ export default function LiveWatchPage() {
     leaveGuestStage: leaveActiveGuestStage,
   } = useLiveGuestInvitations();
 
+  const {
+    received: battleInvitations,
+    sent: sentBattleInvitations,
+    loading: battleInvitationsLoading,
+    sendInvitation: sendBattleInvitation,
+    acceptInvitation: acceptBattleInvitation,
+    declineInvitation: declineBattleInvitation,
+  } = useBattleInvitations();
+
+  const activeBattleInvitation =
+    useMemo(
+      () =>
+        battleInvitations.find(
+          (invitation) =>
+            invitation.roomId === roomId &&
+            invitation.status === "pending",
+        ) ?? null,
+      [
+        battleInvitations,
+        roomId,
+      ],
+    );
+
+  const acceptedBattle =
+    useMemo(
+      () =>
+        sentBattleInvitations.find(
+          (invitation) =>
+            invitation.roomId === roomId &&
+            invitation.status === "accepted",
+        ) ??
+        battleInvitations.find(
+          (invitation) =>
+            invitation.roomId === roomId &&
+            invitation.status === "accepted",
+        ) ??
+        null,
+      [
+        sentBattleInvitations,
+        battleInvitations,
+        roomId,
+      ],
+    );
   const [
     guestActionId,
     setGuestActionId,
@@ -317,6 +365,18 @@ export default function LiveWatchPage() {
     setReactionPickerOpen,
   ] = useState(false);
 
+  const [
+    viewerActionsOpen,
+    setViewerActionsOpen,
+  ] = useState(false);
+
+  const [
+    battleMediaControls,
+    setBattleMediaControls,
+  ] = useState<BattleMediaControls | null>(
+    null,
+  );
+
   const [viewerPanel, setViewerPanel] =
     useState<"chat" | "gifts" | null>(null);
 
@@ -329,11 +389,11 @@ export default function LiveWatchPage() {
     viewerAuthAction,
     setViewerAuthAction,
   ] = useState<
-    "reaction" | "chat" | "gifts" | "follow" | "guest" | null
+    "reaction" | "chat" | "gifts" | "follow" | "guest" | "battle" | null
   >(null);
 
   async function requireViewerAuth(
-    action: "reaction" | "chat" | "gifts",
+    action: "reaction" | "chat" | "gifts" | "battle",
   ) {
     const {
       data: { user },
@@ -1876,80 +1936,90 @@ export default function LiveWatchPage() {
           </div>
         </div>
 
-        <header className="mt-6 overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-[#0B1220] to-[#111827] p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Radio className="text-cyan-400" />
-
-              <p className="font-bold uppercase tracking-[0.3em] text-cyan-400">
-                VYRO LIVE
-              </p>
-            </div>
-
-            <span className="rounded-full border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-black uppercase text-red-300">
-              {room.status}
+        <div className="mt-2 flex min-w-0 items-center gap-2 px-1 text-xs text-white/70">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 rounded-full bg-red-500 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white shadow-lg">
+              LIVE
             </span>
+
+            <span className="max-w-[180px] truncate font-black text-white sm:max-w-[260px]">
+              {hostName}
+            </span>
+
+            {room.host?.verified ? (
+              <ShieldCheck
+                size={14}
+                className="shrink-0 text-cyan-400"
+              />
+            ) : null}
+
+            <FollowButton
+              creatorId={room.hostId}
+              ownLabel={null}
+              onAuthRequired={() => {
+                setViewerAuthAction("follow");
+                setViewerAuthGateOpen(true);
+              }}
+            />
           </div>
 
-          <h1 className="mt-5 text-4xl font-black md:text-5xl">
+          <span className="min-w-0 flex-1 truncate text-[10px] text-white/40">
             {room.title}
-          </h1>
+          </span>
+        </div>
 
-          {room.description ? (
-            <p className="mt-4 max-w-3xl text-lg leading-8 text-gray-400">
-              {room.description}
-            </p>
+        <section className="relative mt-3">
+          {activeBattleInvitation ? (
+            <div
+              data-vyro-battle-invitation
+              className="mb-5 overflow-hidden rounded-[2rem] border border-emerald-400/30 bg-black/90 p-6 shadow-2xl"
+            >
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300">
+                    ⚔ VYRO BATTLE
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-black text-white">
+                    Te han desafiado a una Battle
+                  </h2>
+
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+                    Acepta para entrar a la Battle VYRO con cámara y micrófono.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={battleInvitationsLoading}
+                    onClick={() => {
+                      void declineBattleInvitation(
+                        activeBattleInvitation.id,
+                      );
+                    }}
+                    className="rounded-2xl border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-black text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Rechazar
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={battleInvitationsLoading}
+                    onClick={() => {
+                      void acceptBattleInvitation(
+                        activeBattleInvitation.id,
+                      );
+                    }}
+                    className="rounded-2xl border border-emerald-300/40 bg-emerald-400 px-5 py-3 text-sm font-black text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Aceptar Battle
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-4 text-sm text-gray-300">
-            <div className="inline-flex items-center gap-2">
-              <UserRound
-                size={18}
-                className="text-cyan-400"
-              />
-
-              <span>{hostName}</span>
-
-              {room.host?.verified ? (
-                <ShieldCheck
-                  size={18}
-                  className="text-cyan-400"
-                />
-              ) : null}
-              <FollowButton
-                creatorId={room.hostId}
-                ownLabel={null}
-                onAuthRequired={() => {
-                  setViewerAuthAction("follow");
-                  setViewerAuthGateOpen(true);
-                }}
-              />
-            </div>
-
-            <div className="inline-flex items-center gap-2">
-              <CalendarClock
-                size={18}
-                className="text-cyan-400"
-              />
-
-              <span>
-                {room.startedAt
-                  ? new Intl.DateTimeFormat(
-                      "es-419",
-                      {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      },
-                    ).format(
-                      new Date(room.startedAt),
-                    )
-                  : "Transmisión aún no iniciada"}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <section className="relative mt-8">
           {activeGuestInvitation?.status ===
           "pending" ? (
             <div className="mb-5 overflow-hidden rounded-[2rem] border border-cyan-400/25 bg-gradient-to-br from-cyan-500/10 via-[#08111C] to-black p-6 shadow-2xl">
@@ -2049,13 +2119,178 @@ export default function LiveWatchPage() {
 
 
             <div className="relative">
+              {acceptedBattle ? (
+                <BattleMediaBridge
+                  roomId={roomId}
+                  source="watch"
+                  onControlsReady={
+                    setBattleMediaControls
+                  }
+                />
+              ) : null}
               <LiveViewerMedia
                 roomId={roomId}
                 initialPresentationState={
                   room.presentationState
                 }
+                battleActive={
+                  liveBattle?.status ===
+                  "active"
+                }
               />
+              <div
+                data-vyro-gift-picker-panel
+                className={`absolute bottom-4 right-[4.75rem] z-40 w-[min(390px,calc(100%-6rem))] max-h-[62%] overflow-y-auto rounded-[1.35rem] border border-white/10 bg-black/90 p-3 shadow-2xl backdrop-blur-xl transition ${
+                  viewerPanel === "gifts"
+                    ? "pointer-events-auto opacity-100"
+                    : "pointer-events-none opacity-0"
+                }`}
+              >
+                <GiftPicker roomId={roomId} />
+              </div>
 
+              <div
+                className={`absolute bottom-4 left-3 z-30 h-[min(42%,330px)] w-[min(360px,calc(100%-6rem))] transition ${
+                  viewerPanel === "chat"
+                    ? "pointer-events-auto opacity-100"
+                    : "pointer-events-none opacity-0"
+                }`}
+              >
+                <LiveChatPanel
+                  messages={messages}
+                  loading={chatLoading}
+                  sending={chatSending}
+                  connected={chatConnected}
+                  error={chatError}
+                  overlay
+                  onSendMessage={sendMessage}
+                />
+              </div>
+
+              {!battleLoading &&
+              !battleError &&
+              liveBattle &&
+              presentation.showBattleEngine ? (
+                <div className="pointer-events-none absolute left-3 right-[5.25rem] top-2 z-30 sm:left-4 sm:right-[5.5rem] sm:top-3">
+                  <div className="mx-auto max-w-[540px] overflow-hidden rounded-lg border border-white/10 bg-black/45 shadow-[0_8px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2 sm:px-4">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-fuchsia-400" />
+
+                        <span className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200 sm:text-xs">
+                          VYRO LIVE BATTLE
+                        </span>
+                      </div>
+
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 sm:text-xs">
+                        {liveBattleSeries
+                          ? `Ronda ${Math.max(
+                              1,
+                              liveBattleSeries.currentPosition,
+                            )}/${Math.max(
+                              1,
+                              liveBattleSeries.config.totalBattles,
+                            )}`
+                          : liveBattle.status === "active"
+                            ? "En vivo"
+                            : liveBattle.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-black text-cyan-200 sm:text-sm">
+                          {liveBattle.left.creatorName}
+                        </p>
+
+                        <p className="mt-0.5 text-base font-black leading-none text-white sm:text-lg">
+                          {liveBattle.left.score.toLocaleString(
+                            "es-419",
+                          )}
+                        </p>
+
+                        <p className="mt-1 truncate text-[9px] font-bold text-white/45 sm:text-[10px]">
+                          {liveBattle.left.giftCount.toLocaleString(
+                            "es-419",
+                          )} regalos
+                        </p>
+                      </div>
+
+                      <div className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-black text-white/80 sm:px-3 sm:text-xs">
+                        VS
+                      </div>
+
+                      <div className="min-w-0 text-right">
+                        <p className="truncate text-xs font-black text-fuchsia-200 sm:text-sm">
+                          {liveBattle.right.creatorName}
+                        </p>
+
+                        <p className="mt-0.5 text-base font-black leading-none text-white sm:text-lg">
+                          {liveBattle.right.score.toLocaleString(
+                            "es-419",
+                          )}
+                        </p>
+
+                        <p className="mt-1 truncate text-[9px] font-bold text-white/45 sm:text-[10px]">
+                          {liveBattle.right.giftCount.toLocaleString(
+                            "es-419",
+                          )} regalos
+                        </p>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const totalScore =
+                        liveBattle.left.score +
+                        liveBattle.right.score;
+
+                      const leftPercent =
+                        totalScore > 0
+                          ? Math.round(
+                              (liveBattle.left.score /
+                                totalScore) *
+                                100,
+                            )
+                          : 50;
+
+                      const rightPercent =
+                        100 - leftPercent;
+
+                      return (
+                        <>
+                          <div className="flex h-1.5 w-full bg-white/10">
+                            <div
+                              className="bg-cyan-400 transition-[width] duration-500"
+                              style={{
+                                width: `${leftPercent}%`,
+                              }}
+                            />
+
+                            <div
+                              className="bg-fuchsia-400 transition-[width] duration-500"
+                              style={{
+                                width: `${rightPercent}%`,
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between px-3 py-1.5 text-[9px] font-black text-white/50 sm:px-4 sm:text-[10px]">
+                            <span>{leftPercent}%</span>
+
+                            <span>
+                              {liveBattleSeries
+                                ? `${liveBattleSeries.leftWins} - ${liveBattleSeries.rightWins}`
+                                : "BATTLE"}
+                            </span>
+
+                            <span>{rightPercent}%</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ) : null}
               {isGuestWaiting ? (
                 <div className="absolute right-3 top-3 z-30 w-[min(300px,calc(100%-1.5rem))] sm:right-4 sm:top-4">
                   <LiveGuestWaitingPreview
@@ -2087,6 +2322,16 @@ export default function LiveWatchPage() {
               {isGuestOnStage ? (
                 <LiveGuestStageOverlay
                   guestControls={guestMediaRef}
+                  followControl={
+                    <FollowButton
+                      creatorId={room.hostId}
+                      ownLabel={null}
+                      onAuthRequired={() => {
+                        setViewerAuthAction("follow");
+                        setViewerAuthGateOpen(true);
+                      }}
+                    />
+                  }
                   onClose={() => {
                     void handleLeaveGuestStage();
                   }}
@@ -2175,8 +2420,15 @@ export default function LiveWatchPage() {
                 }
               `}</style>
 
-              <div className="pointer-events-none absolute right-4 top-16 z-30 flex justify-end sm:right-5 sm:top-20">
-                <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/45 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md">
+              <div className="pointer-events-none absolute bottom-5 right-3 z-50 flex flex-col items-end gap-2 sm:bottom-6 sm:right-4">
+                <div
+                  className={[
+                    "pointer-events-auto w-[248px] overflow-visible rounded-[22px] border border-white/10 bg-[#05080D]/94 p-2.5 shadow-[0_24px_80px_rgba(0,0,0,0.72)] backdrop-blur-2xl transition duration-200",
+                    viewerActionsOpen
+                      ? "translate-y-0 opacity-100"
+                      : "pointer-events-none translate-y-2 opacity-0",
+                  ].join(" ")}
+                >
                   <div className="relative">
                     {reactionPickerOpen ? (
                       <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 w-max max-w-[calc(100vw-2rem)]">
@@ -2258,7 +2510,7 @@ export default function LiveWatchPage() {
                         );
                       }}
                       className={[
-                        "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
+                        "flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-[11px] font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                         reactionPickerOpen
                           ? "bg-white/15 text-white shadow-sm"
                           : "hover:bg-white/10 hover:text-white",
@@ -2309,7 +2561,7 @@ export default function LiveWatchPage() {
                       );
                     }}
                     className={[
-                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
+                      "flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-[11px] font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                       viewerPanel === "chat"
                         ? "bg-white/15 text-white shadow-sm"
                         : "hover:bg-white/10 hover:text-white",
@@ -2321,6 +2573,131 @@ export default function LiveWatchPage() {
 
                     <span className="hidden sm:inline">
                       Comentar
+                    </span>
+                  </button>
+
+                  <FollowButton
+                    creatorId={room.hostId}
+                    ownLabel={null}
+                    onAuthRequired={() => {
+                      setViewerAuthAction("follow");
+                      setViewerAuthGateOpen(true);
+                    }}
+                  />
+
+                  {battleMediaControls ? (
+                    <>
+                      <div className="mx-0.5 h-5 w-px bg-white/10" />
+
+                      <button
+                        type="button"
+                        disabled={battleMediaControls.mediaBusy}
+                        onClick={() => {
+                          void battleMediaControls.toggleCamera();
+                        }}
+                        className="flex h-10 w-full items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 text-[11px] font-black text-white/90 transition hover:bg-white/10 disabled:opacity-40"
+                      >
+                        <span aria-hidden="true">🎥</span>
+                        <span className="hidden sm:inline">
+                          Cámara
+                        </span>
+                        <span
+                          className={
+                            battleMediaControls.cameraEnabled
+                              ? "text-emerald-300"
+                              : "text-white/35"
+                          }
+                        >
+                          {battleMediaControls.cameraEnabled
+                            ? "ON"
+                            : "OFF"}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={battleMediaControls.mediaBusy}
+                        onClick={() => {
+                          void battleMediaControls.toggleMicrophone();
+                        }}
+                        className="flex h-10 w-full items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.035] px-3 text-[11px] font-black text-white/90 transition hover:bg-white/10 disabled:opacity-40"
+                      >
+                        <span aria-hidden="true">🎙</span>
+                        <span className="hidden sm:inline">
+                          Micrófono
+                        </span>
+                        <span
+                          className={
+                            battleMediaControls.microphoneEnabled
+                              ? "text-emerald-300"
+                              : "text-white/35"
+                          }
+                        >
+                          {battleMediaControls.microphoneEnabled
+                            ? "ON"
+                            : "OFF"}
+                        </span>
+                      </button>
+                    </>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    data-vyro-viewer-battle-button
+                    aria-label="Battle VYRO"
+                    disabled={battleInvitationsLoading}
+                    onClick={async () => {
+                      setReactionPickerOpen(false);
+
+                      const allowed =
+                        await requireViewerAuth(
+                          "battle",
+                        );
+
+                      if (!allowed) {
+                        return;
+                      }
+
+                      try {
+                        await sendBattleInvitation({
+                          roomId,
+                          receiverId: room.hostId,
+                          seriesConfig: {
+                            totalBattles: 3,
+                            battleDurationSeconds: 180,
+                            breakDurationSeconds: 60,
+                            autoStartNext: true,
+                          },
+                        });
+
+                        window.alert(
+                          "Desafío VYRO Battle enviado al creador.",
+                        );
+                      } catch (battleInvitationError) {
+                        const message =
+                          battleInvitationError instanceof Error
+                            ? battleInvitationError.message
+                            : "No se pudo enviar el desafío Battle.";
+
+                        console.error(
+                          "[VYRO BATTLE] No se pudo enviar el desafío.",
+                          battleInvitationError,
+                        );
+
+                        window.alert(message);
+                      }
+                    }}
+                    className="flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-[11px] font-black text-white/90 transition duration-200 hover:bg-emerald-400/15 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="text-emerald-300"
+                    >
+                      ⚔
+                    </span>
+
+                    <span className="hidden sm:inline">
+                      Battle
                     </span>
                   </button>
 
@@ -2360,7 +2737,7 @@ export default function LiveWatchPage() {
                       );
                     }}
                     className={[
-                      "flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
+                      "flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-[11px] font-black text-white/90 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60",
                       viewerPanel === "gifts"
                         ? "bg-white/15 text-white shadow-sm"
                         : "hover:bg-white/10 hover:text-white",
@@ -2380,7 +2757,7 @@ export default function LiveWatchPage() {
                     onClick={() => {
                       void handleShareLive();
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-black text-white/90 transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+                    className="flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-[11px] font-black text-white/90 transition duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
                   >
                     <Share2 size={16} />
 
@@ -2390,21 +2767,53 @@ export default function LiveWatchPage() {
                     </span>
                   </button>
 
-                  <div className="mx-0.5 h-5 w-px bg-white/10" />
+                  <div className="my-1 h-px w-full bg-white/[0.07]" />
 
-                  <div className="flex h-9 items-center gap-1 rounded-full px-2 text-[11px] font-black text-white/70">
-                    <span
-                      aria-hidden="true"
-                      className="h-2 w-2 animate-pulse rounded-full bg-red-500"
-                    />
+                  <div className="flex h-9 w-full items-center justify-between rounded-xl bg-white/[0.025] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
+                    <span>EN DIRECTO</span>
 
-                    <span>
+
+                    <span className="flex items-center gap-1.5 text-white/75">
+                      <span
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500"
+                      />
                       {presenceCounters?.activeViewers ??
                         room.counters.activeViewers}
                     </span>
                   </div>
                 </div>
-              </div>
+                <button
+                  type="button"
+                  aria-label={
+                    viewerActionsOpen
+                      ? "Cerrar acciones del LIVE"
+                      : "Abrir acciones del LIVE"
+                  }
+                  aria-expanded={viewerActionsOpen}
+                  onClick={() => {
+                    setViewerActionsOpen(
+                      (current) => !current,
+                    );
+
+                    if (viewerActionsOpen) {
+                      setReactionPickerOpen(false);
+                    }
+                  }}
+                  className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/35 bg-black/80 text-xl font-black text-cyan-300 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition hover:scale-105 hover:border-cyan-300/60 hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      "transition-transform duration-200",
+                      viewerActionsOpen
+                        ? "rotate-45"
+                        : "",
+                    ].join(" ")}
+                  >
+                    ✥
+                  </span>
+                </button>              </div>
             </div>
         </section>
         {viewerAuthGateOpen ? (
@@ -2439,7 +2848,9 @@ export default function LiveWatchPage() {
                       ? "Inicia sesión para seguir a este creador."
                       : viewerAuthAction === "guest"
                         ? "Inicia sesión para solicitar subir al LIVE como Guest."
-                        : "Inicia sesión para enviar regalos al creador."}
+                        : viewerAuthAction === "battle"
+                          ? "Inicia sesión para participar en VYRO Battle."
+                          : "Inicia sesión para enviar regalos al creador."}
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -2468,7 +2879,7 @@ export default function LiveWatchPage() {
             </div>
           </div>
         ) : null}
-        <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <section className="hidden">
           <MetricCard
             title="Espectadores"
             value={
@@ -2509,7 +2920,7 @@ export default function LiveWatchPage() {
           />
         </section>
 
-        <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="hidden">
           <RealtimeCard
             title="Reacciones Realtime"
             value={reactionVersion}
@@ -2537,411 +2948,12 @@ export default function LiveWatchPage() {
 
 
 
-        {battleLoading ? (
-          <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#07111D] p-8 text-center">
-            <LoaderCircle className="mx-auto animate-spin text-fuchsia-400" />
-
-            <p className="mt-4 text-sm text-white/50">
-              Cargando batalla LIVE...
-            </p>
-          </section>
-        ) : null}
-
-        {!battleLoading && battleError ? (
-          <section
-            role="alert"
-            className="mt-8 rounded-[2rem] border border-red-500/30 bg-red-500/10 p-6 text-red-200"
-          >
-            {battleError}
-          </section>
-        ) : null}
-
-        {battleSeriesLoading ? (
-          <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#07111D] p-8 text-center">
-            <LoaderCircle className="mx-auto animate-spin text-amber-300" />
-
-            <p className="mt-4 text-sm text-white/50">
-              Cargando Battle Series...
-            </p>
-          </section>
-        ) : null}
-
-        {!battleSeriesLoading && battleSeriesError ? (
-          <section
-            role="alert"
-            className="mt-8 rounded-[2rem] border border-red-500/30 bg-red-500/10 p-6 text-red-200"
-          >
-            {battleSeriesError}
-          </section>
-        ) : null}
-
-        {!battleSeriesLoading &&
-        !battleSeriesError &&
-        liveBattleSeries &&
-        liveBattle ? (
-          <>
-            <section className="mt-8">
-              <BattleSeriesScoreboard
-                status={liveBattleSeries.status}
-                currentPosition={
-                  liveBattleSeries.currentPosition
-                }
-                totalBattles={
-                  liveBattleSeries.config.totalBattles
-                }
-                leftCreatorId={
-                  liveBattle.left.creatorId
-                }
-                rightCreatorId={
-                  liveBattle.right.creatorId
-                }
-                leftCreatorName={
-                  liveBattle.left.creatorName
-                }
-                rightCreatorName={
-                  liveBattle.right.creatorName
-                }
-                leftWins={liveBattleSeries.leftWins}
-                rightWins={liveBattleSeries.rightWins}
-                draws={liveBattleSeries.draws}
-                winnerId={liveBattleSeries.winnerId}
-              />
-            </section>
-
-            {presentation.showRoundTransition &&
-            presentation.startsAt ? (
-              <section className="mt-8">
-                <BattleRoundTransition
-                  round={
-                    presentation.round
-                  }
-                  totalRounds={
-                    presentation.totalRounds
-                  }
-                  leftCreatorName={
-                    liveBattle.left.creatorName
-                  }
-                  rightCreatorName={
-                    liveBattle.right.creatorName
-                  }
-                  remainingSeconds={
-                    presentation.remainingSeconds
-                  }
-                  countdownLabel={
-                    presentation.countdownLabel
-                  }
-                />
-              </section>
-            ) : null}
-
-            <section className="mt-8">
-              <BattleTimeline
-                events={
-                  battleTimelineEvents
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleHighlights
-                highlights={
-                  battleHighlights
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleReplay
-                moments={
-                  battleReplayMoments
-                }
-                activeMomentId={
-                  activeBattleReplayMomentId
-                }
-                onPlay={
-                  playBattleReplay
-                }
-                onStop={
-                  stopBattleReplay
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleAnalytics
-                analytics={
-                  battleAnalytics
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleAIDirector
-                director={
-                  battleAIDirector
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleMVP
-                result={
-                  battleMVP
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleRecap
-                recap={
-                  battleRecap
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleStory
-                story={
-                  battleStory
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleShareCard
-                data={
-                  battleShareCard
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleHistory
-                entries={
-                  battleHistoryEntries
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleRankingEvolution
-                data={
-                  battleRankingEvolution
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <VyroLiveCelebration
-                event={
-                  coordinatedCelebrationEvent
-                }
-                onComplete={() => {
-                  if (
-                    coordinatedCelebrationEvent
-                  ) {
-                    dismissVyroLiveCelebration(
-                      coordinatedCelebrationEvent.id,
-                    );
-                  }
-                }}
-              />
-            </section>
-
-            <section className="mt-8">
-              <NextChallenger
-                data={
-                  nextChallenger
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <VyroHallOfFame
-                data={
-                  vyroHallOfFame
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <VyroWorldCup
-                data={
-                  vyroWorldCup
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <WorldVyroKing
-                state={
-                  worldVyroKing
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <WorldTitleDefense
-                defense={
-                  worldVyroKing.latestDefense
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <WorldTitleHistory
-                defenses={
-                  worldTitleHistory
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <VyroTitlePanel
-                state={
-                  vyroTitles
-                }
-              />
-            </section>
-
-            <section className="mt-8">
-              <BattleQueue
-                rounds={liveBattleSeries.rounds}
-                currentPosition={
-                  liveBattleSeries.currentPosition
-                }
-                leftCreatorId={
-                  liveBattle.left.creatorId
-                }
-                rightCreatorId={
-                  liveBattle.right.creatorId
-                }
-                leftCreatorName={
-                  liveBattle.left.creatorName
-                }
-                rightCreatorName={
-                  liveBattle.right.creatorName
-                }
-              />
-            </section>
-          </>
-        ) : null}
-
-        {!battleLoading &&
-        !battleError &&
-        liveBattle &&
-        presentation.showBattleEngine ? (
-          <section className="mt-8">
-            <LiveBattleEngine
-              battle={liveBattle}
-            />
-          </section>
-        ) : null}
-
-        <section className="mt-8">
-          <LiveLeaderboardPanel
-            entries={leaderboardEntries}
-            totalParticipants={
-              leaderboardParticipants
-            }
-          />
-        </section>
-
-        <section className="mt-8">
-          <LiveRankingPanel
-            roomId={roomId}
-            rankingVersion={rankingVersion}
-          />
-        </section>
+        {/* VYRO WATCH:
+            Battle/competitive engines remain active above.
+            The legacy analytics dashboard is intentionally not rendered
+            below the public LIVE stage. */}
                 {/* VYRO VIEWER FLOATING GIFTS */}
-        <section
-          className={
-            viewerPanel === "gifts"
-              ? "fixed inset-0 z-[90] flex items-center justify-center bg-black/[0.10] p-3 backdrop-blur-[1px] sm:p-6"
-              : "mt-8"
-          }
-        >
-          <div
-            className={
-              viewerPanel === "gifts"
-                ? "relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] shadow-[0_18px_55px_rgba(0,0,0,0.22)]"
-                : ""
-            }
-          >
-            {viewerPanel === "gifts" ? (
-              <button
-                type="button"
-                aria-label="Cerrar regalos"
-                onClick={() => {
-                  setViewerPanel(null);
-                }}
-                className="absolute right-4 top-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/80 text-xl font-black text-white shadow-xl backdrop-blur-xl transition hover:bg-white/15"
-              >
-                ×
-              </button>
-            ) : null}
 
-            <GiftPicker
-              roomId={roomId}
-              battleRecipients={
-                liveBattle?.status === "active"
-                  ? {
-                      left: {
-                        id:
-                          liveBattle.left.creatorId,
-                        name:
-                          liveBattle.left.creatorName,
-                      },
-                      right: {
-                        id:
-                          liveBattle.right.creatorId,
-                        name:
-                          liveBattle.right.creatorName,
-                      },
-                    }
-                  : null
-              }
-            />
-          </div>
-        </section>
-                {/* VYRO VIEWER FLOATING CHAT */}
-        <section
-          className={
-            viewerPanel === "chat"
-              ? "fixed inset-0 z-[90] flex items-center justify-center bg-black/[0.10] p-3 backdrop-blur-[1px] sm:p-6"
-              : "mt-8"
-          }
-        >
-          <div
-            className={
-              viewerPanel === "chat"
-                ? "relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] shadow-[0_18px_55px_rgba(0,0,0,0.22)]"
-                : ""
-            }
-          >
-            {viewerPanel === "chat" ? (
-              <button
-                type="button"
-                aria-label="Cerrar comentarios"
-                onClick={() => {
-                  setViewerPanel(null);
-                }}
-                className="absolute right-4 top-4 z-[100] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/80 text-xl font-black text-white shadow-xl backdrop-blur-xl transition hover:bg-white/15"
-              >
-                ×
-              </button>
-            ) : null}
-
-            <LiveChatPanel
-              messages={messages}
-              loading={chatLoading}
-              sending={chatSending}
-              connected={chatConnected}
-              error={chatError}
-              onSendMessage={sendMessage}
-            />
-          </div>
-        </section>
 
       </section>
       </main>

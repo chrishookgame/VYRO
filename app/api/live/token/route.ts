@@ -8,6 +8,7 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 type LiveTokenRole =
   | "host"
   | "guest"
+  | "battle"
   | "viewer";
 
 type LiveTokenRequestBody = {
@@ -34,6 +35,13 @@ type LiveGuestInvitationRow = {
   status: string;
   stage_status: string;
   permissions: unknown;
+};
+
+type LiveBattleInvitationRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: string;
 };
 
 const DEFAULT_GUEST_PERMISSIONS:
@@ -92,6 +100,7 @@ export async function POST(
     const role: LiveTokenRole | null =
       body.role === "host" ||
       body.role === "guest" ||
+      body.role === "battle" ||
       body.role === "viewer"
         ? body.role
         : null;
@@ -103,7 +112,7 @@ export async function POST(
           token: "",
           url: "",
           error:
-            "La solicitud de acceso LIVE no es válida.",
+            "La solicitud de acceso LIVE no es v├ílida.",
         },
         {
           status: 400,
@@ -114,7 +123,8 @@ export async function POST(
     if (
       (
         role === "host" ||
-        role === "guest"
+        role === "guest" ||
+        role === "battle"
       ) &&
       (
         authError ||
@@ -127,7 +137,7 @@ export async function POST(
           token: "",
           url: "",
           error:
-            "Debes iniciar sesión para transmitir o participar como Guest.",
+            "Debes iniciar sesi├│n para transmitir o participar como Guest.",
         },
         {
           status: 401,
@@ -226,7 +236,8 @@ export async function POST(
     if (
       (
         role === "viewer" ||
-        role === "guest"
+        role === "guest" ||
+        role === "battle"
       ) &&
       ![
         "live",
@@ -240,7 +251,7 @@ export async function POST(
           token: "",
           url: "",
           error:
-            "Esta transmisión ya no está disponible.",
+            "Esta transmisi├│n ya no est├í disponible.",
         },
         {
           status: 409,
@@ -332,7 +343,7 @@ export async function POST(
             token: "",
             url: "",
             error:
-              "No tienes una invitación Guest activa para este LIVE.",
+              "No tienes una invitaci├│n Guest activa para este LIVE.",
           },
           {
             status: 403,
@@ -372,6 +383,97 @@ export async function POST(
       }
     }
 
+    let battleInvitationId:
+      string | null =
+      null;
+
+    if (role === "battle") {
+      const {
+        data: battleInvitationData,
+        error: battleInvitationError,
+      } = await supabase
+        .from(
+          "live_battle_invitations",
+        )
+        .select(
+          "id,sender_id,receiver_id,status",
+        )
+        .eq(
+          "room_id",
+          roomId,
+        )
+        .or(
+          `sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`,
+        )
+        .eq(
+          "status",
+          "accepted",
+        )
+        .order(
+          "accepted_at",
+          {
+            ascending: false,
+          },
+        )
+        .limit(1);
+
+      if (battleInvitationError) {
+        console.error(
+          "VYRO Battle authorization failed:",
+          battleInvitationError.message,
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            token: "",
+            url: "",
+            error:
+              "No fue posible validar tu acceso a VYRO Battle.",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      const battleInvitation =
+        (
+          battleInvitationData?.[0] ??
+          null
+        ) as
+          | LiveBattleInvitationRow
+          | null;
+
+      if (
+        !battleInvitation ||
+        (
+          battleInvitation.sender_id !==
+            user!.id &&
+          battleInvitation.receiver_id !==
+            user!.id
+        ) ||
+        battleInvitation.status !==
+          "accepted"
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            token: "",
+            url: "",
+            error:
+              "No tienes una invitacion Battle aceptada para este LIVE.",
+          },
+          {
+            status: 403,
+          },
+        );
+      }
+
+      battleInvitationId =
+        battleInvitation.id;
+    }
+
     const livekitUrl =
       process.env.LIVEKIT_URL;
 
@@ -396,7 +498,7 @@ export async function POST(
           token: "",
           url: "",
           error:
-            "VYRO LIVE Media Core no está disponible temporalmente.",
+            "VYRO LIVE Media Core no est├í disponible temporalmente.",
         },
         {
           status: 503,
@@ -413,41 +515,51 @@ export async function POST(
         ? `host:${user!.id}`
         : role === "guest"
           ? `guest:${user!.id}`
-          : `viewer:${viewerId}`;
+          : role === "battle"
+            ? `battle:${user!.id}`
+            : `viewer:${viewerId}`;
 
     const participantName =
       role === "host"
         ? "VYRO Host"
         : role === "guest"
           ? "VYRO Guest"
-          : "VYRO Viewer";
+          : role === "battle"
+            ? "VYRO Battle"
+            : "VYRO Viewer";
 
     const canPublish =
       role === "host" ||
+      role === "battle" ||
       (
         role === "guest" &&
         guestStageStatus === "on_stage"
       );
 
-    const guestPublishSources =
-      role === "guest" &&
-      guestStageStatus === "on_stage" &&
-      guestPermissions
+    const publishSources =
+      role === "battle"
         ? [
-            ...(guestPermissions.canPublishCamera
-              ? [TrackSource.CAMERA]
-              : []),
-            ...(guestPermissions.canPublishMicrophone
-              ? [TrackSource.MICROPHONE]
-              : []),
-            ...(guestPermissions.canShareScreen
-              ? [
-                  TrackSource.SCREEN_SHARE,
-                  TrackSource.SCREEN_SHARE_AUDIO,
-                ]
-              : []),
+            TrackSource.CAMERA,
+            TrackSource.MICROPHONE,
           ]
-        : undefined;
+        : role === "guest" &&
+            guestStageStatus === "on_stage" &&
+            guestPermissions
+          ? [
+              ...(guestPermissions.canPublishCamera
+                ? [TrackSource.CAMERA]
+                : []),
+              ...(guestPermissions.canPublishMicrophone
+                ? [TrackSource.MICROPHONE]
+                : []),
+              ...(guestPermissions.canShareScreen
+                ? [
+                    TrackSource.SCREEN_SHARE,
+                    TrackSource.SCREEN_SHARE_AUDIO,
+                  ]
+                : []),
+            ]
+          : undefined;
 
     const token =
       new AccessToken(
@@ -465,6 +577,7 @@ export async function POST(
               role,
               roomId,
               guestInvitationId,
+              battleInvitationId,
               guestPermissions,
             }),
         },
@@ -475,7 +588,7 @@ export async function POST(
       room: roomId,
       canPublish,
       canPublishSources:
-        guestPublishSources,
+        publishSources,
       canSubscribe: true,
       canPublishData:
         role === "host",
@@ -491,6 +604,7 @@ export async function POST(
       roomId,
       role,
       guestPermissions,
+      battleInvitationId,
     });
   }
   catch (error) {

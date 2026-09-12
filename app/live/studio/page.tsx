@@ -34,6 +34,8 @@ import { LiveGuestControlCenter } from "@/components/live/guest";
 import { GiftOverlay } from "@/components/live/gifts";
 import { VyroGuestCanvasStage } from "@/components/live/guest/stage/VyroGuestCanvasStage";
 import { LiveProductionPanel } from "@/components/live/production/LiveProductionPanel";
+import { BattleAudioReceiver } from "@/components/live/battle/BattleAudioReceiver";
+import { BattleMediaStage } from "@/components/live/battle/BattleMediaStage";
 import { LiveRankingPanel } from "@/components/live/ranking";
 import { VyroCreatorControlStrip } from "@/components/live/studio/VyroCreatorControlStrip";
 import { VyroVirtualStudioPanel } from "@/components/live/studio/virtual";
@@ -1909,6 +1911,23 @@ export default function LiveStudioPage() {
                 layoutMode={creatorGuestLayoutMode}
               />
 
+              {isLive &&
+              activeBattle?.status ===
+                "active" ? (
+                <div className="absolute inset-4 z-30 flex items-center justify-center">
+                  <div className="w-full max-w-5xl">
+                    <BattleMediaStage
+                room={liveKitRoom}
+                active
+                cameraEnabled={cameraEnabled}
+                microphoneEnabled={microphoneEnabled}
+                onToggleCamera={toggleCamera}
+                onToggleMicrophone={toggleMicrophone}
+              />
+                  </div>
+                </div>
+              ) : null}
+
               {isLive ? (
                 <div className="pointer-events-none absolute inset-0 z-40">
                   <GiftOverlay
@@ -2044,6 +2063,20 @@ export default function LiveStudioPage() {
                     giftUpdateSignal={
                       studioLastGiftUpdate
                     }
+                    onOpenBattle={() => {
+                      setControlCenterMasterOpen(true);
+
+                      window.setTimeout(() => {
+                        document
+                          .querySelector(
+                            "[data-vyro-battle-studio]",
+                          )
+                          ?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                      }, 0);
+                    }}
                     beautyEnabled={
                       beautyEnabled
                     }
@@ -2160,7 +2193,11 @@ export default function LiveStudioPage() {
                                   onClick={() => {
                                     void acceptBattleInvitation(
                                       invitation.id,
-                                    );
+                                    ).then(() => {
+                                      setControlCenterMasterOpen(
+                                        true,
+                                      );
+                                    });
                                   }}
                                   className="rounded-xl border border-fuchsia-300/35 bg-fuchsia-300/15 px-3 py-2 text-xs font-black text-fuchsia-100"
                                 >
@@ -2471,6 +2508,11 @@ export default function LiveStudioPage() {
               />
             </div>
 
+            <BattleAudioReceiver
+              room={liveKitRoom}
+              isLive={isLive}
+            />
+
             <LiveProductionPanel
               room={liveKitRoom}
               roomId={session?.id ?? null}
@@ -2531,6 +2573,7 @@ export default function LiveStudioPage() {
                 {controlCenterMasterOpen ? (
                   <div className="border-t border-white/10 px-4 pb-6 md:px-6">
 <div className="mt-8 w-full">
+          <div data-vyro-battle-studio>
           <BattleStudio
                   roomId={
                     session?.id ?? null
@@ -2547,6 +2590,7 @@ export default function LiveStudioPage() {
                     );
                   }}
           />
+          </div>
         </div>
 
         {activeBattleSeries ? (
